@@ -1,0 +1,29 @@
+{
+  "name": "loopstorm-guard",
+  "version": "0.1.0",
+  "private": true,
+  "description": "LoopStorm Guard — runtime enforcement layer and AI agent safety platform",
+  "workspaces": [
+    "packages/*",
+    "apps/shim-ts"
+  ],
+  "scripts": {
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "dev": "turbo run dev",
+    "format": "biome format --write .",
+    "check": "biome check ."
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.3"
+  },
+  "packageManager": "bun@1.2.5",
+  "engines": {
+    "bun": ">=1.2.0",
+    "node": ">=20.0.0"
+  }
+}

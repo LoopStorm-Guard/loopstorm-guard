@@ -1,0 +1,33 @@
+{
+  "name": "@loopstorm/shim-ts",
+  "version": "0.1.0",
+  "description": "LoopStorm Guard TypeScript shim — wraps agent tool calls with enforcement",
+  "license": "MIT",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": ["dist", "bin"],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm,cjs --dts",
+    "test": "bun test",
+    "lint": "biome check src/",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "*",
+    "tsup": "^8.3.5",
+    "typescript": "*"
+  },
+  "keywords": ["ai", "agent", "safety", "enforcement", "loopstorm"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/loopstorm/loopstorm-guard"
+  }
+}

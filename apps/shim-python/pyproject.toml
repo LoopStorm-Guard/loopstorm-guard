@@ -1,0 +1,55 @@
+# SPDX-License-Identifier: MIT
+[build-system]
+requires = ["setuptools>=72", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "loopstorm"
+version = "0.1.0"
+description = "LoopStorm Guard Python shim — wraps agent tool calls with enforcement"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "LoopStorm Guard Contributors" }]
+requires-python = ">=3.10"
+keywords = ["ai", "agent", "safety", "enforcement", "loopstorm"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries",
+    "Topic :: Security",
+]
+
+# Runtime dependencies — kept minimal for Mode 0 (air-gapped) compatibility.
+# The shim communicates with the engine over a local UDS; no network required.
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=8.3", "pytest-asyncio>=0.24", "mypy>=1.13", "ruff>=0.8"]
+
+[project.urls]
+Homepage = "https://loopstorm.dev"
+Repository = "https://github.com/loopstorm/loopstorm-guard"
+Documentation = "https://docs.loopstorm.dev"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["loopstorm*"]
+
+[tool.setuptools.package-data]
+loopstorm = ["bin/*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP"]
+
+[tool.mypy]
+python_version = "3.10"
+strict = true

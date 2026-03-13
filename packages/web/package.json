@@ -1,0 +1,29 @@
+{
+  "name": "@loopstorm/web",
+  "version": "0.1.0",
+  "description": "LoopStorm Guard web UI — Next.js 15 App Router (AGPL-3.0-only)",
+  "license": "AGPL-3.0-only",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "test": "bun test",
+    "lint": "biome check src/ app/",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@loopstorm/schemas": "*",
+    "next": "^15.1.6",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "@supabase/supabase-js": "^2.47.10"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "*",
+    "@types/node": "^22.10.7",
+    "@types/react": "^19.0.7",
+    "@types/react-dom": "^19.0.3",
+    "typescript": "*"
+  }
+}

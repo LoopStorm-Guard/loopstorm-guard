@@ -1,0 +1,40 @@
+# SPDX-License-Identifier: MIT
+[package]
+name = "loopstorm-engine"
+description = "LoopStorm Guard enforcement engine — policy evaluation, budget tracking, loop detection"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "loopstorm-engine"
+path = "src/main.rs"
+
+[lib]
+name = "loopstorm_engine"
+path = "src/lib.rs"
+
+[[bench]]
+name = "enforcement_pipeline"
+harness = false
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+anyhow.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+sha2.workspace = true
+hex.workspace = true
+uuid.workspace = true
+jsonschema.workspace = true
+
+[dev-dependencies]
+criterion.workspace = true
+
+[build-dependencies]
+# build.rs uses only std — no extra deps needed

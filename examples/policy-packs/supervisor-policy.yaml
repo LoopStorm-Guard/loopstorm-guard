@@ -1,0 +1,83 @@
+# LoopStorm Guard — Supervisor Policy Pack
+# Used by the AI Supervisor worker (ADR-012).
+# The supervisor is a trusted internal component with elevated permissions,
+# but still subject to budget enforcement.
+#
+# The supervisor may:
+#   - Read any data source (for analysis)
+#   - Call the Anthropic API (for reasoning)
+#   - Write proposals and escalations to the database
+#   - NOT execute shell commands or write to arbitrary files
+
+schema_version: 1
+name: "Supervisor Policy Pack"
+description: >
+  Policy for the LoopStorm AI Supervisor (ADR-012).
+  The supervisor analyzes agent runs and proposes policy adjustments.
+  Elevated permissions for read/analysis; restricted for writes.
+
+agent_role: "loopstorm-supervisor"
+
+rules:
+  # Allow supervisor to call Anthropic API for analysis
+  - name: allow-anthropic-api
+    action: allow
+    tool: "http.request"
+    conditions:
+      - field: "args.url"
+        operator: "matches"
+        pattern: "https://api.anthropic.com/*"
+
+  # Allow supervisor to read from database (analysis queries)
+  - name: allow-db-read
+    action: allow
+    tool_pattern: "db.query*"
+
+  # Allow supervisor to write proposals and escalations only
+  - name: allow-db-write-proposals
+    action: allow
+    tool: "db.insert"
+    conditions:
+      - field: "args.table"
+        operator: "in"
+        value:
+          - "supervisor_proposals"
+          - "supervisor_escalations"
+          - "supervisor_jobs"
+
+  # Block supervisor from writing to agent data tables
+  - name: deny-db-write-agent-tables
+    action: deny
+    tool: "db.insert"
+    conditions:
+      - field: "args.table"
+        operator: "in"
+        value:
+          - "agent_profiles"
+          - "supervisor_runs"
+    reason: "Supervisor must not directly modify agent tables."
+
+  # Block shell execution entirely
+  - name: deny-shell
+    action: deny
+    tool_pattern: "shell.*"
+    reason: "Supervisor may not execute shell commands."
+
+  # Default deny
+  - name: default-deny
+    action: deny
+    reason: "Supervisor: no matching rule (ADR-002 fail-closed)."
+
+budget:
+  # Per ADR-012: hard limit $2.00 per supervisor run
+  cost_usd:
+    soft: 1.50
+    hard: 2.00
+  call_count:
+    soft: 80
+    hard: 100
+
+loop_detection:
+  enabled: true
+  identical_call_window_seconds: 60
+  identical_call_threshold: 3

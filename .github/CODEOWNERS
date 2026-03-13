@@ -1,0 +1,43 @@
+# CODEOWNERS — GitHub auto-requests reviews from the listed owners.
+# Pattern matching follows .gitignore rules; last matching rule wins.
+
+# ── Default: platform engineer owns all infrastructure ───────────────────────
+*                               @loopstorm/platform
+
+# ── ADRs and architecture docs ───────────────────────────────────────────────
+/docs/adrs/                     @loopstorm/architects
+/docs/control-philosophy.md     @loopstorm/architects
+/docs/owasp-agentic-mapping.md  @loopstorm/architects
+
+# ── Schema (single source of truth — ADR-003) ────────────────────────────────
+# Any schema change requires both platform (CI) and architect (design) review.
+/schemas/                       @loopstorm/architects @loopstorm/platform
+/packages/schemas/              @loopstorm/architects @loopstorm/platform
+
+# ── Rust enforcement engine ───────────────────────────────────────────────────
+/apps/engine/                   @loopstorm/engine @loopstorm/platform
+/apps/cli/                      @loopstorm/engine @loopstorm/platform
+
+# ── Python shim ──────────────────────────────────────────────────────────────
+/apps/shim-python/              @loopstorm/sdk @loopstorm/platform
+
+# ── TypeScript shim ──────────────────────────────────────────────────────────
+/apps/shim-ts/                  @loopstorm/sdk @loopstorm/platform
+
+# ── Backend API (AGPL) ───────────────────────────────────────────────────────
+/packages/backend/              @loopstorm/backend @loopstorm/platform
+
+# ── Web UI (AGPL) ────────────────────────────────────────────────────────────
+/packages/web/                  @loopstorm/frontend @loopstorm/platform
+
+# ── CI/CD and infrastructure ─────────────────────────────────────────────────
+/.github/                       @loopstorm/platform
+/infra/                         @loopstorm/platform
+/scripts/                       @loopstorm/platform
+/turbo.json                     @loopstorm/platform
+/Cargo.toml                     @loopstorm/platform
+
+# ── License files — any change requires founder sign-off ─────────────────────
+/LICENSE*                       @loopstorm/founders
+/apps/engine/LICENSE            @loopstorm/founders @loopstorm/engine
+/packages/backend/LICENSE       @loopstorm/founders @loopstorm/backend

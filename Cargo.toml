@@ -1,0 +1,46 @@
+# SPDX-License-Identifier: MIT
+# Root Cargo workspace — covers all Rust crates in the monorepo.
+# The workspace Cargo.lock is intentionally gitignored for the OSS release
+# (consumers pin their own). CI always does a clean build.
+[workspace]
+resolver = "2"
+members = [
+    "apps/engine",
+    "apps/cli",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["LoopStorm Guard Contributors"]
+license = "MIT"
+repository = "https://github.com/loopstorm/loopstorm-guard"
+
+[workspace.dependencies]
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Async runtime
+tokio = { version = "1.41", features = ["full"] }
+
+# Error handling
+anyhow = "1.0"
+thiserror = "2.0"
+
+# Logging / tracing
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+
+# Hashing
+sha2 = "0.10"
+hex = "0.4"
+
+# UUID v7
+uuid = { version = "1.11", features = ["v7"] }
+
+# JSON schema validation
+jsonschema = "0.18"
+
+# Criterion for benchmarks
+criterion = { version = "0.5", features = ["html_reports"] }

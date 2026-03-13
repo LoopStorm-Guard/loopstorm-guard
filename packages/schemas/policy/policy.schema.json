@@ -1,0 +1,278 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.loopstorm.dev/policy/policy.schema.json",
+  "title": "LoopStorm Policy Pack",
+  "description": "Schema for policy YAML files that define enforcement rules, budget caps, and agent identity. The single source of truth for all consumers (ADR-003). CI enforces SHA-256 hash match with engine/build.rs.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "rules"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1,
+      "description": "Policy schema version. Engine rejects packs with unsupported versions."
+    },
+    "name": {
+      "type": "string",
+      "description": "Human-readable name for this policy pack."
+    },
+    "description": {
+      "type": "string",
+      "description": "Description of this policy pack's purpose."
+    },
+    "agent_role": {
+      "type": "string",
+      "description": "The agent role this policy pack applies to (ADR-008). Optional in schema_version 1, required in schema_version 2."
+    },
+    "environment": {
+      "type": "string",
+      "description": "Default environment tag for this policy pack. Can be overridden per-rule."
+    },
+    "rules": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Ordered list of policy rules. First match wins. If no rule matches, the decision is deny (ADR-002).",
+      "items": {
+        "$ref": "#/$defs/rule"
+      }
+    },
+    "budget": {
+      "$ref": "#/$defs/budget",
+      "description": "Budget configuration for runs using this policy pack (ADR-007)."
+    },
+    "loop_detection": {
+      "$ref": "#/$defs/loop_detection",
+      "description": "Loop detection configuration. Optional — defaults apply if omitted."
+    },
+    "redaction": {
+      "$ref": "#/$defs/redaction",
+      "description": "Redaction patterns configuration. Optional — defaults apply if omitted."
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "rule": {
+      "type": "object",
+      "required": ["name", "action"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Unique name for this rule within the policy pack."
+        },
+        "action": {
+          "type": "string",
+          "enum": ["allow", "deny", "require_approval"],
+          "description": "The enforcement action when this rule matches."
+        },
+        "tool": {
+          "type": "string",
+          "description": "Exact tool name to match. Mutually exclusive with tool_pattern."
+        },
+        "tool_pattern": {
+          "type": "string",
+          "description": "Glob pattern to match tool names (e.g., 'db.*', 'http.request'). Mutually exclusive with tool."
+        },
+        "conditions": {
+          "type": "array",
+          "description": "Additional conditions that must all be true for this rule to match.",
+          "items": {
+            "$ref": "#/$defs/condition"
+          }
+        },
+        "timeout": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Timeout in seconds for require_approval decisions. If no human response within this time, timeout_action applies."
+        },
+        "timeout_action": {
+          "type": "string",
+          "enum": ["deny", "allow", "kill"],
+          "description": "Action when a require_approval decision times out. Defaults to 'deny'."
+        },
+        "reason": {
+          "type": "string",
+          "description": "Human-readable reason included in deny/require_approval responses."
+        },
+        "priority": {
+          "type": "integer",
+          "description": "Optional explicit priority. Lower numbers match first. If omitted, rules are evaluated in array order."
+        }
+      },
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": { "action": { "const": "require_approval" } },
+            "required": ["action"]
+          },
+          "then": {
+            "required": ["timeout", "timeout_action"]
+          }
+        }
+      ],
+      "not": {
+        "required": ["tool", "tool_pattern"]
+      }
+    },
+    "condition": {
+      "type": "object",
+      "required": ["field", "operator"],
+      "properties": {
+        "field": {
+          "type": "string",
+          "description": "The field to evaluate. Supports: 'agent_role', 'environment', 'tool', 'url', or dot-notation into args_redacted (e.g., 'args.url')."
+        },
+        "operator": {
+          "type": "string",
+          "enum": ["equals", "not_equals", "matches", "not_matches", "in", "not_in"],
+          "description": "Comparison operator. 'matches'/'not_matches' use glob patterns."
+        },
+        "value": {
+          "description": "The value to compare against. String for equals/matches, array for in/not_in.",
+          "oneOf": [
+            { "type": "string" },
+            { "type": "array", "items": { "type": "string" } }
+          ]
+        },
+        "pattern": {
+          "type": "string",
+          "description": "Glob or regex pattern for matches/not_matches operators. Alternative to 'value' for pattern-based matching."
+        }
+      },
+      "additionalProperties": false
+    },
+    "budget": {
+      "type": "object",
+      "description": "Multi-dimensional budget configuration (ADR-007). All dimensions are optional.",
+      "properties": {
+        "cost_usd": {
+          "$ref": "#/$defs/budget_dimension_float"
+        },
+        "input_tokens": {
+          "$ref": "#/$defs/budget_dimension_int"
+        },
+        "output_tokens": {
+          "$ref": "#/$defs/budget_dimension_int"
+        },
+        "call_count": {
+          "$ref": "#/$defs/budget_dimension_int"
+        }
+      },
+      "additionalProperties": false
+    },
+    "budget_dimension_float": {
+      "type": "object",
+      "required": ["hard"],
+      "properties": {
+        "soft": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Soft cap — emits warning event but run continues."
+        },
+        "hard": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Hard cap — run is terminated."
+        }
+      },
+      "additionalProperties": false
+    },
+    "budget_dimension_int": {
+      "type": "object",
+      "required": ["hard"],
+      "properties": {
+        "soft": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Soft cap — emits warning event but run continues."
+        },
+        "hard": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Hard cap — run is terminated."
+        }
+      },
+      "additionalProperties": false
+    },
+    "loop_detection": {
+      "type": "object",
+      "description": "Loop detection configuration.",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable or disable loop detection."
+        },
+        "identical_call_window_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 120,
+          "description": "Rolling window in seconds for identical call detection (Heuristic 1)."
+        },
+        "identical_call_threshold": {
+          "type": "integer",
+          "minimum": 2,
+          "default": 3,
+          "description": "Number of identical calls within the window before the heuristic fires."
+        },
+        "identical_error_threshold": {
+          "type": "integer",
+          "minimum": 2,
+          "default": 3,
+          "description": "Number of identical error responses without intervening success before the heuristic fires (Heuristic 2)."
+        },
+        "cooldown_ms": {
+          "type": "integer",
+          "minimum": 100,
+          "default": 5000,
+          "description": "Cooldown pause in milliseconds on first loop detection trigger."
+        }
+      },
+      "additionalProperties": false
+    },
+    "redaction": {
+      "type": "object",
+      "description": "Redaction configuration.",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable or disable redaction."
+        },
+        "additional_patterns": {
+          "type": "array",
+          "description": "Additional regex patterns for secret detection beyond the defaults.",
+          "items": {
+            "type": "object",
+            "required": ["name", "pattern"],
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Human-readable name for this pattern."
+              },
+              "pattern": {
+                "type": "string",
+                "description": "Regex pattern to match sensitive values."
+              },
+              "replacement": {
+                "type": "string",
+                "default": "[REDACTED]",
+                "description": "Replacement string for matched values."
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "key_patterns": {
+          "type": "array",
+          "description": "JSON key names that should always be redacted.",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

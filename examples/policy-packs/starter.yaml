@@ -1,0 +1,83 @@
+# LoopStorm Guard — Starter Policy Pack
+# Mode 0 (air-gapped) compatible.
+# No network calls required to load or evaluate this policy.
+#
+# This pack demonstrates the core enforcement primitives:
+#   - Allow safe read-only tools
+#   - Deny dangerous write/exec tools
+#   - Deny all HTTP calls to external hosts by default
+#   - Budget cap: 50 calls, $0.50 hard limit
+#
+# To validate this file:
+#   loopstorm validate examples/policy-packs/starter.yaml
+
+schema_version: 1
+name: "Starter Policy Pack"
+description: >
+  Conservative default policy for new agent deployments.
+  Allows read-only operations, blocks writes and network calls.
+  Start here and relax rules as you understand your agent's behaviour.
+
+agent_role: "general-assistant"
+
+rules:
+  # Allow safe filesystem reads
+  - name: allow-file-read
+    action: allow
+    tool_pattern: "file.read*"
+
+  # Allow local in-process tool calls (no network)
+  - name: allow-compute
+    action: allow
+    tool_pattern: "compute.*"
+
+  # Block all shell execution — highest risk
+  - name: deny-shell
+    action: deny
+    tool_pattern: "shell.*"
+    reason: "Shell execution is not permitted in this policy pack."
+
+  # Block filesystem writes
+  - name: deny-file-write
+    action: deny
+    tool_pattern: "file.write*"
+    reason: "File writes require an explicit policy rule."
+
+  # Block filesystem deletes
+  - name: deny-file-delete
+    action: deny
+    tool: "file.delete"
+    reason: "File deletion is not permitted."
+
+  # Block all HTTP/HTTPS calls to external hosts
+  - name: deny-http-external
+    action: deny
+    tool_pattern: "http.*"
+    reason: "Outbound HTTP calls are not permitted in this policy pack."
+
+  # Block database mutations
+  - name: deny-db-write
+    action: deny
+    tool_pattern: "db.write*"
+    reason: "Database writes require an explicit policy rule."
+
+  # Default deny — matches anything not already matched.
+  # This implements ADR-002 (fail-closed) explicitly in the policy.
+  - name: default-deny
+    action: deny
+    reason: "No policy rule matched this tool call. Default: deny (ADR-002)."
+
+budget:
+  call_count:
+    soft: 40
+    hard: 50
+  cost_usd:
+    soft: 0.40
+    hard: 0.50
+
+loop_detection:
+  enabled: true
+  identical_call_window_seconds: 120
+  identical_call_threshold: 3
+  identical_error_threshold: 3
+  cooldown_ms: 5000

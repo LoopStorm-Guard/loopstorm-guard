@@ -1,0 +1,28 @@
+{
+  "name": "@loopstorm/schemas",
+  "version": "0.1.0",
+  "description": "LoopStorm Guard JSON schemas — single source of truth for IPC, events, and policy (ADR-003)",
+  "license": "MIT",
+  "main": "./index.js",
+  "types": "./index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./index.js",
+      "types": "./index.d.ts"
+    },
+    "./policy": "./policy/policy.schema.json",
+    "./ipc/decision-request": "./ipc/decision-request.schema.json",
+    "./ipc/decision-response": "./ipc/decision-response.schema.json",
+    "./events": "./events/event.schema.json"
+  },
+  "files": ["**/*.json", "index.js", "index.d.ts"],
+  "scripts": {
+    "build": "tsc --noEmit",
+    "lint": "biome check .",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "*",
+    "typescript": "*"
+  }
+}

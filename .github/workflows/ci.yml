@@ -1,0 +1,345 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancel in-progress runs for the same PR/branch to save runner minutes.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Bun version pinned here and in package.json packageManager field.
+  BUN_VERSION: "1.2.5"
+  # Rust toolchain — matches engine-build.yml.
+  RUST_TOOLCHAIN: "stable"
+
+jobs:
+  # ─────────────────────────────────────────────────────────────────────────
+  # Job 1: License header check (ADR-013)
+  # Must run first — a wrong license is a legal issue, not a style issue.
+  # Scans every .ts, .tsx, .py, .rs file and asserts correct SPDX header.
+  # ─────────────────────────────────────────────────────────────────────────
+  license-check:
+    name: License Header Check
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check SPDX license headers
+        run: |
+          set -euo pipefail
+          FAIL=0
+
+          check_file() {
+            local file="$1"
+            local expected_spdx="$2"
+            local ext="${file##*.}"
+
+            # Determine comment prefix by extension
+            case "$ext" in
+              rs|ts|tsx)  prefix="//" ;;
+              py)         prefix="#"  ;;
+              *)          return 0    ;;
+            esac
+
+            local header="${prefix} SPDX-License-Identifier: ${expected_spdx}"
+
+            # Read first non-empty line of file
+            local first_line
+            first_line=$(grep -m1 . "$file" || true)
+
+            if [[ "$first_line" != "$header" ]]; then
+              echo "MISSING OR WRONG SPDX HEADER: $file"
+              echo "  Expected : $header"
+              echo "  Got      : $first_line"
+              FAIL=1
+            fi
+          }
+
+          # MIT paths: apps/ (all sub-dirs) and packages/schemas/
+          while IFS= read -r -d '' file; do
+            check_file "$file" "MIT"
+          done < <(find apps/ packages/schemas/ -type f \( -name "*.ts" -o -name "*.tsx" -o -name "*.py" -o -name "*.rs" \) -print0)
+
+          # AGPL paths: packages/backend/ and packages/web/
+          while IFS= read -r -d '' file; do
+            check_file "$file" "AGPL-3.0-only"
+          done < <(find packages/backend/ packages/web/ -type f \( -name "*.ts" -o -name "*.tsx" -o -name "*.py" -o -name "*.rs" \) -print0)
+
+          if [[ $FAIL -ne 0 ]]; then
+            echo ""
+            echo "LICENSE HEADER CHECK FAILED."
+            echo "Run scripts/add-license-headers.sh to fix missing headers."
+            echo "See ADR-013 for the licensing boundary rules."
+            exit 1
+          fi
+
+          echo "All SPDX headers OK."
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Job 2: Policy schema hash assertion (ADR-003)
+  # The SHA-256 of schemas/policy/policy.schema.json must match the hash
+  # pinned in apps/engine/build.rs POLICY_SCHEMA_HASH constant.
+  # ─────────────────────────────────────────────────────────────────────────
+  schema-hash-check:
+    name: Policy Schema Hash Assert
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Assert policy schema hash matches build.rs pinned value
+        run: |
+          set -euo pipefail
+
+          SCHEMA_FILE="packages/schemas/policy/policy.schema.json"
+          BUILD_RS="apps/engine/build.rs"
+
+          # Compute actual SHA-256 of the schema file
+          ACTUAL_HASH=$(sha256sum "$SCHEMA_FILE" | awk '{print $1}')
+
+          # Extract pinned hash from build.rs — the line looks like:
+          #   const POLICY_SCHEMA_HASH: &str = "abc123...";
+          PINNED_HASH=$(grep 'POLICY_SCHEMA_HASH:' "$BUILD_RS" \
+            | grep -oP '(?<=\")[0-9a-f]{64}(?=\")')
+
+          if [[ -z "$PINNED_HASH" ]]; then
+            echo "ERROR: Could not extract POLICY_SCHEMA_HASH from $BUILD_RS"
+            exit 1
+          fi
+
+          echo "Schema file : $SCHEMA_FILE"
+          echo "Actual hash : $ACTUAL_HASH"
+          echo "Pinned hash : $PINNED_HASH"
+
+          if [[ "$ACTUAL_HASH" != "$PINNED_HASH" ]]; then
+            echo ""
+            echo "SCHEMA HASH MISMATCH — policy schema has changed without"
+            echo "updating the pinned hash in apps/engine/build.rs."
+            echo ""
+            echo "Follow ADR-003 schema change process:"
+            echo "  1. Bump schema_version in $SCHEMA_FILE"
+            echo "  2. Add backward-compat fixture test"
+            echo "  3. Update POLICY_SCHEMA_HASH in $BUILD_RS to: $ACTUAL_HASH"
+            echo "  4. Update all consumer PRs before merging"
+            exit 1
+          fi
+
+          echo "Schema hash OK: $ACTUAL_HASH"
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Job 3: TypeScript lint + typecheck
+  # ─────────────────────────────────────────────────────────────────────────
+  lint-typecheck:
+    name: Lint + Typecheck
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Lint (Biome)
+        run: bun turbo run lint
+
+      - name: Typecheck
+        run: bun turbo run typecheck
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Job 4: TypeScript / Bun tests (backend + shim-ts)
+  # Uses a Postgres service container for backend integration tests.
+  # ─────────────────────────────────────────────────────────────────────────
+  test-backend:
+    name: Backend Tests
+    runs-on: ubuntu-22.04
+    services:
+      postgres:
+        image: supabase/postgres:15.6.1.143
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: loopstorm_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/loopstorm_test
+      # Better Auth — test secret, not a real secret
+      BETTER_AUTH_SECRET: ci-test-secret-not-real
+      # Disable HTTP event sink — tests are air-gapped
+      LOOPSTORM_DISABLE_HTTP_SINK: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Run backend tests
+        run: bun turbo run test --filter=@loopstorm/api
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Job 5: Rust engine + CLI tests
+  # ─────────────────────────────────────────────────────────────────────────
+  test-engine:
+    name: Rust Engine Tests
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+          components: clippy, rustfmt
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ". -> target"
+
+      - name: Rustfmt check
+        run: cargo fmt --all -- --check
+
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: Run tests (workspace)
+        # This also exercises build.rs — schema hash is asserted at compile time.
+        run: cargo test --workspace
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Job 6: Latency benchmark regression check
+  # Runs benchmarks in --test mode (compile + execute, no timing comparison).
+  # Full timing regression requires a stored baseline; flagged for Phase 2.
+  # ─────────────────────────────────────────────────────────────────────────
+  bench-engine:
+    name: Engine Benchmark Compile Check
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Run benchmarks (compile + execute, --test mode)
+        # --test mode runs each benchmark function once without timing.
+        # This catches regressions that cause panics or compile errors.
+        # TODO(platform-phase2): add benchmark baseline comparison with
+        # bencher.dev or a stored criterion baseline artifact.
+        run: cargo bench --bench enforcement_pipeline -- --test
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Job 7: Mode 0 smoke test
+  # Builds the engine binary and verifies enforcement works with zero
+  # network calls (LOOPSTORM_DISABLE_HTTP_SINK=1).
+  # ─────────────────────────────────────────────────────────────────────────
+  mode0-smoke:
+    name: Mode 0 Smoke Test (Air-Gap)
+    runs-on: ubuntu-22.04
+    env:
+      LOOPSTORM_DISABLE_HTTP_SINK: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Build engine binary
+        run: cargo build --release -p loopstorm-engine
+
+      - name: Verify engine binary starts and prints schema hash
+        run: |
+          OUTPUT=$(./target/release/loopstorm-engine)
+          echo "Engine output: $OUTPUT"
+          # Verify the schema hash is embedded in the binary output
+          if ! echo "$OUTPUT" | grep -q "10725f37ecb7e82d1073afdd154a4e4d42705c806b15ce6a3a381e53be1721bb"; then
+            echo "ERROR: Engine binary did not embed expected policy schema hash"
+            exit 1
+          fi
+          echo "Mode 0 smoke test passed."
+
+      # TODO(platform-phase2): extend smoke test to:
+      #   1. Run engine with a test policy
+      #   2. Send a DecisionRequest over UDS
+      #   3. Assert DecisionResponse is received
+      #   4. Assert JSONL audit log is written
+      #   5. Assert hash chain verifies
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Job 8: TypeScript build (all packages)
+  # ─────────────────────────────────────────────────────────────────────────
+  build-ts:
+    name: TypeScript Build
+    runs-on: ubuntu-22.04
+    needs: [lint-typecheck]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build all TypeScript packages
+        run: bun turbo run build
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # CI gate — all required jobs must pass for merge to be allowed.
+  # Add this job as the required status check in branch protection.
+  # ─────────────────────────────────────────────────────────────────────────
+  ci-gate:
+    name: CI Gate
+    runs-on: ubuntu-22.04
+    needs:
+      - license-check
+      - schema-hash-check
+      - lint-typecheck
+      - test-backend
+      - test-engine
+      - bench-engine
+      - mode0-smoke
+      - build-ts
+    if: always()
+    steps:
+      - name: Check all required jobs passed
+        run: |
+          results='${{ toJSON(needs) }}'
+          echo "$results" | python3 -c "
+          import json, sys
+          needs = json.load(sys.stdin)
+          failed = [k for k, v in needs.items() if v['result'] not in ('success', 'skipped')]
+          if failed:
+              print('FAILED jobs:', failed)
+              sys.exit(1)
+          print('All CI jobs passed.')
+          "

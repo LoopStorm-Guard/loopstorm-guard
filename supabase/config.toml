@@ -1,0 +1,48 @@
+# LoopStorm Guard — Supabase local development configuration
+#
+# IMPORTANT: The [auth] block is intentionally OMITTED.
+# Better Auth (ADR-011) handles all authentication inside the Hono API server.
+# GoTrue is NOT used. Do not add [auth] configuration here.
+#
+# Start local stack: bunx supabase start
+# Stop local stack:  bunx supabase stop
+# View status:       bunx supabase status
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 15
+
+[studio]
+enabled = true
+port = 54323
+api_url = "http://127.0.0.1"
+
+[inbucket]
+enabled = false
+# Mailpit is used instead — see docs/local-dev-setup.md
+# docker run -d --name mailpit -p 1025:1025 -p 8025:8025 axllent/mailpit
+
+[storage]
+enabled = true
+file_size_limit = "50MiB"
+
+[realtime]
+enabled = true
+ip_version = "IPv4"
+max_header_length = 4096
+
+[analytics]
+enabled = false
+
+# ── Local email via Mailpit (Better Auth OTP) ─────────────────────────────
+# Configure .env.local:
+#   SMTP_HOST=localhost
+#   SMTP_PORT=1025

@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.loopstorm.dev/ipc/decision-response.schema.json",
+  "title": "LoopStorm DecisionResponse",
+  "description": "Response sent from the engine to the shim after evaluating a tool call. See ADR-001.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "run_id",
+    "seq",
+    "decision"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1,
+      "description": "Schema version matching the request."
+    },
+    "run_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Echo of the run_id from the request."
+    },
+    "seq": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Echo of the seq from the request."
+    },
+    "decision": {
+      "type": "string",
+      "enum": ["allow", "deny", "cooldown", "kill", "require_approval"],
+      "description": "The enforcement decision. allow: call proceeds. deny: call blocked. cooldown: loop detected, pause. kill: run terminated. require_approval: held for human approval (v1.1)."
+    },
+    "rule_id": {
+      "type": "string",
+      "description": "The ID of the policy rule that produced this decision, if applicable."
+    },
+    "reason": {
+      "type": "string",
+      "description": "Human-readable explanation of the decision."
+    },
+    "cooldown_ms": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Milliseconds the shim should pause before allowing the agent to retry. Only meaningful when decision is 'cooldown'."
+    },
+    "cooldown_message": {
+      "type": "string",
+      "description": "Corrective context message to inject into the agent's context during cooldown. Only meaningful when decision is 'cooldown'."
+    },
+    "approval_id": {
+      "type": "string",
+      "description": "Identifier for the pending approval request. Only present when decision is 'require_approval'. The shim polls or subscribes for approval resolution."
+    },
+    "approval_timeout_ms": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Maximum time to wait for human approval before applying timeout_action. Only meaningful when decision is 'require_approval'."
+    },
+    "approval_timeout_action": {
+      "type": "string",
+      "enum": ["deny", "allow", "kill"],
+      "description": "Action to take if approval times out. Only meaningful when decision is 'require_approval'."
+    },
+    "budget_remaining": {
+      "type": "object",
+      "description": "Current budget state after this decision. Provided for shim-side visibility.",
+      "properties": {
+        "cost_usd": { "type": "number" },
+        "input_tokens": { "type": "integer" },
+        "output_tokens": { "type": "integer" },
+        "call_count": { "type": "integer" }
+      },
+      "additionalProperties": false
+    },
+    "ts": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of when the engine produced the decision."
+    }
+  },
+  "additionalProperties": false
+}
