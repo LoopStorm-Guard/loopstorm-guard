@@ -173,7 +173,8 @@ jobs:
           --health-cmd pg_isready
           --health-interval 10s
           --health-timeout 5s
-          --health-retries 5
+          --health-retries 10
+          --health-start-period 30s
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/loopstorm_test
       # Better Auth — test secret, not a real secret

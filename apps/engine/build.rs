@@ -17,8 +17,7 @@ use std::path::PathBuf;
 /// SHA-256 hex digest of schemas/policy/policy.schema.json.
 /// This value is the single enforcement point for ADR-003.
 /// Update this constant only as part of the schema change process defined in ADR-003.
-const POLICY_SCHEMA_HASH: &str =
-    "10725f37ecb7e82d1073afdd154a4e4d42705c806b15ce6a3a381e53be1721bb";
+const POLICY_SCHEMA_HASH: &str = "10725f37ecb7e82d1073afdd154a4e4d42705c806b15ce6a3a381e53be1721bb";
 
 fn main() {
     // Locate the workspace root: CARGO_MANIFEST_DIR is apps/engine/, so go up two levels.
