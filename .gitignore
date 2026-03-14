@@ -30,5 +30,5 @@ Thumbs.db
 .idea/
 *.swp
 
-# Claude agent memory (local only)
-.claude/agent-memory/
+# Claude Code local config (local only)
+.claude/
