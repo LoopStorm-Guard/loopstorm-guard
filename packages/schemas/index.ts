@@ -9,10 +9,10 @@
 // Raw schema exports for runtime validation
 export { default as policySchema } from "./policy/policy.schema.json" assert { type: "json" };
 export { default as decisionRequestSchema } from "./ipc/decision-request.schema.json" assert {
-	type: "json",
+  type: "json",
 };
 export { default as decisionResponseSchema } from "./ipc/decision-response.schema.json" assert {
-	type: "json",
+  type: "json",
 };
 export { default as eventSchema } from "./events/event.schema.json" assert { type: "json" };
 
