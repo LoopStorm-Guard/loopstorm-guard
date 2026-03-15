@@ -9,7 +9,7 @@
     "build": "next build",
     "start": "next start",
     "test": "bun test",
-    "lint": "biome check src/ app/",
+    "lint": "biome check src/",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

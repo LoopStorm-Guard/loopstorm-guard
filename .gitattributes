@@ -1,0 +1,22 @@
+# Normalize line endings to LF on commit for all text files.
+* text=auto eol=lf
+
+# JSON schema files must always be LF — their SHA-256 hashes are pinned
+# in apps/engine/build.rs and VERIFY.md. CRLF checkout would produce a
+# different hash and break the build on Windows runners.
+schemas/**/*.json         eol=lf
+packages/schemas/**/*.json eol=lf
+
+# Rust and TypeScript source
+*.rs    eol=lf
+*.ts    eol=lf
+*.tsx   eol=lf
+*.py    eol=lf
+
+# YAML / TOML config
+*.yml   eol=lf
+*.yaml  eol=lf
+*.toml  eol=lf
+
+# Shell scripts must be LF or they break on Linux runners
+*.sh    eol=lf

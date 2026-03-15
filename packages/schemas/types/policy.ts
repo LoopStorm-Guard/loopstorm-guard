@@ -5,7 +5,13 @@
  */
 
 export type PolicyAction = "allow" | "deny" | "require_approval";
-export type ComparisonOperator = "equals" | "not_equals" | "matches" | "not_matches" | "in" | "not_in";
+export type ComparisonOperator =
+  | "equals"
+  | "not_equals"
+  | "matches"
+  | "not_matches"
+  | "in"
+  | "not_in";
 
 export interface PolicyCondition {
   field: string;

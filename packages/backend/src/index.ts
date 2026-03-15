@@ -33,7 +33,7 @@ export default app;
 
 // Bun entry point
 if (import.meta.main) {
-  const port = Number(process.env["PORT"] ?? 3001);
+  const port = Number(process.env.PORT ?? 3001);
   console.warn(`[loopstorm-api] starting on port ${port}`);
   Bun.serve({ fetch: app.fetch, port });
 }

@@ -22,12 +22,7 @@ export interface ToolCall {
   args: Record<string, unknown>;
 }
 
-export type EnforcementDecision =
-  | "allow"
-  | "deny"
-  | "cooldown"
-  | "kill"
-  | "require_approval";
+export type EnforcementDecision = "allow" | "deny" | "cooldown" | "kill" | "require_approval";
 
 export interface DecisionResponse {
   schemaVersion: number;
