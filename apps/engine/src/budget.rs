@@ -104,34 +104,21 @@ impl BudgetTracker {
 
         // input_tokens
         if let Some(ref dim) = config.input_tokens {
-            let status = check_int_dimension(
-                "input_tokens",
-                state.input_tokens,
-                dim.soft,
-                dim.hard,
-            );
+            let status =
+                check_int_dimension("input_tokens", state.input_tokens, dim.soft, dim.hard);
             worst = worse_status(worst, status);
         }
 
         // output_tokens
         if let Some(ref dim) = config.output_tokens {
-            let status = check_int_dimension(
-                "output_tokens",
-                state.output_tokens,
-                dim.soft,
-                dim.hard,
-            );
+            let status =
+                check_int_dimension("output_tokens", state.output_tokens, dim.soft, dim.hard);
             worst = worse_status(worst, status);
         }
 
         // call_count
         if let Some(ref dim) = config.call_count {
-            let status = check_int_dimension(
-                "call_count",
-                state.call_count,
-                dim.soft,
-                dim.hard,
-            );
+            let status = check_int_dimension("call_count", state.call_count, dim.soft, dim.hard);
             worst = worse_status(worst, status);
         }
 
@@ -242,12 +229,7 @@ impl Default for BudgetTracker {
 // Helpers
 // ---------------------------------------------------------------------------
 
-fn check_float_dimension(
-    name: &str,
-    current: f64,
-    soft: Option<f64>,
-    hard: f64,
-) -> BudgetStatus {
+fn check_float_dimension(name: &str, current: f64, soft: Option<f64>, hard: f64) -> BudgetStatus {
     if current > hard {
         return BudgetStatus::HardCapExceeded {
             dimension: name.to_string(),
@@ -267,12 +249,7 @@ fn check_float_dimension(
     BudgetStatus::Ok
 }
 
-fn check_int_dimension(
-    name: &str,
-    current: u64,
-    soft: Option<u64>,
-    hard: u64,
-) -> BudgetStatus {
+fn check_int_dimension(name: &str, current: u64, soft: Option<u64>, hard: u64) -> BudgetStatus {
     if current > hard {
         return BudgetStatus::HardCapExceeded {
             dimension: name.to_string(),
@@ -365,10 +342,7 @@ mod tests {
         };
         let status = tracker.record("run-1", &update, Some(&config));
         assert!(matches!(status, BudgetStatus::SoftCapWarning { .. }));
-        if let BudgetStatus::SoftCapWarning {
-            dimension, cap, ..
-        } = status
-        {
+        if let BudgetStatus::SoftCapWarning { dimension, cap, .. } = status {
             assert_eq!(dimension, "cost_usd");
             assert_eq!(cap, 2.0);
         }

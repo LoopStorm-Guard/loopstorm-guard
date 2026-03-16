@@ -77,31 +77,11 @@ impl Redactor {
 
         // Default value patterns
         let defaults = [
-            (
-                "openai_api_key",
-                r"sk-[A-Za-z0-9]{20,}",
-                REDACTED,
-            ),
-            (
-                "publishable_key",
-                r"pk-[A-Za-z0-9]{20,}",
-                REDACTED,
-            ),
-            (
-                "api_prefix_key",
-                r"api_[A-Za-z0-9]{20,}",
-                REDACTED,
-            ),
-            (
-                "bearer_token",
-                r"Bearer\s+[A-Za-z0-9\-._~+/]+=*",
-                REDACTED,
-            ),
-            (
-                "aws_access_key",
-                r"AKIA[0-9A-Z]{16}",
-                REDACTED,
-            ),
+            ("openai_api_key", r"sk-[A-Za-z0-9]{20,}", REDACTED),
+            ("publishable_key", r"pk-[A-Za-z0-9]{20,}", REDACTED),
+            ("api_prefix_key", r"api_[A-Za-z0-9]{20,}", REDACTED),
+            ("bearer_token", r"Bearer\s+[A-Za-z0-9\-._~+/]+=*", REDACTED),
+            ("aws_access_key", r"AKIA[0-9A-Z]{16}", REDACTED),
             (
                 "jwt",
                 r"eyJ[A-Za-z0-9\-_]+\.eyJ[A-Za-z0-9\-_]+\.[A-Za-z0-9\-_.+/=]*",
@@ -398,10 +378,7 @@ mod tests {
         let result = redactor.redact(&input);
         // Nothing should be redacted when disabled
         assert_eq!(result["password"], "super_secret");
-        assert_eq!(
-            result["api_key"],
-            "sk-abcdefghijklmnopqrstuvwxyz1234567890"
-        );
+        assert_eq!(result["api_key"], "sk-abcdefghijklmnopqrstuvwxyz1234567890");
     }
 
     #[test]
