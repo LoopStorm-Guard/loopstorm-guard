@@ -109,7 +109,7 @@ impl Redactor {
             ),
             (
                 "generic_secret_hex",
-                r"(?i)(?:secret|password|token|key|credential)[\"':\s=]+[A-Fa-f0-9]{32,}",
+                r#"(?i)(?:secret|password|token|key|credential)["':\s=]+[A-Fa-f0-9]{32,}"#,
                 REDACTED,
             ),
         ];
