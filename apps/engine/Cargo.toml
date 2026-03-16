@@ -23,6 +23,7 @@ harness = false
 [dependencies]
 serde.workspace = true
 serde_json.workspace = true
+serde_yaml.workspace = true
 tokio.workspace = true
 anyhow.workspace = true
 thiserror.workspace = true
@@ -32,6 +33,9 @@ sha2.workspace = true
 hex.workspace = true
 uuid.workspace = true
 jsonschema.workspace = true
+globset.workspace = true
+regex.workspace = true
+chrono.workspace = true
 
 [dev-dependencies]
 criterion.workspace = true
