@@ -277,7 +277,7 @@ jobs:
 
       - name: Verify engine binary starts and prints schema hash
         run: |
-          OUTPUT=$(./target/release/loopstorm-engine)
+          OUTPUT=$(./target/release/loopstorm-engine --version)
           echo "Engine output: $OUTPUT"
           # Verify the schema hash is embedded in the binary output
           if ! echo "$OUTPUT" | grep -q "10725f37ecb7e82d1073afdd154a4e4d42705c806b15ce6a3a381e53be1721bb"; then
