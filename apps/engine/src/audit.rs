@@ -404,7 +404,7 @@ mod tests {
             "first event hash_prev should be null"
         );
         // But hash should be present
-        assert!(first.get("hash").is_some() && first["hash"].is_str());
+        assert!(first.get("hash").is_some() && first["hash"].as_str().is_some());
 
         // Cleanup
         std::fs::remove_dir_all(&dir).ok();

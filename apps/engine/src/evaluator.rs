@@ -57,41 +57,37 @@ pub fn evaluate(
 
     // 2. Budget hard cap check (pre-check with config if available)
     if let Some(ref budget_config) = policy.policy.budget {
-        if let Some(status) =
-            budget_tracker.check_hard_caps_with_config(&request.run_id, budget_config)
+        if let Some(BudgetStatus::HardCapExceeded {
+            dimension,
+            current,
+            cap,
+        }) = budget_tracker.check_hard_caps_with_config(&request.run_id, budget_config)
         {
-            if let BudgetStatus::HardCapExceeded {
-                dimension,
-                current,
-                cap,
-            } = status
-            {
-                warn!(
-                    run_id = %request.run_id,
-                    dimension = %dimension,
-                    current = %current,
-                    cap = %cap,
-                    "budget hard cap exceeded — kill"
-                );
-                return DecisionResponse {
-                    schema_version: 1,
-                    run_id: request.run_id.clone(),
-                    seq: request.seq,
-                    decision: Decision::Kill,
-                    rule_id: Some("__builtin_budget_hard_cap".to_string()),
-                    reason: Some(format!(
-                        "budget hard cap exceeded: {} = {:.4} (cap: {:.4})",
-                        dimension, current, cap
-                    )),
-                    cooldown_ms: None,
-                    cooldown_message: None,
-                    approval_id: None,
-                    approval_timeout_ms: None,
-                    approval_timeout_action: None,
-                    budget_remaining: None,
-                    ts: now,
-                };
-            }
+            warn!(
+                run_id = %request.run_id,
+                dimension = %dimension,
+                current = %current,
+                cap = %cap,
+                "budget hard cap exceeded — kill"
+            );
+            return DecisionResponse {
+                schema_version: 1,
+                run_id: request.run_id.clone(),
+                seq: request.seq,
+                decision: Decision::Kill,
+                rule_id: Some("__builtin_budget_hard_cap".to_string()),
+                reason: Some(format!(
+                    "budget hard cap exceeded: {} = {:.4} (cap: {:.4})",
+                    dimension, current, cap
+                )),
+                cooldown_ms: None,
+                cooldown_message: None,
+                approval_id: None,
+                approval_timeout_ms: None,
+                approval_timeout_action: None,
+                budget_remaining: None,
+                ts: now,
+            };
         }
     }
 
