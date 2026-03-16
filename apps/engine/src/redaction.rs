@@ -146,15 +146,11 @@ impl Redactor {
         if !self.enabled {
             return value.clone();
         }
-        self.redact_value(value, None)
+        self.redact_value(value)
     }
 
     /// Recursively redact values.
-    fn redact_value(
-        &self,
-        value: &serde_json::Value,
-        parent_key: Option<&str>,
-    ) -> serde_json::Value {
+    fn redact_value(&self, value: &serde_json::Value) -> serde_json::Value {
         match value {
             serde_json::Value::Object(map) => {
                 let mut new_map = serde_json::Map::new();
@@ -163,16 +159,14 @@ impl Redactor {
                         new_map
                             .insert(key.clone(), serde_json::Value::String(REDACTED.to_string()));
                     } else {
-                        new_map.insert(key.clone(), self.redact_value(val, Some(key)));
+                        new_map.insert(key.clone(), self.redact_value(val));
                     }
                 }
                 serde_json::Value::Object(new_map)
             }
             serde_json::Value::Array(arr) => {
-                let new_arr: Vec<serde_json::Value> = arr
-                    .iter()
-                    .map(|v| self.redact_value(v, parent_key))
-                    .collect();
+                let new_arr: Vec<serde_json::Value> =
+                    arr.iter().map(|v| self.redact_value(v)).collect();
                 serde_json::Value::Array(new_arr)
             }
             serde_json::Value::String(s) => {
