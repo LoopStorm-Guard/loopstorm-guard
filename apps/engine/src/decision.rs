@@ -52,5 +52,13 @@ pub struct DecisionResponse {
     pub cooldown_ms: Option<u64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub cooldown_message: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub approval_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub approval_timeout_ms: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub approval_timeout_action: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub budget_remaining: Option<serde_json::Value>,
     pub ts: String,
 }
