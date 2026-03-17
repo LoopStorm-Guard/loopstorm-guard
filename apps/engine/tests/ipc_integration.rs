@@ -51,8 +51,7 @@ rules:
 
 /// Create a temporary directory unique per test.
 fn temp_dir(label: &str) -> PathBuf {
-    let dir =
-        std::env::temp_dir().join(format!("ls_ipc_test_{}_{}", label, uuid::Uuid::new_v4()));
+    let dir = std::env::temp_dir().join(format!("ls_ipc_test_{}_{}", label, uuid::Uuid::new_v4()));
     std::fs::create_dir_all(&dir).unwrap();
     dir
 }
@@ -215,9 +214,7 @@ async fn test_concurrent_connections() {
     for i in 0..3_u64 {
         let path = socket_path.clone();
         handles.push(tokio::spawn(async move {
-            let mut stream = UnixStream::connect(&path)
-                .await
-                .expect("connect failed");
+            let mut stream = UnixStream::connect(&path).await.expect("connect failed");
             let run_id = format!("run-concurrent-{}", i);
             let req = request_json("file_read", &run_id, i + 1);
             let resp = send_and_recv(&mut stream, &req).await;
