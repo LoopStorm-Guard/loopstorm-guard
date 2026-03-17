@@ -304,7 +304,7 @@ mod unix_server {
             // to minimise lock hold time (important under concurrent connections).
             let response = {
                 let mut ctx_guard = ctx.lock().await;
-                enforce(&request, &mut *ctx_guard)
+                enforce(&request, &mut ctx_guard)
             };
 
             if let Err(e) = write_response(&mut write_half, &response).await {
@@ -381,7 +381,7 @@ mod unix_server {
         W: AsyncWriteExt + Unpin,
     {
         let mut json = serde_json::to_string(response)
-            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
+            .map_err(|e| std::io::Error::other(e))?;
         json.push('\n');
         writer.write_all(json.as_bytes()).await?;
         writer.flush().await?;
