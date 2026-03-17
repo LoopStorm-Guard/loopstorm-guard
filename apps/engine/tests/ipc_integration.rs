@@ -10,7 +10,7 @@
 #![cfg(unix)]
 
 use std::os::unix::fs::PermissionsExt;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
@@ -127,7 +127,7 @@ async fn start_server(
 }
 
 /// Wait until the socket file exists (up to 500ms).
-async fn wait_for_socket(path: &PathBuf) {
+async fn wait_for_socket(path: &Path) {
     for _ in 0..50 {
         if path.exists() {
             return;
