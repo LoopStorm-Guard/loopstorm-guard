@@ -1,0 +1,42 @@
+schema_version: 1
+name: "basic-policy"
+description: >
+  Basic policy for integration testing and getting started with LoopStorm Guard.
+  Allows read operations, blocks writes in production, and allows writes elsewhere.
+
+rules:
+  - name: "allow-reads"
+    action: allow
+    tool_pattern: "*_read"
+
+  - name: "deny-writes-prod"
+    action: deny
+    tool_pattern: "*_write"
+    conditions:
+      - field: "environment"
+        operator: equals
+        value: "production"
+    reason: "writes blocked in production"
+
+  - name: "allow-writes"
+    action: allow
+    tool_pattern: "*_write"
+
+  - name: "deny-all"
+    action: deny
+    reason: "default deny"
+
+budget:
+  cost_usd:
+    soft: 8.0
+    hard: 10.0
+  call_count:
+    soft: 900
+    hard: 1000
+
+loop_detection:
+  enabled: true
+  identical_call_window_seconds: 120
+  identical_call_threshold: 3
+  identical_error_threshold: 5
+  cooldown_ms: 5000

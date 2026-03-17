@@ -20,6 +20,7 @@ pub mod evaluator;
 pub mod loop_detector;
 pub mod policy;
 pub mod redaction;
+pub mod server;
 
 // Re-export key types for ergonomic use by consumers.
 pub use audit::{AuditEvent, AuditWriter};
