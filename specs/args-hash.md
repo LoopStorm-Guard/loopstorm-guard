@@ -268,10 +268,16 @@ UTF-8 bytes, not as `\uXXXX` escape sequences.
 {"line":"hello\nworld","tab":"tab\there"}
 ```
 
-**SHA-256:** `474fd71a21cc085381f6f2b59ea5097cf5388e43643a250cdc3a91abb997959f`
+**SHA-256:** `75bdf46f68aec61b321dc53a796ec0609c1c2273c07afa97083881a6f372b2c6`
 
 Note: `\n` and `\t` are the two-character JSON escape sequences for newline
-(U+000A) and tab (U+0009), not literal characters.
+(U+000A) and tab (U+0009), not literal characters. The SHA-256 is computed
+over the canonical form bytes which contain `0x5C 0x6E` (`\n`) and `0x5C
+0x74` (`\t`), NOT the literal control characters `0x0A` and `0x09`.
+
+*Errata: The original hash (`474fd71a...`) was computed against bytes
+containing literal control characters, which are not valid JSON per RFC 8259.
+Corrected 2026-03-17.*
 
 ---
 

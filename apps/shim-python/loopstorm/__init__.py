@@ -3,24 +3,50 @@
 LoopStorm Guard Python shim.
 
 Wraps agent tool calls and forwards them to the loopstorm-engine binary
-over a Unix Domain Socket (or named pipe on Windows) for enforcement.
+over a Unix Domain Socket for enforcement.
 
-Mode 0 (air-gapped): the engine binary is bundled in loopstorm/bin/.
-                     No network calls are made by this package.
-Mode 2+ (cloud):     events are forwarded by the engine; this package
-                     only handles local IPC.
+Usage::
 
-Usage:
     from loopstorm import Guard
 
-    guard = Guard(policy="path/to/policy.yaml")
+    guard = Guard()
 
-    @guard.wrap
-    def my_tool_call(args):
-        ...
+    @guard.wrap("file_read")
+    def read_file(path: str) -> str:
+        return open(path).read()
+
+    # Or use check() for imperative control:
+    result = guard.check("file_read", args={"path": "/etc/passwd"})
+
+    # Or wrap an OpenAI client:
+    guarded = guard.openai(openai_client)
 """
 
+from loopstorm._errors import (
+    ApprovalRequiredError,
+    ConnectionClosedError,
+    CooldownError,
+    EngineUnavailableError,
+    LoopStormError,
+    MessageTooLargeError,
+    PolicyDeniedError,
+    RunTerminatedError,
+)
 from loopstorm._guard import Guard
+from loopstorm._types import BudgetRemaining, DecisionResult
 from loopstorm._version import __version__
 
-__all__ = ["Guard", "__version__"]
+__all__ = [
+    "Guard",
+    "__version__",
+    "DecisionResult",
+    "BudgetRemaining",
+    "LoopStormError",
+    "EngineUnavailableError",
+    "PolicyDeniedError",
+    "CooldownError",
+    "RunTerminatedError",
+    "ApprovalRequiredError",
+    "ConnectionClosedError",
+    "MessageTooLargeError",
+]

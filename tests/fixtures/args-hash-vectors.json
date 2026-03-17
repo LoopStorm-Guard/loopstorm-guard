@@ -1,0 +1,93 @@
+[
+  {
+    "id": "simple_flat",
+    "description": "Simple flat object with key reordering",
+    "input": {"url": "https://example.com", "method": "GET"},
+    "canonical": "{\"method\":\"GET\",\"url\":\"https://example.com\"}",
+    "sha256": "abacd07d80a52db8cd8d4d149e15a032350e8a15c2c9feb81802c2d535a1f36a"
+  },
+  {
+    "id": "key_reordering",
+    "description": "Reverse alphabetical keys",
+    "input": {"z": 1, "a": 2},
+    "canonical": "{\"a\":2,\"z\":1}",
+    "sha256": "c2985c5ba6f7d2a55e768f92490ca09388e95bc4cccb9fdf11b15f4d42f93e73"
+  },
+  {
+    "id": "nested_objects",
+    "description": "Nested objects with recursive key sorting",
+    "input": {"config": {"retry": true, "timeout": 30}, "action": "fetch"},
+    "canonical": "{\"action\":\"fetch\",\"config\":{\"retry\":true,\"timeout\":30}}",
+    "sha256": "3b79517f23a25dd9b7d20e3739b40a60af00b34328be1babc3e972c329ba08e8"
+  },
+  {
+    "id": "number_normalization",
+    "description": "Number formatting: 1.0->1, -0->0, 1e2->100",
+    "input": {"one": 1.0, "neg_zero": -0.0, "sci": 1e2},
+    "canonical": "{\"neg_zero\":0,\"one\":1,\"sci\":100}",
+    "sha256": "3f0d3a9f56c9872f743c54cba9f4de18d020519644706a87b67da8bc83338710"
+  },
+  {
+    "id": "empty_object",
+    "description": "Empty object",
+    "input": {},
+    "canonical": "{}",
+    "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+  },
+  {
+    "id": "array_values",
+    "description": "Object containing array with mixed types",
+    "input": {"items": [1, "two", null, true]},
+    "canonical": "{\"items\":[1,\"two\",null,true]}",
+    "sha256": "f9147fa466a7e6ff1514539910fc4ad4fa8416abc09da2ac64250e9f7c3dee78"
+  },
+  {
+    "id": "unicode_strings",
+    "description": "Non-ASCII characters serialized as literal UTF-8",
+    "input": {"name": "Jos\u00e9", "emoji": "\ud83d\udd25"},
+    "canonical": "{\"emoji\":\"\ud83d\udd25\",\"name\":\"Jos\u00e9\"}",
+    "sha256": "d118390a6bef2c2aaebda535e96c4b0741c8e1c570f294b179d04a7b807ed075"
+  },
+  {
+    "id": "control_characters",
+    "description": "Strings with newline and tab escape sequences",
+    "input": {"line": "hello\nworld", "tab": "tab\there"},
+    "canonical": "{\"line\":\"hello\\nworld\",\"tab\":\"tab\\there\"}",
+    "sha256": "75bdf46f68aec61b321dc53a796ec0609c1c2273c07afa97083881a6f372b2c6"
+  },
+  {
+    "id": "deeply_nested",
+    "description": "Deeply nested object structure",
+    "input": {"a": {"b": {"c": {"d": "deep"}}}},
+    "canonical": "{\"a\":{\"b\":{\"c\":{\"d\":\"deep\"}}}}",
+    "sha256": "9dfbb4f97076c37899ee498536503672ccfbf54b14e2ca888ce1a1bbdc7ce1e6"
+  },
+  {
+    "id": "large_int_float",
+    "description": "MAX_SAFE_INTEGER and small float",
+    "input": {"big_int": 9007199254740991, "small_float": 0.1},
+    "canonical": "{\"big_int\":9007199254740991,\"small_float\":0.1}",
+    "sha256": "2873f9a9deaa468bf1a6d36032d309ab4bcdb032b1010306f4677da9032ad1cf"
+  },
+  {
+    "id": "backslash_quote",
+    "description": "Backslash and quote escaping in string values",
+    "input": {"path": "C:\\Users\\test", "quote": "said \"hi\""},
+    "canonical": "{\"path\":\"C:\\\\Users\\\\test\",\"quote\":\"said \\\"hi\\\"\"}",
+    "sha256": "00b3d93ab21bc17b38b63694b610b6f210a0e4996cb003d499146129d00352f9"
+  },
+  {
+    "id": "mixed_types",
+    "description": "Mix of boolean, integer, null, and array",
+    "input": {"active": true, "count": 0, "name": null, "tags": ["a", "b"]},
+    "canonical": "{\"active\":true,\"count\":0,\"name\":null,\"tags\":[\"a\",\"b\"]}",
+    "sha256": "6958b38c55df8b0ddad22e0f2002b7fd083e93e8f54714c62451ecb1da15636c"
+  },
+  {
+    "id": "null_args",
+    "description": "null/absent args -> hash of the string 'null'",
+    "input": null,
+    "canonical": "null",
+    "sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+  }
+]
