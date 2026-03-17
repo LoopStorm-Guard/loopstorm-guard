@@ -380,8 +380,7 @@ mod unix_server {
     where
         W: AsyncWriteExt + Unpin,
     {
-        let mut json = serde_json::to_string(response)
-            .map_err(|e| std::io::Error::other(e))?;
+        let mut json = serde_json::to_string(response).map_err(|e| std::io::Error::other(e))?;
         json.push('\n');
         writer.write_all(json.as_bytes()).await?;
         writer.flush().await?;
