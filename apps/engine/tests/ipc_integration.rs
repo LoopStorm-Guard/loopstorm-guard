@@ -85,7 +85,7 @@ fn request_json(tool: &str, run_id: &str, seq: u64) -> String {
         "run_id": run_id,
         "seq": seq,
         "tool": tool,
-        "args_hash": "a".repeat(64),
+        "args_hash": format!("{:0>64x}", seq),
         "ts": "2026-03-16T00:00:00Z"
     })
     .to_string()
