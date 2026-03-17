@@ -36,7 +36,11 @@ struct Cli {
 
     /// Unix Domain Socket path to listen on.
     /// Override with LOOPSTORM_SOCKET environment variable.
-    #[arg(long, env = "LOOPSTORM_SOCKET", default_value = "/tmp/loopstorm-engine.sock")]
+    #[arg(
+        long,
+        env = "LOOPSTORM_SOCKET",
+        default_value = "/tmp/loopstorm-engine.sock"
+    )]
     socket: PathBuf,
 
     /// JSONL audit log output path.

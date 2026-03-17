@@ -53,10 +53,10 @@ mod unix_server {
     use tokio::time::{timeout, Duration};
     use tracing::{error, info, warn};
 
+    use super::{kill_response, MAX_MESSAGE_BYTES};
     use crate::audit::AuditEvent;
     use crate::decision::{DecisionRequest, DecisionResponse};
     use crate::{enforce, EnforcementContext};
-    use super::{kill_response, MAX_MESSAGE_BYTES};
 
     /// Read timeout per connection: 30 seconds idle.
     /// See specs/ipc-wire-format.md §7.
@@ -214,7 +214,12 @@ mod unix_server {
         loop {
             // Read up to MAX_MESSAGE_BYTES into a byte buffer, checking
             // for oversized messages ourselves.
-            let line_bytes = match timeout(READ_TIMEOUT, read_line_limited(&mut reader, MAX_MESSAGE_BYTES)).await {
+            let line_bytes = match timeout(
+                READ_TIMEOUT,
+                read_line_limited(&mut reader, MAX_MESSAGE_BYTES),
+            )
+            .await
+            {
                 Err(_timeout) => {
                     // Read timeout — close connection silently (per spec §7).
                     return;
@@ -230,7 +235,9 @@ mod unix_server {
                 Ok(Ok(ReadOutcome::TooLarge)) => {
                     // Message exceeds 64 KiB — kill + close.
                     let resp = kill_response(
-                        "unknown", 0, "__builtin_ipc_message_too_large",
+                        "unknown",
+                        0,
+                        "__builtin_ipc_message_too_large",
                         "message exceeds 64 KiB limit",
                     );
                     let _ = write_response(&mut write_half, &resp).await;
@@ -243,7 +250,9 @@ mod unix_server {
             let line = match String::from_utf8(line_bytes) {
                 Err(_) => {
                     let resp = kill_response(
-                        "unknown", 0, "__builtin_ipc_encoding_error",
+                        "unknown",
+                        0,
+                        "__builtin_ipc_encoding_error",
                         "non-UTF-8 bytes in message",
                     );
                     let _ = write_response(&mut write_half, &resp).await;
@@ -265,7 +274,9 @@ mod unix_server {
                 Err(e) => {
                     warn!(error = %e, "malformed JSON in request");
                     let resp = kill_response(
-                        "unknown", 0, "__builtin_ipc_parse_error",
+                        "unknown",
+                        0,
+                        "__builtin_ipc_parse_error",
                         &format!("JSON parse error: {}", e),
                     );
                     let _ = write_response(&mut write_half, &resp).await;

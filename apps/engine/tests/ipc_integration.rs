@@ -51,8 +51,8 @@ rules:
 
 /// Create a temporary directory unique per test.
 fn temp_dir(label: &str) -> PathBuf {
-    let dir = std::env::temp_dir().join(format!("ls_ipc_test_{}_{}",
-        label, uuid::Uuid::new_v4()));
+    let dir =
+        std::env::temp_dir().join(format!("ls_ipc_test_{}_{}", label, uuid::Uuid::new_v4()));
     std::fs::create_dir_all(&dir).unwrap();
     dir
 }
@@ -151,7 +151,9 @@ async fn test_basic_allow_deny() {
     wait_for_socket(&socket_path).await;
 
     // Test allow.
-    let mut stream = UnixStream::connect(&socket_path).await.expect("connect failed");
+    let mut stream = UnixStream::connect(&socket_path)
+        .await
+        .expect("connect failed");
     let req = request_json("file_read", "run-allow", 1);
     let resp = send_and_recv(&mut stream, &req).await;
     assert_eq!(resp["decision"], "allow", "file_read should be allowed");
@@ -160,7 +162,9 @@ async fn test_basic_allow_deny() {
     drop(stream);
 
     // Test deny.
-    let mut stream2 = UnixStream::connect(&socket_path).await.expect("connect failed");
+    let mut stream2 = UnixStream::connect(&socket_path)
+        .await
+        .expect("connect failed");
     let req2 = request_json("file_write", "run-deny", 1);
     let resp2 = send_and_recv(&mut stream2, &req2).await;
     assert_eq!(resp2["decision"], "deny", "file_write should be denied");
@@ -181,7 +185,9 @@ async fn test_escalate_to_human_via_ipc() {
     let _handle = start_server(ctx, socket_path.clone()).await;
     wait_for_socket(&socket_path).await;
 
-    let mut stream = UnixStream::connect(&socket_path).await.expect("connect failed");
+    let mut stream = UnixStream::connect(&socket_path)
+        .await
+        .expect("connect failed");
     let req = request_json("escalate_to_human", "run-escalate", 1);
     let resp = send_and_recv(&mut stream, &req).await;
 
@@ -209,7 +215,9 @@ async fn test_concurrent_connections() {
     for i in 0..3_u64 {
         let path = socket_path.clone();
         handles.push(tokio::spawn(async move {
-            let mut stream = UnixStream::connect(&path).await.expect("connect failed");
+            let mut stream = UnixStream::connect(&path)
+                .await
+                .expect("connect failed");
             let run_id = format!("run-concurrent-{}", i);
             let req = request_json("file_read", &run_id, i + 1);
             let resp = send_and_recv(&mut stream, &req).await;
@@ -240,7 +248,9 @@ async fn test_malformed_json_returns_kill() {
     let _handle = start_server(ctx, socket_path.clone()).await;
     wait_for_socket(&socket_path).await;
 
-    let mut stream = UnixStream::connect(&socket_path).await.expect("connect failed");
+    let mut stream = UnixStream::connect(&socket_path)
+        .await
+        .expect("connect failed");
 
     // Send malformed JSON.
     stream
@@ -276,7 +286,9 @@ async fn test_unsupported_schema_version_returns_kill() {
     let _handle = start_server(ctx, socket_path.clone()).await;
     wait_for_socket(&socket_path).await;
 
-    let mut stream = UnixStream::connect(&socket_path).await.expect("connect failed");
+    let mut stream = UnixStream::connect(&socket_path)
+        .await
+        .expect("connect failed");
 
     let bad_req = serde_json::json!({
         "schema_version": 99,
@@ -288,7 +300,10 @@ async fn test_unsupported_schema_version_returns_kill() {
     })
     .to_string();
 
-    stream.write_all(format!("{}\n", bad_req).as_bytes()).await.unwrap();
+    stream
+        .write_all(format!("{}\n", bad_req).as_bytes())
+        .await
+        .unwrap();
     stream.flush().await.unwrap();
 
     let (read_half, _) = stream.split();
@@ -317,13 +332,18 @@ async fn test_oversized_message_returns_kill() {
     let _handle = start_server(ctx, socket_path.clone()).await;
     wait_for_socket(&socket_path).await;
 
-    let mut stream = UnixStream::connect(&socket_path).await.expect("connect failed");
+    let mut stream = UnixStream::connect(&socket_path)
+        .await
+        .expect("connect failed");
 
     // Build a message that is exactly 65537 bytes before the newline — exceeds 64 KiB.
     // We pad a valid JSON prefix with a long string value to hit the limit.
     let padding = "x".repeat(65_537);
     let big_msg = format!("{{\"padding\":\"{}\"}}\n", padding);
-    assert!(big_msg.len() > 65_536, "test message must exceed MAX_MESSAGE_BYTES");
+    assert!(
+        big_msg.len() > 65_536,
+        "test message must exceed MAX_MESSAGE_BYTES"
+    );
 
     stream.write_all(big_msg.as_bytes()).await.unwrap();
     stream.flush().await.unwrap();
@@ -406,7 +426,10 @@ async fn test_stale_socket_file_exists_check() {
 
     // Cleanup.
     std::fs::remove_file(&socket_path).ok();
-    assert!(!socket_path.exists(), "socket file must be removed after cleanup");
+    assert!(
+        !socket_path.exists(),
+        "socket file must be removed after cleanup"
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -423,7 +446,9 @@ async fn test_multiple_requests_single_connection() {
 
     // Connect once and send three requests on the same connection.
     // Use into_split() to get owned halves so we can hold a persistent BufReader.
-    let stream = UnixStream::connect(&socket_path).await.expect("connect failed");
+    let stream = UnixStream::connect(&socket_path)
+        .await
+        .expect("connect failed");
     let (read_half, mut write_half) = stream.into_split();
     let mut reader = BufReader::new(read_half);
 
@@ -459,7 +484,9 @@ async fn test_non_utf8_bytes_returns_kill() {
     let _handle = start_server(ctx, socket_path.clone()).await;
     wait_for_socket(&socket_path).await;
 
-    let mut stream = UnixStream::connect(&socket_path).await.expect("connect failed");
+    let mut stream = UnixStream::connect(&socket_path)
+        .await
+        .expect("connect failed");
 
     // Send invalid UTF-8 bytes followed by a newline.
     let invalid_utf8: &[u8] = &[0xFF, 0xFE, 0xFD, b'\n'];
@@ -504,11 +531,9 @@ async fn test_graceful_shutdown_writes_audit_and_removes_socket() {
     let (shutdown_tx, shutdown_rx) = tokio::sync::oneshot::channel::<()>();
 
     let server_handle = tokio::spawn(async move {
-        let _ = run_server_with_shutdown(
-            &path,
-            ctx_clone,
-            async move { let _ = shutdown_rx.await; },
-        )
+        let _ = run_server_with_shutdown(&path, ctx_clone, async move {
+            let _ = shutdown_rx.await;
+        })
         .await;
     });
 
@@ -518,7 +543,9 @@ async fn test_graceful_shutdown_writes_audit_and_removes_socket() {
     assert!(socket_path.exists(), "socket should exist before shutdown");
 
     // Send one request to ensure the server is processing correctly.
-    let mut stream = UnixStream::connect(&socket_path).await.expect("connect failed");
+    let mut stream = UnixStream::connect(&socket_path)
+        .await
+        .expect("connect failed");
     let req = request_json("anything", "run-shutdown", 1);
     let resp = send_and_recv(&mut stream, &req).await;
     assert_eq!(resp["decision"], "deny");
@@ -548,13 +575,15 @@ async fn test_graceful_shutdown_writes_audit_and_removes_socket() {
         .collect();
 
     assert!(
-        events.iter().any(|e| e["event_type"] == "system_event"
-            && e["run_status"] == "engine_started"),
+        events
+            .iter()
+            .any(|e| e["event_type"] == "system_event" && e["run_status"] == "engine_started"),
         "audit log must contain engine_started event"
     );
     assert!(
-        events.iter().any(|e| e["event_type"] == "system_event"
-            && e["run_status"] == "engine_stopped"),
+        events
+            .iter()
+            .any(|e| e["event_type"] == "system_event" && e["run_status"] == "engine_stopped"),
         "audit log must contain engine_stopped event"
     );
 }
