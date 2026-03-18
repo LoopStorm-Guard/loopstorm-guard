@@ -251,8 +251,8 @@ fn assert_chain_valid(label: &str, path: &Path) {
             // Re-do hash computation using Value (matching verify_chain)
             if let Ok(mut val) = serde_json::from_str::<serde_json::Value>(line) {
                 if let Some(obj) = val.as_object_mut() {
-                    let stored_hash = obj.remove("hash");
-                    let stored_hp = obj.remove("hash_prev");
+                    let stored_hash = obj.shift_remove("hash");
+                    let stored_hp = obj.shift_remove("hash_prev");
                     let payload = serde_json::to_string(&val).unwrap();
                     let computed = loopstorm_cli::output::sha256_hex(payload.as_bytes());
                     eprintln!("[{label}]   stored_hash: {:?}", stored_hash);

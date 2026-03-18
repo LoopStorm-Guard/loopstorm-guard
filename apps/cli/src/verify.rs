@@ -103,11 +103,15 @@ pub fn verify_chain(path: &Path) -> Result<VerifyResult, VerifyError> {
         };
 
         // 2. Extract and remove hash and hash_prev
+        //    MUST use shift_remove (not remove) — with preserve_order,
+        //    Map::remove() delegates to IndexMap::swap_remove() which
+        //    moves the last entry into the removed slot, breaking field
+        //    order and producing a different payload hash.
         let stored_hash = obj
-            .remove("hash")
+            .shift_remove("hash")
             .and_then(|v| v.as_str().map(String::from));
         let stored_hash_prev = obj
-            .remove("hash_prev")
+            .shift_remove("hash_prev")
             .and_then(|v| v.as_str().map(String::from));
 
         // 3/4. Verify hash_prev
