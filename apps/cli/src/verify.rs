@@ -8,8 +8,6 @@
 
 use std::path::Path;
 
-use loopstorm_engine::AuditEvent;
-
 use crate::output::sha256_hex;
 
 // ---------------------------------------------------------------------------
@@ -55,11 +53,16 @@ pub enum VerifyError {
 /// Algorithm (must match engine's `AuditWriter::write_event()`):
 ///
 /// For each line L\[i\]:
-///   1. Parse as `AuditEvent`.
-///   2. If i == 0: assert `hash_prev` is None.
-///   3. If i > 0: assert `hash_prev` == SHA-256 of L\[i-1\]'s raw bytes.
-///   4. Null out `hash` and `hash_prev`, re-serialize with `serde_json::to_string`,
-///      assert SHA-256 of that == the stored `hash`.
+///   1. Parse as `serde_json::Value` (preserving field order).
+///   2. Extract and remove `hash` and `hash_prev` from the object.
+///   3. If i == 0: assert `hash_prev` was absent or null.
+///   4. If i > 0: assert `hash_prev` == SHA-256 of L\[i-1\]'s raw bytes.
+///   5. Re-serialize the Value (without hash/hash_prev), compute SHA-256,
+///      assert it equals the stored `hash`.
+///
+/// Uses `serde_json::Value` with `preserve_order` feature to avoid any
+/// struct round-trip issues — the JSON field ordering is preserved exactly
+/// as written by the engine.
 pub fn verify_chain(path: &Path) -> Result<VerifyResult, VerifyError> {
     let content = std::fs::read_to_string(path)?;
     let lines: Vec<&str> = content.lines().filter(|l| !l.trim().is_empty()).collect();
@@ -78,17 +81,36 @@ pub fn verify_chain(path: &Path) -> Result<VerifyResult, VerifyError> {
     for (i, line) in lines.iter().enumerate() {
         let line_num = i + 1; // 1-indexed for display
 
-        // 1. Parse as AuditEvent
-        let mut event: AuditEvent = serde_json::from_str(line).map_err(|e| VerifyError::Json {
-            line: line_num,
-            source: e,
-        })?;
+        // 1. Parse as serde_json::Value (preserve_order keeps field ordering)
+        let mut value: serde_json::Value =
+            serde_json::from_str(line).map_err(|e| VerifyError::Json {
+                line: line_num,
+                source: e,
+            })?;
 
-        // Extract stored values
-        let stored_hash = event.hash.take();
-        let stored_hash_prev = event.hash_prev.take();
+        let obj = match value.as_object_mut() {
+            Some(m) => m,
+            None => {
+                return Ok(VerifyResult {
+                    valid: false,
+                    event_count: i,
+                    break_at_line: Some(line_num),
+                    expected_hash: None,
+                    actual_hash: None,
+                    error: Some("line is not a JSON object".to_string()),
+                });
+            }
+        };
 
-        // 2/3. Verify hash_prev
+        // 2. Extract and remove hash and hash_prev
+        let stored_hash = obj
+            .remove("hash")
+            .and_then(|v| v.as_str().map(String::from));
+        let stored_hash_prev = obj
+            .remove("hash_prev")
+            .and_then(|v| v.as_str().map(String::from));
+
+        // 3/4. Verify hash_prev
         if i == 0 {
             if stored_hash_prev.is_some() {
                 return Ok(VerifyResult {
@@ -117,12 +139,12 @@ pub fn verify_chain(path: &Path) -> Result<VerifyResult, VerifyError> {
             }
         }
 
-        // 4. Verify hash: re-serialize without hash/hash_prev, compute SHA-256
-        //    (hash and hash_prev are already None from .take() above)
-        let payload_json = serde_json::to_string(&event).map_err(|e| VerifyError::Json {
-            line: line_num,
-            source: e,
-        })?;
+        // 5. Verify hash: serialize Value without hash/hash_prev, compute SHA-256
+        let payload_json =
+            serde_json::to_string(&value).map_err(|e| VerifyError::Json {
+                line: line_num,
+                source: e,
+            })?;
         let computed_hash = sha256_hex(payload_json.as_bytes());
 
         match &stored_hash {
