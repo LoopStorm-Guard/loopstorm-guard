@@ -79,11 +79,10 @@ pub fn verify_chain(path: &Path) -> Result<VerifyResult, VerifyError> {
         let line_num = i + 1; // 1-indexed for display
 
         // 1. Parse as AuditEvent
-        let mut event: AuditEvent =
-            serde_json::from_str(line).map_err(|e| VerifyError::Json {
-                line: line_num,
-                source: e,
-            })?;
+        let mut event: AuditEvent = serde_json::from_str(line).map_err(|e| VerifyError::Json {
+            line: line_num,
+            source: e,
+        })?;
 
         // Extract stored values
         let stored_hash = event.hash.take();
@@ -120,11 +119,10 @@ pub fn verify_chain(path: &Path) -> Result<VerifyResult, VerifyError> {
 
         // 4. Verify hash: re-serialize without hash/hash_prev, compute SHA-256
         //    (hash and hash_prev are already None from .take() above)
-        let payload_json =
-            serde_json::to_string(&event).map_err(|e| VerifyError::Json {
-                line: line_num,
-                source: e,
-            })?;
+        let payload_json = serde_json::to_string(&event).map_err(|e| VerifyError::Json {
+            line: line_num,
+            source: e,
+        })?;
         let computed_hash = sha256_hex(payload_json.as_bytes());
 
         match &stored_hash {

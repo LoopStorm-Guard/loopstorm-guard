@@ -101,9 +101,7 @@ loop_detection:
 
 /// Create a temp directory unique per test.
 fn temp_dir(label: &str) -> PathBuf {
-    let dir = std::env::temp_dir().join(format!(
-        "ls_e2e_{}_{}", label, uuid::Uuid::new_v4()
-    ));
+    let dir = std::env::temp_dir().join(format!("ls_e2e_{}_{}", label, uuid::Uuid::new_v4()));
     std::fs::create_dir_all(&dir).unwrap();
     dir
 }
@@ -155,12 +153,7 @@ fn request_json(tool: &str, run_id: &str, seq: u64) -> String {
 }
 
 /// Build a DecisionRequest JSON with args_redacted.
-fn request_json_with_args(
-    tool: &str,
-    run_id: &str,
-    seq: u64,
-    args: serde_json::Value,
-) -> String {
+fn request_json_with_args(tool: &str, run_id: &str, seq: u64, args: serde_json::Value) -> String {
     serde_json::json!({
         "schema_version": 1,
         "run_id": run_id,
@@ -174,12 +167,7 @@ fn request_json_with_args(
 }
 
 /// Build a DecisionRequest JSON with estimated_cost_usd.
-fn request_json_with_cost(
-    tool: &str,
-    run_id: &str,
-    seq: u64,
-    cost_usd: f64,
-) -> String {
+fn request_json_with_cost(tool: &str, run_id: &str, seq: u64, cost_usd: f64) -> String {
     serde_json::json!({
         "schema_version": 1,
         "run_id": run_id,
@@ -274,7 +262,10 @@ async fn case_study_1_ssrf_block() {
         serde_json::json!({"url": "http://169.254.169.254"}),
     );
     let resp1 = send_request(&mut write, &mut reader, &req1).await;
-    assert_eq!(resp1["decision"], "deny", "SSRF to 169.254.* must be denied");
+    assert_eq!(
+        resp1["decision"], "deny",
+        "SSRF to 169.254.* must be denied"
+    );
     assert_eq!(resp1["rule_id"], "deny-metadata-ssrf");
 
     // Request 2: Safe URL — should be ALLOWED by allow-http
@@ -361,7 +352,8 @@ async fn case_study_2_budget_kill() {
         let req = request_json_with_cost("api_call", "run-budget", seq, 0.10);
         let resp = send_request(&mut write, &mut reader, &req).await;
         assert_eq!(
-            resp["decision"], "allow",
+            resp["decision"],
+            "allow",
             "call {} (total ${:.2}) should be allowed",
             seq,
             seq as f64 * 0.10
@@ -377,10 +369,7 @@ async fn case_study_2_budget_kill() {
     );
     assert_eq!(resp6["rule_id"], "__builtin_budget_hard_cap");
     assert!(
-        resp6["reason"]
-            .as_str()
-            .unwrap_or("")
-            .contains("cost_usd"),
+        resp6["reason"].as_str().unwrap_or("").contains("cost_usd"),
         "kill reason should mention cost_usd"
     );
 
@@ -476,10 +465,7 @@ async fn case_study_3_loop_termination() {
         "call 3 should trigger cooldown"
     );
     assert_eq!(resp3["rule_id"], "__builtin_loop_detection");
-    assert_eq!(
-        resp3["cooldown_ms"], 100,
-        "cooldown_ms should be 100"
-    );
+    assert_eq!(resp3["cooldown_ms"], 100, "cooldown_ms should be 100");
     assert!(
         resp3["cooldown_message"].as_str().is_some(),
         "cooldown_message should be present"
@@ -562,7 +548,13 @@ async fn case_study_4_hash_chain_verification() {
     let mut reader = BufReader::new(read);
 
     // Send 5 varied requests to build a multi-event audit log
-    let tools = ["file_read", "file_write", "file_read", "http_get", "file_read"];
+    let tools = [
+        "file_read",
+        "file_write",
+        "file_read",
+        "http_get",
+        "file_read",
+    ];
     for (i, tool) in tools.iter().enumerate() {
         let seq = (i + 1) as u64;
         let req = request_json(tool, "run-cs4", seq);

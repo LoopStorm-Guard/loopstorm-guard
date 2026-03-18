@@ -38,10 +38,7 @@ pub fn run_validate(path: &Path, quiet: bool, json: bool) -> u8 {
                     let mut parts = Vec::new();
                     if let Some(ref cost) = budget.cost_usd {
                         if let Some(soft) = cost.soft {
-                            parts.push(format!(
-                                "cost_usd: soft={:.2} hard={:.2}",
-                                soft, cost.hard
-                            ));
+                            parts.push(format!("cost_usd: soft={:.2} hard={:.2}", soft, cost.hard));
                         } else {
                             parts.push(format!("cost_usd: hard={:.2}", cost.hard));
                         }
