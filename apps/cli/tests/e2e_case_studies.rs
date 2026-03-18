@@ -409,9 +409,47 @@ async fn case_study_2_budget_kill() {
         "should have at least one budget soft cap warning"
     );
 
+    // Debug: dump all events for diagnostics
+    for (i, e) in events.iter().enumerate() {
+        eprintln!(
+            "CS2 event {}: type={}, decision={}, hash_prev_present={}",
+            i,
+            e["event_type"],
+            e.get("decision").unwrap_or(&serde_json::Value::Null),
+            e.get("hash_prev").is_some() && !e["hash_prev"].is_null(),
+        );
+    }
+
     // Verify chain integrity
     let result = verify_chain(&audit_path).unwrap();
-    assert!(result.valid, "audit chain must be valid");
+    if !result.valid {
+        // Extra diagnostics: read raw lines and check hashes
+        let raw_content = std::fs::read_to_string(&audit_path).unwrap();
+        let raw_lines: Vec<&str> = raw_content.lines().filter(|l| !l.trim().is_empty()).collect();
+        eprintln!("CS2 total raw lines: {}", raw_lines.len());
+        if let Some(break_line) = result.break_at_line {
+            let idx = break_line - 1; // 0-indexed
+            eprintln!("CS2 break at line {} (0-idx {})", break_line, idx);
+            if idx < raw_lines.len() {
+                eprintln!("CS2 failing line (first 200 chars): {}", &raw_lines[idx][..raw_lines[idx].len().min(200)]);
+            }
+            if idx > 0 && idx - 1 < raw_lines.len() {
+                let prev_hash = loopstorm_cli::output::sha256_hex(raw_lines[idx - 1].as_bytes());
+                eprintln!("CS2 sha256(prev_line): {}", prev_hash);
+            }
+            eprintln!("CS2 error: {:?}", result.error);
+            eprintln!("CS2 expected_hash: {:?}", result.expected_hash);
+            eprintln!("CS2 actual_hash: {:?}", result.actual_hash);
+        }
+    }
+    assert!(
+        result.valid,
+        "audit chain must be valid: break_at_line={:?}, error={:?}, expected={:?}, actual={:?}",
+        result.break_at_line,
+        result.error,
+        result.expected_hash,
+        result.actual_hash,
+    );
 }
 
 // ---------------------------------------------------------------------------
