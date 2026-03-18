@@ -1,0 +1,14 @@
+# SPDX-License-Identifier: MIT
+# Case Study 2: Runaway cost stopped by budget hard cap.
+schema_version: 1
+name: "budget-kill-test"
+rules:
+  - name: "allow-all"
+    action: allow
+
+budget:
+  cost_usd:
+    soft: 0.30
+    hard: 0.50
+  call_count:
+    hard: 100
