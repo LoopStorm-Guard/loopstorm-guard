@@ -140,11 +140,10 @@ pub fn verify_chain(path: &Path) -> Result<VerifyResult, VerifyError> {
         }
 
         // 5. Verify hash: serialize Value without hash/hash_prev, compute SHA-256
-        let payload_json =
-            serde_json::to_string(&value).map_err(|e| VerifyError::Json {
-                line: line_num,
-                source: e,
-            })?;
+        let payload_json = serde_json::to_string(&value).map_err(|e| VerifyError::Json {
+            line: line_num,
+            source: e,
+        })?;
         let computed_hash = sha256_hex(payload_json.as_bytes());
 
         match &stored_hash {
