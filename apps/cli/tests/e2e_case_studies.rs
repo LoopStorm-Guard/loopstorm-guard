@@ -224,6 +224,66 @@ fn read_audit_events(path: &Path) -> Vec<serde_json::Value> {
         .collect()
 }
 
+/// Verify the audit chain and panic with detailed diagnostics on failure.
+fn assert_chain_valid(label: &str, path: &Path) {
+    let result = verify_chain(path).unwrap();
+    if result.valid {
+        return;
+    }
+
+    // Detailed diagnostics for CI debugging
+    let raw = std::fs::read_to_string(path).unwrap();
+    let lines: Vec<&str> = raw.lines().filter(|l| !l.trim().is_empty()).collect();
+    eprintln!("[{label}] CHAIN VERIFICATION FAILED");
+    eprintln!("[{label}] total lines: {}", lines.len());
+    eprintln!("[{label}] break_at_line: {:?}", result.break_at_line);
+    eprintln!("[{label}] error: {:?}", result.error);
+    eprintln!("[{label}] expected_hash: {:?}", result.expected_hash);
+    eprintln!("[{label}] actual_hash: {:?}", result.actual_hash);
+
+    if let Some(break_line) = result.break_at_line {
+        let idx = break_line - 1;
+        if idx < lines.len() {
+            let line = lines[idx];
+            let trunc = line.len().min(300);
+            eprintln!("[{label}] line {break_line} (len={}):", line.len());
+            eprintln!("[{label}]   {}", &line[..trunc]);
+
+            // Re-do hash computation manually
+            if let Ok(mut event) =
+                serde_json::from_str::<loopstorm_engine::AuditEvent>(line)
+            {
+                let stored_hash = event.hash.take();
+                let stored_hp = event.hash_prev.take();
+                let payload = serde_json::to_string(&event).unwrap();
+                let computed = loopstorm_cli::output::sha256_hex(payload.as_bytes());
+                eprintln!("[{label}]   stored_hash:    {:?}", stored_hash);
+                eprintln!("[{label}]   computed_hash:  {computed}");
+                eprintln!("[{label}]   stored_hp:      {:?}", stored_hp);
+                eprintln!(
+                    "[{label}]   payload (len={}): {}",
+                    payload.len(),
+                    &payload[..payload.len().min(300)]
+                );
+            }
+
+            if idx > 0 {
+                let prev = lines[idx - 1];
+                let prev_hash =
+                    loopstorm_cli::output::sha256_hex(prev.as_bytes());
+                eprintln!("[{label}]   sha256(prev_line): {prev_hash}");
+                eprintln!(
+                    "[{label}]   prev_line (len={}): {}",
+                    prev.len(),
+                    &prev[..prev.len().min(300)]
+                );
+            }
+        }
+    }
+
+    panic!("[{label}] audit chain must be valid");
+}
+
 // ---------------------------------------------------------------------------
 // Case Study 1: SSRF Tool Call Blocked
 // ---------------------------------------------------------------------------
@@ -294,6 +354,10 @@ async fn case_study_1_ssrf_block() {
         .expect("server did not shut down in time")
         .expect("server task panicked");
 
+    // Yield to let any lingering connection handler tasks complete and drop
+    tokio::task::yield_now().await;
+    drop(ctx);
+
     // Verify audit log
     let events = read_audit_events(&audit_path);
     let policy_events: Vec<_> = events
@@ -310,8 +374,7 @@ async fn case_study_1_ssrf_block() {
     assert_eq!(policy_events[2]["decision"], "allow");
 
     // Verify chain integrity
-    let result = verify_chain(&audit_path).unwrap();
-    assert!(result.valid, "audit chain must be valid");
+    assert_chain_valid("CS1", &audit_path);
 }
 
 // ---------------------------------------------------------------------------
@@ -382,6 +445,10 @@ async fn case_study_2_budget_kill() {
         .expect("server did not shut down in time")
         .expect("server task panicked");
 
+    // Yield to let any lingering connection handler tasks complete and drop
+    tokio::task::yield_now().await;
+    drop(ctx);
+
     // Verify audit log
     let events = read_audit_events(&audit_path);
 
@@ -409,50 +476,8 @@ async fn case_study_2_budget_kill() {
         "should have at least one budget soft cap warning"
     );
 
-    // Debug: dump all events for diagnostics
-    for (i, e) in events.iter().enumerate() {
-        eprintln!(
-            "CS2 event {}: type={}, decision={}, hash_prev_present={}",
-            i,
-            e["event_type"],
-            e.get("decision").unwrap_or(&serde_json::Value::Null),
-            e.get("hash_prev").is_some() && !e["hash_prev"].is_null(),
-        );
-    }
-
     // Verify chain integrity
-    let result = verify_chain(&audit_path).unwrap();
-    if !result.valid {
-        // Extra diagnostics: read raw lines and check hashes
-        let raw_content = std::fs::read_to_string(&audit_path).unwrap();
-        let raw_lines: Vec<&str> = raw_content
-            .lines()
-            .filter(|l| !l.trim().is_empty())
-            .collect();
-        eprintln!("CS2 total raw lines: {}", raw_lines.len());
-        if let Some(break_line) = result.break_at_line {
-            let idx = break_line - 1; // 0-indexed
-            eprintln!("CS2 break at line {} (0-idx {})", break_line, idx);
-            if idx < raw_lines.len() {
-                eprintln!(
-                    "CS2 failing line (first 200 chars): {}",
-                    &raw_lines[idx][..raw_lines[idx].len().min(200)]
-                );
-            }
-            if idx > 0 && idx - 1 < raw_lines.len() {
-                let prev_hash = loopstorm_cli::output::sha256_hex(raw_lines[idx - 1].as_bytes());
-                eprintln!("CS2 sha256(prev_line): {}", prev_hash);
-            }
-            eprintln!("CS2 error: {:?}", result.error);
-            eprintln!("CS2 expected_hash: {:?}", result.expected_hash);
-            eprintln!("CS2 actual_hash: {:?}", result.actual_hash);
-        }
-    }
-    assert!(
-        result.valid,
-        "audit chain must be valid: break_at_line={:?}, error={:?}, expected={:?}, actual={:?}",
-        result.break_at_line, result.error, result.expected_hash, result.actual_hash,
-    );
+    assert_chain_valid("CS2", &audit_path);
 }
 
 // ---------------------------------------------------------------------------
@@ -537,6 +562,10 @@ async fn case_study_3_loop_termination() {
         .expect("server did not shut down in time")
         .expect("server task panicked");
 
+    // Yield to let any lingering connection handler tasks complete and drop
+    tokio::task::yield_now().await;
+    drop(ctx);
+
     // Verify audit log progression: allow → allow → cooldown → kill
     let events = read_audit_events(&audit_path);
     let policy_events: Vec<_> = events
@@ -554,8 +583,7 @@ async fn case_study_3_loop_termination() {
     assert_eq!(policy_events[3]["decision"], "kill");
 
     // Verify chain integrity
-    let result = verify_chain(&audit_path).unwrap();
-    assert!(result.valid, "audit chain must be valid");
+    assert_chain_valid("CS3", &audit_path);
 }
 
 // ---------------------------------------------------------------------------
@@ -610,6 +638,10 @@ async fn case_study_4_hash_chain_verification() {
         .await
         .expect("server did not shut down in time")
         .expect("server task panicked");
+
+    // Yield to let any lingering connection handler tasks complete and drop
+    tokio::task::yield_now().await;
+    drop(ctx);
 
     // -- Part 1: Valid chain verifies --
     let result = verify_chain(&audit_path).unwrap();
