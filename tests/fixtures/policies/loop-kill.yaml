@@ -1,0 +1,13 @@
+# SPDX-License-Identifier: MIT
+# Case Study 3: Looping agent detected and terminated.
+schema_version: 1
+name: "loop-kill-test"
+rules:
+  - name: "allow-all"
+    action: allow
+
+loop_detection:
+  enabled: true
+  identical_call_window_seconds: 120
+  identical_call_threshold: 3
+  cooldown_ms: 100

@@ -8,6 +8,10 @@ authors.workspace = true
 license.workspace = true
 repository.workspace = true
 
+[lib]
+name = "loopstorm_cli"
+path = "src/lib.rs"
+
 [[bin]]
 name = "loopstorm"
 path = "src/main.rs"

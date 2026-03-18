@@ -1,0 +1,34 @@
+# SPDX-License-Identifier: MIT
+# Case Study 1: SSRF tool call blocked by policy deny rule.
+schema_version: 1
+name: "ssrf-block-test"
+rules:
+  - name: "deny-metadata-ssrf"
+    action: deny
+    tool: "http_get"
+    conditions:
+      - field: "args.url"
+        operator: matches
+        pattern: "http://169.254.*"
+    reason: "SSRF: cloud metadata endpoint access blocked"
+
+  - name: "deny-localhost-ssrf"
+    action: deny
+    tool: "http_get"
+    conditions:
+      - field: "args.url"
+        operator: matches
+        pattern: "http://127.0.0.*"
+    reason: "SSRF: localhost access blocked"
+
+  - name: "allow-http"
+    action: allow
+    tool_pattern: "http_*"
+
+  - name: "allow-reads"
+    action: allow
+    tool_pattern: "*_read"
+
+  - name: "deny-all"
+    action: deny
+    reason: "default deny"
