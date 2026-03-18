@@ -250,9 +250,7 @@ fn assert_chain_valid(label: &str, path: &Path) {
             eprintln!("[{label}]   {}", &line[..trunc]);
 
             // Re-do hash computation manually
-            if let Ok(mut event) =
-                serde_json::from_str::<loopstorm_engine::AuditEvent>(line)
-            {
+            if let Ok(mut event) = serde_json::from_str::<loopstorm_engine::AuditEvent>(line) {
                 let stored_hash = event.hash.take();
                 let stored_hp = event.hash_prev.take();
                 let payload = serde_json::to_string(&event).unwrap();
@@ -269,8 +267,7 @@ fn assert_chain_valid(label: &str, path: &Path) {
 
             if idx > 0 {
                 let prev = lines[idx - 1];
-                let prev_hash =
-                    loopstorm_cli::output::sha256_hex(prev.as_bytes());
+                let prev_hash = loopstorm_cli::output::sha256_hex(prev.as_bytes());
                 eprintln!("[{label}]   sha256(prev_line): {prev_hash}");
                 eprintln!(
                     "[{label}]   prev_line (len={}): {}",
