@@ -53,16 +53,24 @@ pub enum VerifyError {
 /// Algorithm (must match engine's `AuditWriter::write_event()`):
 ///
 /// For each line L\[i\]:
-///   1. Parse as `serde_json::Value` (preserving field order).
-///   2. Extract and remove `hash` and `hash_prev` from the object.
-///   3. If i == 0: assert `hash_prev` was absent or null.
-///   4. If i > 0: assert `hash_prev` == SHA-256 of L\[i-1\]'s raw bytes.
-///   5. Re-serialize the Value (without hash/hash_prev), compute SHA-256,
-///      assert it equals the stored `hash`.
+///   1. Parse as `serde_json::Value` to read `hash` and `hash_prev` values.
+///   2. If i == 0: assert `hash_prev` was absent or null.
+///   3. If i > 0: assert `hash_prev` == SHA-256 of L\[i-1\]'s raw bytes.
+///   4. Reconstruct the payload by stripping `hash` and `hash_prev`
+///      key-value pairs directly from the raw JSON string (avoiding
+///      re-serialization that could alter float representations).
+///   5. Compute SHA-256 of the payload, assert it equals the stored `hash`.
 ///
-/// Uses `serde_json::Value` with `preserve_order` feature to avoid any
-/// struct round-trip issues — the JSON field ordering is preserved exactly
-/// as written by the engine.
+/// **Why raw-string stripping instead of Value round-trip?**
+///
+/// The engine computes event hashes by serializing a Rust struct with
+/// `serde_json::to_string`. Floats (e.g. `latency_ms`) are formatted by
+/// the Ryu algorithm, which may produce representations like
+/// `0.022132000000000002`. Deserializing this into `serde_json::Value`
+/// and re-serializing can produce a shorter form like `0.022132` due to
+/// f64 parsing precision — the `Value` round-trip is NOT byte-identical
+/// for all floats. By stripping the hash fields from the raw line bytes,
+/// we reconstruct the exact payload the engine hashed.
 pub fn verify_chain(path: &Path) -> Result<VerifyResult, VerifyError> {
     let content = std::fs::read_to_string(path)?;
     let lines: Vec<&str> = content.lines().filter(|l| !l.trim().is_empty()).collect();
@@ -81,14 +89,14 @@ pub fn verify_chain(path: &Path) -> Result<VerifyResult, VerifyError> {
     for (i, line) in lines.iter().enumerate() {
         let line_num = i + 1; // 1-indexed for display
 
-        // 1. Parse as serde_json::Value (preserve_order keeps field ordering)
-        let mut value: serde_json::Value =
+        // 1. Parse as serde_json::Value (read-only) to extract hash and hash_prev
+        let value: serde_json::Value =
             serde_json::from_str(line).map_err(|e| VerifyError::Json {
                 line: line_num,
                 source: e,
             })?;
 
-        let obj = match value.as_object_mut() {
+        let obj = match value.as_object() {
             Some(m) => m,
             None => {
                 return Ok(VerifyResult {
@@ -102,19 +110,17 @@ pub fn verify_chain(path: &Path) -> Result<VerifyResult, VerifyError> {
             }
         };
 
-        // 2. Extract and remove hash and hash_prev
-        //    MUST use shift_remove (not remove) — with preserve_order,
-        //    Map::remove() delegates to IndexMap::swap_remove() which
-        //    moves the last entry into the removed slot, breaking field
-        //    order and producing a different payload hash.
+        // Extract hash and hash_prev values (read-only — no mutation of the Value)
         let stored_hash = obj
-            .shift_remove("hash")
-            .and_then(|v| v.as_str().map(String::from));
+            .get("hash")
+            .and_then(|v| v.as_str())
+            .map(String::from);
         let stored_hash_prev = obj
-            .shift_remove("hash_prev")
-            .and_then(|v| v.as_str().map(String::from));
+            .get("hash_prev")
+            .and_then(|v| v.as_str())
+            .map(String::from);
 
-        // 3/4. Verify hash_prev
+        // 2/3. Verify hash_prev
         if i == 0 {
             if stored_hash_prev.is_some() {
                 return Ok(VerifyResult {
@@ -143,12 +149,9 @@ pub fn verify_chain(path: &Path) -> Result<VerifyResult, VerifyError> {
             }
         }
 
-        // 5. Verify hash: serialize Value without hash/hash_prev, compute SHA-256
-        let payload_json = serde_json::to_string(&value).map_err(|e| VerifyError::Json {
-            line: line_num,
-            source: e,
-        })?;
-        let computed_hash = sha256_hex(payload_json.as_bytes());
+        // 4/5. Verify hash: strip hash/hash_prev from the raw line, compute SHA-256
+        let payload = strip_hash_fields(line, &stored_hash, &stored_hash_prev);
+        let computed_hash = sha256_hex(payload.as_bytes());
 
         match &stored_hash {
             Some(h) if *h == computed_hash => {} // OK
@@ -173,6 +176,42 @@ pub fn verify_chain(path: &Path) -> Result<VerifyResult, VerifyError> {
         actual_hash: None,
         error: None,
     })
+}
+
+/// Strip `"hash"` and `"hash_prev"` key-value pairs from a raw JSON line.
+///
+/// The engine computes event hashes by serializing the `AuditEvent` struct
+/// with `hash` and `hash_prev` set to `None` (which `skip_serializing_if`
+/// omits from the output). To reconstruct that exact payload for
+/// verification, we remove these fields from the raw JSON line at the
+/// string level — no deserialization/re-serialization needed.
+///
+/// This avoids the `serde_json::Value` round-trip that can alter float
+/// representations (e.g. `0.022132000000000002` → `0.022132`).
+///
+/// Safety: hash values are 64-char lowercase hex strings (SHA-256).
+/// The engine always serializes them as `,"hash":"<hex>"` (preceded by
+/// a comma, since `hash` is never the first field in the struct).
+/// False matches inside nested JSON (e.g. `args_redacted`) would require
+/// an identical 64-char hex value, which is statistically impossible.
+fn strip_hash_fields(
+    line: &str,
+    hash: &Option<String>,
+    hash_prev: &Option<String>,
+) -> String {
+    let mut result = line.to_string();
+    // Remove hash_prev first (it follows hash in struct field order),
+    // then hash. Order doesn't affect correctness since the patterns
+    // are non-overlapping.
+    if let Some(hp) = hash_prev {
+        let needle = format!(",\"hash_prev\":\"{}\"", hp);
+        result = result.replacen(&needle, "", 1);
+    }
+    if let Some(h) = hash {
+        let needle = format!(",\"hash\":\"{}\"", h);
+        result = result.replacen(&needle, "", 1);
+    }
+    result
 }
 
 // ---------------------------------------------------------------------------
