@@ -267,12 +267,12 @@ export const policiesRouter = router({
         updated_at: new Date(),
       };
 
-      if (input.name !== undefined) updateSet["name"] = input.name;
-      if (input.description !== undefined) updateSet["description"] = input.description;
-      if (input.agent_role !== undefined) updateSet["agent_role"] = input.agent_role;
-      if (input.environment !== undefined) updateSet["environment"] = input.environment;
-      if (input.content !== undefined) updateSet["content"] = input.content;
-      if (input.is_active !== undefined) updateSet["is_active"] = input.is_active;
+      if (input.name !== undefined) updateSet.name = input.name;
+      if (input.description !== undefined) updateSet.description = input.description;
+      if (input.agent_role !== undefined) updateSet.agent_role = input.agent_role;
+      if (input.environment !== undefined) updateSet.environment = input.environment;
+      if (input.content !== undefined) updateSet.content = input.content;
+      if (input.is_active !== undefined) updateSet.is_active = input.is_active;
 
       const [updated] = await db
         .update(policyPacks)

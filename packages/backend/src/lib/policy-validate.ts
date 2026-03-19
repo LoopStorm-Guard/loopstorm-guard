@@ -107,16 +107,16 @@ function validateAgainstSchema(
   const errors: PolicyValidationError[] = [];
 
   // schema_version must be 1
-  if (content["schema_version"] !== 1) {
+  if (content.schema_version !== 1) {
     errors.push({
       path: "schema_version",
-      message: `schema_version must be 1, got: ${JSON.stringify(content["schema_version"])}`,
+      message: `schema_version must be 1, got: ${JSON.stringify(content.schema_version)}`,
       code: "INVALID_SCHEMA_VERSION",
     });
   }
 
   // rules must be a non-empty array
-  if (!Array.isArray(content["rules"])) {
+  if (!Array.isArray(content.rules)) {
     errors.push({
       path: "rules",
       message: "rules must be an array",
@@ -125,7 +125,7 @@ function validateAgainstSchema(
     return errors; // Can't validate rules without the array
   }
 
-  if ((content["rules"] as unknown[]).length === 0) {
+  if ((content.rules as unknown[]).length === 0) {
     errors.push({
       path: "rules",
       message: "rules must contain at least one rule",
@@ -134,7 +134,7 @@ function validateAgainstSchema(
   }
 
   // Validate each rule
-  const rules = content["rules"] as unknown[];
+  const rules = content.rules as unknown[];
   for (let i = 0; i < rules.length; i++) {
     const rule = rules[i];
     const rulePath = `rules[${i}]`;
@@ -151,7 +151,7 @@ function validateAgainstSchema(
     const ruleObj = rule as Record<string, unknown>;
 
     // name is required
-    if (typeof ruleObj["name"] !== "string" || ruleObj["name"].trim() === "") {
+    if (typeof ruleObj.name !== "string" || ruleObj.name.trim() === "") {
       errors.push({
         path: `${rulePath}.name`,
         message: "Rule name must be a non-empty string",
@@ -161,7 +161,7 @@ function validateAgainstSchema(
 
     // action is required and must be a valid value
     const validActions = ["allow", "deny", "require_approval"];
-    if (!validActions.includes(ruleObj["action"] as string)) {
+    if (!validActions.includes(ruleObj.action as string)) {
       errors.push({
         path: `${rulePath}.action`,
         message: `Rule action must be one of: ${validActions.join(", ")}`,
@@ -170,7 +170,7 @@ function validateAgainstSchema(
     }
 
     // tool and tool_pattern cannot both be present
-    if (ruleObj["tool"] !== undefined && ruleObj["tool_pattern"] !== undefined) {
+    if (ruleObj.tool !== undefined && ruleObj.tool_pattern !== undefined) {
       errors.push({
         path: `${rulePath}`,
         message: "Rule cannot have both 'tool' and 'tool_pattern'",
@@ -180,9 +180,9 @@ function validateAgainstSchema(
   }
 
   // Validate budget if present
-  if (content["budget"] !== undefined) {
+  if (content.budget !== undefined) {
     const budgetErrors = validateBudget(
-      content["budget"] as Record<string, unknown>,
+      content.budget as Record<string, unknown>,
     );
     errors.push(...budgetErrors);
   }
@@ -215,7 +215,7 @@ function validateBudget(
         });
         continue;
       }
-      if (typeof dimObj["hard"] !== "number" || dimObj["hard"] <= 0) {
+      if (typeof dimObj.hard !== "number" || dimObj.hard <= 0) {
         errors.push({
           path: `budget.${dim}.hard`,
           message: `budget.${dim}.hard must be a positive number`,
@@ -223,8 +223,8 @@ function validateBudget(
         });
       }
       if (
-        dimObj["soft"] !== undefined &&
-        (typeof dimObj["soft"] !== "number" || dimObj["soft"] <= 0)
+        dimObj.soft !== undefined &&
+        (typeof dimObj.soft !== "number" || dimObj.soft <= 0)
       ) {
         errors.push({
           path: `budget.${dim}.soft`,
@@ -260,7 +260,8 @@ function checkEscalateToHumanInvariant(
   const errors: PolicyValidationError[] = [];
 
   for (let i = 0; i < policy.rules.length; i++) {
-    const rule: PolicyRule = policy.rules[i]!;
+    const rule = policy.rules[i];
+    if (!rule) continue;
     const rulePath = `rules[${i}]`;
 
     if (rule.action !== "deny") {
