@@ -4,11 +4,12 @@
   "description": "LoopStorm Guard JSON schemas — single source of truth for IPC, events, and policy (ADR-003)",
   "license": "MIT",
   "type": "module",
-  "main": "./index.js",
+  "main": "./index.ts",
   "types": "./index.d.ts",
   "exports": {
     ".": {
-      "import": "./index.js",
+      "bun": "./index.ts",
+      "import": "./index.ts",
       "types": "./index.d.ts"
     },
     "./policy": "./policy/policy.schema.json",
