@@ -49,8 +49,15 @@ const parsedEventSchema = z.object({
   run_id: z.string().uuid(),
   seq: z.number().int().min(1),
   ts: z.string().datetime(), // ISO 8601 with timezone
-  hash: z.string().length(64).regex(/^[0-9a-f]{64}$/), // SHA-256 hex
-  hash_prev: z.string().length(64).regex(/^[0-9a-f]{64}$/).nullable(),
+  hash: z
+    .string()
+    .length(64)
+    .regex(/^[0-9a-f]{64}$/), // SHA-256 hex
+  hash_prev: z
+    .string()
+    .length(64)
+    .regex(/^[0-9a-f]{64}$/)
+    .nullable(),
   // Optional fields extracted for run record and event columns
   agent_name: z.string().optional().nullable(),
   agent_role: z.string().optional().nullable(),
@@ -97,10 +104,7 @@ type ParsedEvent = z.infer<typeof parsedEventSchema>;
  * Parse and validate a single JSONL line.
  * Returns the parsed event or throws a descriptive error.
  */
-function parseEventLine(
-  line: string,
-  lineIndex: number,
-): ParsedEvent {
+function parseEventLine(line: string, lineIndex: number): ParsedEvent {
   let parsed: unknown;
   try {
     parsed = JSON.parse(line);
@@ -116,7 +120,7 @@ function parseEventLine(
     const firstError = result.error.errors[0];
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: `Line ${lineIndex + 1} (seq=${(parsed as Record<string, unknown>)?.["seq"] ?? "?"}): ${firstError?.message ?? "validation failed"} at path: ${firstError?.path.join(".") ?? "unknown"}`,
+      message: `Line ${lineIndex + 1} (seq=${(parsed as Record<string, unknown>)?.seq ?? "?"}): ${firstError?.message ?? "validation failed"} at path: ${firstError?.path.join(".") ?? "unknown"}`,
     });
   }
 
@@ -140,7 +144,7 @@ function parseEventLine(
  */
 function verifyBatchChain(
   sortedEvents: Array<{ event: ParsedEvent; rawLine: string }>,
-  prevRunHash: string | null,
+  prevRunHash: string | null
 ): void {
   for (let i = 0; i < sortedEvents.length; i++) {
     const item = sortedEvents[i];
@@ -201,7 +205,7 @@ export const eventsRouter = router({
          * Maximum 1000 lines per batch.
          */
         lines: z.array(z.string().min(1)).min(1).max(1000),
-      }),
+      })
     )
     .mutation(async ({ input, ctx }) => {
       const tenantId = ctx.tenantId ?? "";
@@ -381,9 +385,7 @@ export const eventsRouter = router({
               ...(endedAt ? { ended_at: endedAt } : {}),
               updated_at: new Date(),
             })
-            .where(
-              and(eq(runs.run_id, runId), eq(runs.tenant_id, tenantId)),
-            );
+            .where(and(eq(runs.run_id, runId), eq(runs.tenant_id, tenantId)));
         } else {
           // --- Step 8b: Create new run record ---
           await tx

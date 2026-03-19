@@ -28,10 +28,7 @@ import { TRPCError } from "@trpc/server";
 import { and, desc, eq, lt } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "../../db/client.js";
-import {
-  supervisorEscalations,
-  supervisorProposals,
-} from "../../db/schema.js";
+import { supervisorEscalations, supervisorProposals } from "../../db/schema.js";
 import { protectedProcedure, router } from "../trpc.js";
 
 export const supervisorRouter = router({
@@ -49,19 +46,12 @@ export const supervisorRouter = router({
         cursor: z.string().datetime().optional(),
         limit: z.number().int().min(1).max(100).default(50),
         /** Filter by proposal status. Omit to return all. */
-        status: z
-          .enum(["pending", "approved", "rejected", "expired"])
-          .optional(),
+        status: z.enum(["pending", "approved", "rejected", "expired"]).optional(),
         /** Filter by proposal type. Omit to return all. */
         proposal_type: z
-          .enum([
-            "budget_adjustment",
-            "policy_change",
-            "agent_profile_update",
-            "flag_for_review",
-          ])
+          .enum(["budget_adjustment", "policy_change", "agent_profile_update", "flag_for_review"])
           .optional(),
-      }),
+      })
     )
     .query(async ({ input, ctx }) => {
       const tenantId = ctx.tenantId ?? "";
@@ -69,9 +59,7 @@ export const supervisorRouter = router({
       const conditions = [eq(supervisorProposals.tenant_id, tenantId)];
 
       if (input.cursor) {
-        conditions.push(
-          lt(supervisorProposals.created_at, new Date(input.cursor)),
-        );
+        conditions.push(lt(supervisorProposals.created_at, new Date(input.cursor)));
       }
 
       if (input.status) {
@@ -79,9 +67,7 @@ export const supervisorRouter = router({
       }
 
       if (input.proposal_type) {
-        conditions.push(
-          eq(supervisorProposals.proposal_type, input.proposal_type),
-        );
+        conditions.push(eq(supervisorProposals.proposal_type, input.proposal_type));
       }
 
       const rows = await db
@@ -94,8 +80,7 @@ export const supervisorRouter = router({
       const hasMore = rows.length > input.limit;
       const items = hasMore ? rows.slice(0, input.limit) : rows;
       const lastItem = items[items.length - 1];
-      const nextCursor =
-        hasMore && lastItem ? lastItem.created_at.toISOString() : null;
+      const nextCursor = hasMore && lastItem ? lastItem.created_at.toISOString() : null;
 
       return { items, nextCursor };
     }),
@@ -118,7 +103,7 @@ export const supervisorRouter = router({
         id: z.string().uuid(),
         /** Optional notes from the reviewer. */
         review_notes: z.string().max(2000).optional(),
-      }),
+      })
     )
     .mutation(async ({ input, ctx }) => {
       const tenantId = ctx.tenantId ?? "";
@@ -133,10 +118,7 @@ export const supervisorRouter = router({
         })
         .from(supervisorProposals)
         .where(
-          and(
-            eq(supervisorProposals.id, input.id),
-            eq(supervisorProposals.tenant_id, tenantId),
-          ),
+          and(eq(supervisorProposals.id, input.id), eq(supervisorProposals.tenant_id, tenantId))
         )
         .limit(1);
 
@@ -170,8 +152,8 @@ export const supervisorRouter = router({
             eq(supervisorProposals.id, input.id),
             eq(supervisorProposals.tenant_id, tenantId),
             // Guard: ensure status is still pending (TOCTOU defense)
-            eq(supervisorProposals.status, "pending"),
-          ),
+            eq(supervisorProposals.status, "pending")
+          )
         )
         .returning();
 
@@ -197,7 +179,7 @@ export const supervisorRouter = router({
         id: z.string().uuid(),
         /** Reason for rejection. Required for audit trail clarity. */
         review_notes: z.string().min(1).max(2000),
-      }),
+      })
     )
     .mutation(async ({ input, ctx }) => {
       const tenantId = ctx.tenantId ?? "";
@@ -210,10 +192,7 @@ export const supervisorRouter = router({
         })
         .from(supervisorProposals)
         .where(
-          and(
-            eq(supervisorProposals.id, input.id),
-            eq(supervisorProposals.tenant_id, tenantId),
-          ),
+          and(eq(supervisorProposals.id, input.id), eq(supervisorProposals.tenant_id, tenantId))
         )
         .limit(1);
 
@@ -246,8 +225,8 @@ export const supervisorRouter = router({
           and(
             eq(supervisorProposals.id, input.id),
             eq(supervisorProposals.tenant_id, tenantId),
-            eq(supervisorProposals.status, "pending"),
-          ),
+            eq(supervisorProposals.status, "pending")
+          )
         )
         .returning();
 
@@ -276,12 +255,10 @@ export const supervisorRouter = router({
         cursor: z.string().datetime().optional(),
         limit: z.number().int().min(1).max(100).default(50),
         /** Filter by escalation status. Omit to return all. */
-        status: z
-          .enum(["open", "acknowledged", "resolved", "expired"])
-          .optional(),
+        status: z.enum(["open", "acknowledged", "resolved", "expired"]).optional(),
         /** Filter by severity. Omit to return all. */
         severity: z.enum(["low", "medium", "high", "critical"]).optional(),
-      }),
+      })
     )
     .query(async ({ input, ctx }) => {
       const tenantId = ctx.tenantId ?? "";
@@ -289,9 +266,7 @@ export const supervisorRouter = router({
       const conditions = [eq(supervisorEscalations.tenant_id, tenantId)];
 
       if (input.cursor) {
-        conditions.push(
-          lt(supervisorEscalations.created_at, new Date(input.cursor)),
-        );
+        conditions.push(lt(supervisorEscalations.created_at, new Date(input.cursor)));
       }
 
       if (input.status) {
@@ -312,8 +287,7 @@ export const supervisorRouter = router({
       const hasMore = rows.length > input.limit;
       const items = hasMore ? rows.slice(0, input.limit) : rows;
       const lastItem = items[items.length - 1];
-      const nextCursor =
-        hasMore && lastItem ? lastItem.created_at.toISOString() : null;
+      const nextCursor = hasMore && lastItem ? lastItem.created_at.toISOString() : null;
 
       return { items, nextCursor };
     }),
@@ -333,7 +307,7 @@ export const supervisorRouter = router({
         id: z.string().uuid(),
         /** Optional resolution notes. */
         resolution_notes: z.string().max(2000).optional(),
-      }),
+      })
     )
     .mutation(async ({ input, ctx }) => {
       const tenantId = ctx.tenantId ?? "";
@@ -346,10 +320,7 @@ export const supervisorRouter = router({
         })
         .from(supervisorEscalations)
         .where(
-          and(
-            eq(supervisorEscalations.id, input.id),
-            eq(supervisorEscalations.tenant_id, tenantId),
-          ),
+          and(eq(supervisorEscalations.id, input.id), eq(supervisorEscalations.tenant_id, tenantId))
         )
         .limit(1);
 
@@ -382,8 +353,8 @@ export const supervisorRouter = router({
           and(
             eq(supervisorEscalations.id, input.id),
             eq(supervisorEscalations.tenant_id, tenantId),
-            eq(supervisorEscalations.status, "open"),
-          ),
+            eq(supervisorEscalations.status, "open")
+          )
         )
         .returning();
 

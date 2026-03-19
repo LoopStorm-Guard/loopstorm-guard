@@ -47,7 +47,7 @@ export const verifyRouter = router({
       z.object({
         /** UUID of the run to verify. */
         run_id: z.string().uuid(),
-      }),
+      })
     )
     .query(async ({ input, ctx }) => {
       const tenantId = ctx.tenantId ?? "";
@@ -60,12 +60,7 @@ export const verifyRouter = router({
           last_seq: runs.last_seq,
         })
         .from(runs)
-        .where(
-          and(
-            eq(runs.run_id, input.run_id),
-            eq(runs.tenant_id, tenantId),
-          ),
-        )
+        .where(and(eq(runs.run_id, input.run_id), eq(runs.tenant_id, tenantId)))
         .limit(1);
 
       if (!run) {
@@ -109,8 +104,8 @@ export const verifyRouter = router({
             and(
               eq(events.run_id, input.run_id),
               eq(events.tenant_id, tenantId),
-              gt(events.seq, lastSeenSeq),
-            ),
+              gt(events.seq, lastSeenSeq)
+            )
           )
           .orderBy(asc(events.seq))
           .limit(EVENTS_PAGE_SIZE);

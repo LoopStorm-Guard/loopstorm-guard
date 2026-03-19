@@ -122,9 +122,7 @@ export function verifyChain(events: ChainEvent[]): ChainVerifyResult {
 export function computeEventHash(event: ChainEvent): string {
   if (event.raw_line) {
     // Bit-exact: hash the original JSONL line as received
-    return createHash("sha256")
-      .update(event.raw_line, "utf8")
-      .digest("hex");
+    return createHash("sha256").update(event.raw_line, "utf8").digest("hex");
   }
 
   // Best-effort: re-serialize the event without hash fields.

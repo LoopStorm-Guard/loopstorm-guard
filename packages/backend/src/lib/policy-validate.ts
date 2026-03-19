@@ -26,7 +26,7 @@
  */
 
 import { policySchema } from "@loopstorm/schemas";
-import type { PolicyPack, PolicyRule } from "@loopstorm/schemas";
+import type { PolicyPack } from "@loopstorm/schemas";
 
 /**
  * Result of a policy validation.
@@ -58,9 +58,7 @@ const ESCALATE_TO_HUMAN_TOOL = "escalate_to_human";
  * @param content - The policy pack content (parsed JSON/YAML)
  * @returns Validation result with structured errors if invalid
  */
-export function validatePolicy(
-  content: Record<string, unknown>,
-): PolicyValidationResult {
+export function validatePolicy(content: Record<string, unknown>): PolicyValidationResult {
   const errors: PolicyValidationError[] = [];
 
   // --- Step 1: Structural schema validation ---
@@ -101,9 +99,7 @@ export function validatePolicy(
  * - Each rule with `conditions` has valid condition structure
  * - `budget` fields are positive numbers if present
  */
-function validateAgainstSchema(
-  content: Record<string, unknown>,
-): PolicyValidationError[] {
+function validateAgainstSchema(content: Record<string, unknown>): PolicyValidationError[] {
   const errors: PolicyValidationError[] = [];
 
   // schema_version must be 1
@@ -181,9 +177,7 @@ function validateAgainstSchema(
 
   // Validate budget if present
   if (content.budget !== undefined) {
-    const budgetErrors = validateBudget(
-      content.budget as Record<string, unknown>,
-    );
+    const budgetErrors = validateBudget(content.budget as Record<string, unknown>);
     errors.push(...budgetErrors);
   }
 
@@ -193,16 +187,9 @@ function validateAgainstSchema(
 /**
  * Validate the budget section of a policy pack.
  */
-function validateBudget(
-  budget: Record<string, unknown>,
-): PolicyValidationError[] {
+function validateBudget(budget: Record<string, unknown>): PolicyValidationError[] {
   const errors: PolicyValidationError[] = [];
-  const dimensions = [
-    "cost_usd",
-    "input_tokens",
-    "output_tokens",
-    "call_count",
-  ] as const;
+  const dimensions = ["cost_usd", "input_tokens", "output_tokens", "call_count"] as const;
 
   for (const dim of dimensions) {
     if (budget[dim] !== undefined) {
@@ -222,10 +209,7 @@ function validateBudget(
           code: "INVALID_BUDGET_HARD_LIMIT",
         });
       }
-      if (
-        dimObj.soft !== undefined &&
-        (typeof dimObj.soft !== "number" || dimObj.soft <= 0)
-      ) {
+      if (dimObj.soft !== undefined && (typeof dimObj.soft !== "number" || dimObj.soft <= 0)) {
         errors.push({
           path: `budget.${dim}.soft`,
           message: `budget.${dim}.soft must be a positive number`,
@@ -254,9 +238,7 @@ function validateBudget(
  * Note: `require_approval` is allowed — escalate_to_human can require a human
  * to approve the escalation itself. Only outright `deny` is blocked.
  */
-function checkEscalateToHumanInvariant(
-  policy: PolicyPack,
-): PolicyValidationError[] {
+function checkEscalateToHumanInvariant(policy: PolicyPack): PolicyValidationError[] {
   const errors: PolicyValidationError[] = [];
 
   for (let i = 0; i < policy.rules.length; i++) {
@@ -272,10 +254,7 @@ function checkEscalateToHumanInvariant(
     if (rule.tool === ESCALATE_TO_HUMAN_TOOL) {
       errors.push({
         path: `${rulePath}.tool`,
-        message:
-          `Rule "${rule.name}" uses action: "deny" with tool: "escalate_to_human". ` +
-          `The escalate_to_human tool can never be denied (ADR-012). ` +
-          `Change the action or remove this rule.`,
+        message: `Rule "${rule.name}" uses action: "deny" with tool: "escalate_to_human". The escalate_to_human tool can never be denied (ADR-012). Change the action or remove this rule.`,
         code: "ESCALATE_TO_HUMAN_BLOCKED",
       });
     }
@@ -293,11 +272,7 @@ function checkEscalateToHumanInvariant(
       if (patternMatchesEscalate) {
         errors.push({
           path: `${rulePath}.tool_pattern`,
-          message:
-            `Rule "${rule.name}" uses action: "deny" with tool_pattern: "${rule.tool_pattern}" ` +
-            `which matches "escalate_to_human". ` +
-            `The escalate_to_human tool can never be denied (ADR-012). ` +
-            `Narrow the pattern to exclude escalate_to_human.`,
+          message: `Rule "${rule.name}" uses action: "deny" with tool_pattern: "${rule.tool_pattern}" which matches "escalate_to_human". The escalate_to_human tool can never be denied (ADR-012). Narrow the pattern to exclude escalate_to_human.`,
           code: "ESCALATE_TO_HUMAN_BLOCKED",
         });
       }

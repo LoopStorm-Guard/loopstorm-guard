@@ -37,9 +37,7 @@ import { db } from "../db/client.js";
  */
 export async function setTenantRlsContext(tenantId: string): Promise<void> {
   const claims = JSON.stringify({ tenant_id: tenantId });
-  await db.execute(
-    sql`SELECT set_config('request.jwt.claims', ${claims}, true)`,
-  );
+  await db.execute(sql`SELECT set_config('request.jwt.claims', ${claims}, true)`);
 }
 
 /**
@@ -51,7 +49,5 @@ export async function setTenantRlsContext(tenantId: string): Promise<void> {
  * transactions, so this is mainly useful for integration tests.
  */
 export async function clearTenantRlsContext(): Promise<void> {
-  await db.execute(
-    sql`SELECT set_config('request.jwt.claims', '', true)`,
-  );
+  await db.execute(sql`SELECT set_config('request.jwt.claims', '', true)`);
 }

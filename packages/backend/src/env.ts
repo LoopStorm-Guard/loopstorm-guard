@@ -27,9 +27,7 @@ const envSchema = z.object({
 
   // Server
   PORT: z.coerce.number().int().min(1).max(65535).default(3001),
-  NODE_ENV: z
-    .enum(["development", "production", "test"])
-    .default("development"),
+  NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -43,9 +41,7 @@ export type Env = z.infer<typeof envSchema>;
  * a database must provide the real env vars.
  */
 function loadEnv(): Env {
-  const isTest =
-    process.env.NODE_ENV === "test" ||
-    process.env.BUN_ENV === "test";
+  const isTest = process.env.NODE_ENV === "test" || process.env.BUN_ENV === "test";
 
   if (isTest) {
     const result = envSchema.safeParse(process.env);
@@ -57,7 +53,8 @@ function loadEnv(): Env {
     return {
       DATABASE_URL: process.env.DATABASE_URL ?? "postgres://localhost:5432/loopstorm_test",
       SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY ?? "test-service-role-key",
-      BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET ?? "test-secret-that-is-at-least-32-chars-long",
+      BETTER_AUTH_SECRET:
+        process.env.BETTER_AUTH_SECRET ?? "test-secret-that-is-at-least-32-chars-long",
       BETTER_AUTH_URL: process.env.BETTER_AUTH_URL ?? "http://localhost:3001",
       GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
       GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,

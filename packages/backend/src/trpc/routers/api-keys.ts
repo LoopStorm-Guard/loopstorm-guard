@@ -48,7 +48,7 @@ export const apiKeysRouter = router({
          * Range: 1–365 days.
          */
         expires_in_days: z.number().int().min(1).max(365).optional(),
-      }),
+      })
     )
     .mutation(async ({ input, ctx }) => {
       // ctx.tenantId and ctx.userId are guaranteed non-null by protectedProcedure
@@ -109,7 +109,7 @@ export const apiKeysRouter = router({
          */
         cursor: z.string().datetime().optional(),
         limit: z.number().int().min(1).max(100).default(50),
-      }),
+      })
     )
     .query(async ({ input, ctx }) => {
       const tenantId = ctx.tenantId ?? "";
@@ -133,10 +133,8 @@ export const apiKeysRouter = router({
           and(
             eq(apiKeys.tenant_id, tenantId),
             // Cursor: return items created before the cursor timestamp
-            input.cursor
-              ? lt(apiKeys.created_at, new Date(input.cursor))
-              : undefined,
-          ),
+            input.cursor ? lt(apiKeys.created_at, new Date(input.cursor)) : undefined
+          )
         )
         .orderBy(desc(apiKeys.created_at))
         .limit(input.limit + 1); // fetch one extra to detect next page
@@ -145,8 +143,7 @@ export const apiKeysRouter = router({
       const items = hasMore ? rows.slice(0, input.limit) : rows;
       // nextCursor is the created_at of the last item in the page
       const lastItem = items[items.length - 1];
-      const nextCursor =
-        hasMore && lastItem ? lastItem.created_at.toISOString() : null;
+      const nextCursor = hasMore && lastItem ? lastItem.created_at.toISOString() : null;
 
       return {
         items,
@@ -169,7 +166,7 @@ export const apiKeysRouter = router({
       z.object({
         /** UUID of the API key to revoke. */
         id: z.string().uuid(),
-      }),
+      })
     )
     .mutation(async ({ input, ctx }) => {
       const tenantId = ctx.tenantId ?? "";

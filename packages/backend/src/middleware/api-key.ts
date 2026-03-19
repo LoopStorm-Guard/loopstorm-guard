@@ -42,7 +42,7 @@ export interface ApiKeyAuthResult {
  * @returns Authentication result if valid, or null if authentication fails
  */
 export async function authenticateApiKey(
-  authHeader: string | null | undefined,
+  authHeader: string | null | undefined
 ): Promise<ApiKeyAuthResult | null> {
   if (!authHeader?.startsWith("Bearer ")) {
     return null;

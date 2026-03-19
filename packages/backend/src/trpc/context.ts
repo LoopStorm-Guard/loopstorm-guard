@@ -41,9 +41,7 @@ export interface TRPCContext {
  * @param opts - Options from the fetch adapter, including the raw Request
  * @returns An unauthenticated context to be enriched by middleware
  */
-export function createContext({
-  req,
-}: FetchCreateContextFnOptions): TRPCContext {
+export function createContext({ req }: FetchCreateContextFnOptions): TRPCContext {
   return {
     request: req,
     userId: null,

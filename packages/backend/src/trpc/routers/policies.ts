@@ -51,7 +51,7 @@ export const policiesRouter = router({
         limit: z.number().int().min(1).max(100).default(50),
         /** Filter to active packs only. Default false (return all). */
         active_only: z.boolean().default(false),
-      }),
+      })
     )
     .query(async ({ input, ctx }) => {
       const tenantId = ctx.tenantId ?? "";
@@ -91,8 +91,7 @@ export const policiesRouter = router({
       const hasMore = rows.length > input.limit;
       const items = hasMore ? rows.slice(0, input.limit) : rows;
       const lastItem = items[items.length - 1];
-      const nextCursor =
-        hasMore && lastItem ? lastItem.created_at.toISOString() : null;
+      const nextCursor = hasMore && lastItem ? lastItem.created_at.toISOString() : null;
 
       return { items, nextCursor };
     }),
@@ -107,7 +106,7 @@ export const policiesRouter = router({
     .input(
       z.object({
         id: z.string().uuid(),
-      }),
+      })
     )
     .query(async ({ input, ctx }) => {
       const tenantId = ctx.tenantId ?? "";
@@ -115,12 +114,7 @@ export const policiesRouter = router({
       const [row] = await db
         .select()
         .from(policyPacks)
-        .where(
-          and(
-            eq(policyPacks.id, input.id),
-            eq(policyPacks.tenant_id, tenantId),
-          ),
-        )
+        .where(and(eq(policyPacks.id, input.id), eq(policyPacks.tenant_id, tenantId)))
         .limit(1);
 
       return row ?? null;
@@ -145,7 +139,7 @@ export const policiesRouter = router({
         content: policyContentSchema,
         /** Whether to activate this policy immediately. Default true. */
         is_active: z.boolean().default(true),
-      }),
+      })
     )
     .mutation(async ({ input, ctx }) => {
       const tenantId = ctx.tenantId ?? "";
@@ -213,7 +207,7 @@ export const policiesRouter = router({
         environment: z.string().max(255).nullable().optional(),
         content: policyContentSchema.optional(),
         is_active: z.boolean().optional(),
-      }),
+      })
     )
     .mutation(async ({ input, ctx }) => {
       const tenantId = ctx.tenantId ?? "";
@@ -226,12 +220,7 @@ export const policiesRouter = router({
           tenant_id: policyPacks.tenant_id,
         })
         .from(policyPacks)
-        .where(
-          and(
-            eq(policyPacks.id, input.id),
-            eq(policyPacks.tenant_id, tenantId),
-          ),
-        )
+        .where(and(eq(policyPacks.id, input.id), eq(policyPacks.tenant_id, tenantId)))
         .limit(1);
 
       if (!existing) {
@@ -284,8 +273,8 @@ export const policiesRouter = router({
             eq(policyPacks.tenant_id, tenantId),
             // Double-check version in WHERE to prevent lost updates under
             // concurrent requests (even though we checked above — TOCTOU defense)
-            eq(policyPacks.version, input.version),
-          ),
+            eq(policyPacks.version, input.version)
+          )
         )
         .returning();
 

@@ -57,7 +57,7 @@ export const runsRouter = router({
             "error",
           ])
           .optional(),
-      }),
+      })
     )
     .query(async ({ input, ctx }) => {
       const tenantId = ctx.tenantId ?? "";
@@ -101,8 +101,7 @@ export const runsRouter = router({
       const hasMore = rows.length > input.limit;
       const items = hasMore ? rows.slice(0, input.limit) : rows;
       const lastItem = items[items.length - 1];
-      const nextCursor =
-        hasMore && lastItem ? lastItem.created_at.toISOString() : null;
+      const nextCursor = hasMore && lastItem ? lastItem.created_at.toISOString() : null;
 
       return {
         items,
@@ -124,7 +123,7 @@ export const runsRouter = router({
       z.object({
         /** UUID of the run to retrieve. */
         run_id: z.string().uuid(),
-      }),
+      })
     )
     .query(async ({ input, ctx }) => {
       const tenantId = ctx.tenantId ?? "";
@@ -170,7 +169,7 @@ export const runsRouter = router({
         limit: z.number().int().min(1).max(500).default(100),
         /** Filter by event type (e.g., "policy_decision", "run_ended"). */
         event_type: z.string().optional(),
-      }),
+      })
     )
     .query(async ({ input, ctx }) => {
       const tenantId = ctx.tenantId ?? "";
@@ -188,10 +187,7 @@ export const runsRouter = router({
       }
 
       // Build event query conditions
-      const conditions = [
-        eq(events.run_id, input.run_id),
-        eq(events.tenant_id, tenantId),
-      ];
+      const conditions = [eq(events.run_id, input.run_id), eq(events.tenant_id, tenantId)];
 
       if (input.cursor !== undefined) {
         conditions.push(gt(events.seq, input.cursor));

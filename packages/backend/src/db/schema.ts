@@ -40,12 +40,8 @@ export const tenants = pgTable("tenants", {
   slug: text("slug").notNull().unique(),
   plan: text("plan").notNull().default("free"), // "free" | "pro" | "enterprise"
   is_active: boolean("is_active").notNull().default(true),
-  created_at: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  updated_at: timestamp("updated_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
+  created_at: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updated_at: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 // ---------------------------------------------------------------------------
@@ -67,12 +63,8 @@ export const users = pgTable("users", {
   email_verified: boolean("email_verified").notNull().default(false),
   image: text("image"),
   tenant_id: uuid("tenant_id").references(() => tenants.id), // nullable until tenant is created
-  created_at: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  updated_at: timestamp("updated_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
+  created_at: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updated_at: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 // ---------------------------------------------------------------------------
@@ -91,12 +83,8 @@ export const sessions = pgTable("sessions", {
   ip_address: text("ip_address"),
   user_agent: text("user_agent"),
   tenant_id: uuid("tenant_id").references(() => tenants.id),
-  created_at: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  updated_at: timestamp("updated_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
+  created_at: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updated_at: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 // ---------------------------------------------------------------------------
@@ -123,12 +111,8 @@ export const accounts = pgTable("accounts", {
   scope: text("scope"),
   id_token: text("id_token"),
   password: text("password"), // bcrypt hash, for email+password auth
-  created_at: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  updated_at: timestamp("updated_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
+  created_at: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updated_at: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 // ---------------------------------------------------------------------------
@@ -141,12 +125,8 @@ export const verifications = pgTable("verifications", {
   identifier: text("identifier").notNull(), // email address
   value: text("value").notNull(), // token
   expires_at: timestamp("expires_at", { withTimezone: true }).notNull(),
-  created_at: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  updated_at: timestamp("updated_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
+  created_at: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updated_at: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 // ---------------------------------------------------------------------------
@@ -172,9 +152,7 @@ export const apiKeys = pgTable("api_keys", {
   last_used_at: timestamp("last_used_at", { withTimezone: true }),
   expires_at: timestamp("expires_at", { withTimezone: true }), // null = no expiry
   is_revoked: boolean("is_revoked").notNull().default(false),
-  created_at: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
+  created_at: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 // ---------------------------------------------------------------------------
@@ -206,20 +184,13 @@ export const runs = pgTable(
     total_call_count: integer("total_call_count").notNull().default(0),
     started_at: timestamp("started_at", { withTimezone: true }),
     ended_at: timestamp("ended_at", { withTimezone: true }),
-    created_at: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updated_at: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    created_at: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updated_at: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     // Primary query pattern: list runs for a tenant ordered by creation time
-    index("runs_tenant_id_created_at_idx").on(
-      table.tenant_id,
-      table.created_at,
-    ),
-  ],
+    index("runs_tenant_id_created_at_idx").on(table.tenant_id, table.created_at),
+  ]
 );
 
 // ---------------------------------------------------------------------------
@@ -298,7 +269,7 @@ export const events = pgTable(
     index("events_tenant_id_ts_idx").on(table.tenant_id, table.ts),
     // Filter by event type (supervisor, policy_decision, etc.)
     index("events_event_type_idx").on(table.event_type),
-  ],
+  ]
 );
 
 // ---------------------------------------------------------------------------
@@ -327,12 +298,8 @@ export const supervisorProposals = pgTable("supervisor_proposals", {
   reviewed_by: text("reviewed_by").references(() => users.id),
   reviewed_at: timestamp("reviewed_at", { withTimezone: true }),
   review_notes: text("review_notes"),
-  created_at: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  updated_at: timestamp("updated_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
+  created_at: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updated_at: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 // ---------------------------------------------------------------------------
@@ -362,12 +329,8 @@ export const supervisorEscalations = pgTable("supervisor_escalations", {
   acknowledged_by: text("acknowledged_by").references(() => users.id),
   acknowledged_at: timestamp("acknowledged_at", { withTimezone: true }),
   resolution_notes: text("resolution_notes"),
-  created_at: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  updated_at: timestamp("updated_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
+  created_at: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updated_at: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 // ---------------------------------------------------------------------------
@@ -391,12 +354,8 @@ export const policyPacks = pgTable("policy_packs", {
   is_active: boolean("is_active").notNull().default(true),
   version: integer("version").notNull().default(1), // optimistic concurrency counter
   created_by: text("created_by").references(() => users.id),
-  created_at: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  updated_at: timestamp("updated_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
+  created_at: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updated_at: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 // ---------------------------------------------------------------------------
@@ -431,8 +390,7 @@ export type SupervisorProposal = typeof supervisorProposals.$inferSelect;
 export type NewSupervisorProposal = typeof supervisorProposals.$inferInsert;
 
 export type SupervisorEscalation = typeof supervisorEscalations.$inferSelect;
-export type NewSupervisorEscalation =
-  typeof supervisorEscalations.$inferInsert;
+export type NewSupervisorEscalation = typeof supervisorEscalations.$inferInsert;
 
 export type PolicyPack = typeof policyPacks.$inferSelect;
 export type NewPolicyPack = typeof policyPacks.$inferInsert;

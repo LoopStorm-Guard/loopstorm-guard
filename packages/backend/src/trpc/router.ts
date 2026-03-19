@@ -20,13 +20,13 @@
  * agent. Signature changes are breaking changes for the frontend type inference.
  */
 
-import { router } from "./trpc.js";
-import { runsRouter } from "./routers/runs.js";
+import { apiKeysRouter } from "./routers/api-keys.js";
 import { eventsRouter } from "./routers/events.js";
 import { policiesRouter } from "./routers/policies.js";
+import { runsRouter } from "./routers/runs.js";
 import { supervisorRouter } from "./routers/supervisor.js";
 import { verifyRouter } from "./routers/verify.js";
-import { apiKeysRouter } from "./routers/api-keys.js";
+import { router } from "./trpc.js";
 
 /**
  * The root application router.
