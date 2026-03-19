@@ -111,10 +111,7 @@ pub fn verify_chain(path: &Path) -> Result<VerifyResult, VerifyError> {
         };
 
         // Extract hash and hash_prev values (read-only — no mutation of the Value)
-        let stored_hash = obj
-            .get("hash")
-            .and_then(|v| v.as_str())
-            .map(String::from);
+        let stored_hash = obj.get("hash").and_then(|v| v.as_str()).map(String::from);
         let stored_hash_prev = obj
             .get("hash_prev")
             .and_then(|v| v.as_str())
@@ -194,11 +191,7 @@ pub fn verify_chain(path: &Path) -> Result<VerifyResult, VerifyError> {
 /// a comma, since `hash` is never the first field in the struct).
 /// False matches inside nested JSON (e.g. `args_redacted`) would require
 /// an identical 64-char hex value, which is statistically impossible.
-fn strip_hash_fields(
-    line: &str,
-    hash: &Option<String>,
-    hash_prev: &Option<String>,
-) -> String {
+fn strip_hash_fields(line: &str, hash: &Option<String>, hash_prev: &Option<String>) -> String {
     let mut result = line.to_string();
     // Remove hash_prev first (it follows hash in struct field order),
     // then hash. Order doesn't affect correctness since the patterns
