@@ -26,6 +26,8 @@ import type { FetchCreateContextFnOptions } from "@trpc/server/adapters/fetch";
  * The shape of the tRPC context available in every procedure.
  */
 export interface TRPCContext {
+  /** Index signature required by @hono/trpc-server's createContext contract. */
+  [key: string]: unknown;
   /** The raw HTTP request. Used by auth middleware to read session cookies/headers. */
   request: Request;
   /** ID of the authenticated user (Better Auth user.id), or null for API key auth. */
