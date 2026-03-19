@@ -21,14 +21,14 @@
  * any MIT-licensed package. Dependency direction: AGPL -> MIT only (ADR-013).
  */
 
+import { trpcServer } from "@hono/trpc-server";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import { trpcServer } from "@hono/trpc-server";
 import { auth } from "./auth.js";
 import { sql as pgSql } from "./db/client.js";
 import { env } from "./env.js";
-import { appRouter } from "./trpc/router.js";
 import { createContext } from "./trpc/context.js";
+import { appRouter } from "./trpc/router.js";
 
 const app = new Hono();
 
@@ -37,8 +37,8 @@ const app = new Hono();
 // ---------------------------------------------------------------------------
 
 // Parse allowed origins from env. Fall back to localhost for development.
-const allowedOrigins = process.env["ALLOWED_ORIGINS"]
-  ? process.env["ALLOWED_ORIGINS"].split(",").map((o) => o.trim())
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(",").map((o) => o.trim())
   : ["http://localhost:3000"];
 
 app.use(
@@ -56,7 +56,7 @@ app.use(
     exposeHeaders: ["Content-Length"],
     maxAge: 600,
     credentials: true, // required for cookie-based Better Auth sessions
-  }),
+  })
 );
 
 // ---------------------------------------------------------------------------
@@ -109,7 +109,7 @@ app.use(
         console.error(`[tRPC] Internal error on ${path ?? "unknown"}:`, error.message);
       }
     },
-  }),
+  })
 );
 
 // ---------------------------------------------------------------------------

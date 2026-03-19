@@ -32,7 +32,7 @@ import {
   supervisorEscalations,
   supervisorProposals,
 } from "../../db/schema.js";
-import { router, protectedProcedure } from "../trpc.js";
+import { protectedProcedure, router } from "../trpc.js";
 
 export const supervisorRouter = router({
   /**
@@ -64,7 +64,7 @@ export const supervisorRouter = router({
       }),
     )
     .query(async ({ input, ctx }) => {
-      const tenantId = ctx.tenantId!;
+      const tenantId = ctx.tenantId ?? "";
 
       const conditions = [eq(supervisorProposals.tenant_id, tenantId)];
 
@@ -121,8 +121,8 @@ export const supervisorRouter = router({
       }),
     )
     .mutation(async ({ input, ctx }) => {
-      const tenantId = ctx.tenantId!;
-      const userId = ctx.userId!;
+      const tenantId = ctx.tenantId ?? "";
+      const userId = ctx.userId ?? "";
 
       // Verify the proposal exists and belongs to this tenant
       const [existing] = await db
@@ -200,8 +200,8 @@ export const supervisorRouter = router({
       }),
     )
     .mutation(async ({ input, ctx }) => {
-      const tenantId = ctx.tenantId!;
-      const userId = ctx.userId!;
+      const tenantId = ctx.tenantId ?? "";
+      const userId = ctx.userId ?? "";
 
       const [existing] = await db
         .select({
@@ -284,7 +284,7 @@ export const supervisorRouter = router({
       }),
     )
     .query(async ({ input, ctx }) => {
-      const tenantId = ctx.tenantId!;
+      const tenantId = ctx.tenantId ?? "";
 
       const conditions = [eq(supervisorEscalations.tenant_id, tenantId)];
 
@@ -336,8 +336,8 @@ export const supervisorRouter = router({
       }),
     )
     .mutation(async ({ input, ctx }) => {
-      const tenantId = ctx.tenantId!;
-      const userId = ctx.userId!;
+      const tenantId = ctx.tenantId ?? "";
+      const userId = ctx.userId ?? "";
 
       const [existing] = await db
         .select({

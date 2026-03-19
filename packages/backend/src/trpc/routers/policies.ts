@@ -28,7 +28,7 @@ import { z } from "zod";
 import { db } from "../../db/client.js";
 import { policyPacks } from "../../db/schema.js";
 import { validatePolicy } from "../../lib/policy-validate.js";
-import { router, protectedProcedure } from "../trpc.js";
+import { protectedProcedure, router } from "../trpc.js";
 
 /**
  * Zod schema for policy pack content (loose validation — the strict
@@ -54,7 +54,7 @@ export const policiesRouter = router({
       }),
     )
     .query(async ({ input, ctx }) => {
-      const tenantId = ctx.tenantId!;
+      const tenantId = ctx.tenantId ?? "";
 
       const conditions = [eq(policyPacks.tenant_id, tenantId)];
 
@@ -110,7 +110,7 @@ export const policiesRouter = router({
       }),
     )
     .query(async ({ input, ctx }) => {
-      const tenantId = ctx.tenantId!;
+      const tenantId = ctx.tenantId ?? "";
 
       const [row] = await db
         .select()
@@ -148,8 +148,8 @@ export const policiesRouter = router({
       }),
     )
     .mutation(async ({ input, ctx }) => {
-      const tenantId = ctx.tenantId!;
-      const userId = ctx.userId!;
+      const tenantId = ctx.tenantId ?? "";
+      const userId = ctx.userId ?? "";
 
       // Validate policy content before insert
       const validation = validatePolicy(input.content);
@@ -216,7 +216,7 @@ export const policiesRouter = router({
       }),
     )
     .mutation(async ({ input, ctx }) => {
-      const tenantId = ctx.tenantId!;
+      const tenantId = ctx.tenantId ?? "";
 
       // Fetch the current record to check version and tenant
       const [existing] = await db

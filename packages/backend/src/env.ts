@@ -44,8 +44,8 @@ export type Env = z.infer<typeof envSchema>;
  */
 function loadEnv(): Env {
   const isTest =
-    process.env["NODE_ENV"] === "test" ||
-    process.env["BUN_ENV"] === "test";
+    process.env.NODE_ENV === "test" ||
+    process.env.BUN_ENV === "test";
 
   if (isTest) {
     const result = envSchema.safeParse(process.env);
@@ -55,13 +55,13 @@ function loadEnv(): Env {
     // Return a stub for test environments that don't need a real DB.
     // Tests that exercise DB functionality must set the real env vars.
     return {
-      DATABASE_URL: process.env["DATABASE_URL"] ?? "postgres://localhost:5432/loopstorm_test",
-      SUPABASE_SERVICE_ROLE_KEY: process.env["SUPABASE_SERVICE_ROLE_KEY"] ?? "test-service-role-key",
-      BETTER_AUTH_SECRET: process.env["BETTER_AUTH_SECRET"] ?? "test-secret-that-is-at-least-32-chars-long",
-      BETTER_AUTH_URL: process.env["BETTER_AUTH_URL"] ?? "http://localhost:3001",
-      GOOGLE_CLIENT_ID: process.env["GOOGLE_CLIENT_ID"],
-      GOOGLE_CLIENT_SECRET: process.env["GOOGLE_CLIENT_SECRET"],
-      PORT: Number(process.env["PORT"] ?? 3001),
+      DATABASE_URL: process.env.DATABASE_URL ?? "postgres://localhost:5432/loopstorm_test",
+      SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY ?? "test-service-role-key",
+      BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET ?? "test-secret-that-is-at-least-32-chars-long",
+      BETTER_AUTH_URL: process.env.BETTER_AUTH_URL ?? "http://localhost:3001",
+      GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
+      GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
+      PORT: Number(process.env.PORT ?? 3001),
       NODE_ENV: "test",
     };
   }

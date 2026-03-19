@@ -19,7 +19,7 @@
  * incoming key on every request).
  */
 
-import { createHash, randomBytes } from "crypto";
+import { createHash, randomBytes } from "node:crypto";
 
 /** Key prefix used to identify LoopStorm Guard API keys. */
 const KEY_PREFIX = "lsg_";

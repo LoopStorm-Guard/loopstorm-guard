@@ -26,7 +26,7 @@ import { z } from "zod";
 import { db } from "../../db/client.js";
 import { events, runs } from "../../db/schema.js";
 import { verifyChain } from "../../lib/chain-verify.js";
-import { router, protectedProcedure } from "../trpc.js";
+import { protectedProcedure, router } from "../trpc.js";
 
 /** Page size for fetching events during chain verification. */
 const EVENTS_PAGE_SIZE = 1000;
@@ -50,7 +50,7 @@ export const verifyRouter = router({
       }),
     )
     .query(async ({ input, ctx }) => {
-      const tenantId = ctx.tenantId!;
+      const tenantId = ctx.tenantId ?? "";
 
       // Verify the run exists and belongs to this tenant
       const [run] = await db
@@ -120,7 +120,8 @@ export const verifyRouter = router({
         if (page.length < EVENTS_PAGE_SIZE) {
           hasMore = false;
         } else {
-          lastSeenSeq = page[page.length - 1]!.seq;
+          const lastPage = page[page.length - 1];
+          lastSeenSeq = lastPage ? lastPage.seq : lastSeenSeq;
         }
       }
 

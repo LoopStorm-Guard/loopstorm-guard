@@ -26,7 +26,7 @@
  * be used both for stored events and for events in an ingest batch.
  */
 
-import { createHash } from "crypto";
+import { createHash } from "node:crypto";
 
 /**
  * Minimal interface for an event used in chain verification.

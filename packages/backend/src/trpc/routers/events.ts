@@ -28,13 +28,14 @@
  * by the engine. It never intercepts or modifies enforcement decisions.
  */
 
+import { createHash } from "node:crypto";
+
 import { TRPCError } from "@trpc/server";
-import { createHash } from "crypto";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "../../db/client.js";
 import { events, runs } from "../../db/schema.js";
-import { router, dualAuthProcedure } from "../trpc.js";
+import { dualAuthProcedure, router } from "../trpc.js";
 
 /**
  * Zod schema for a single parsed event line.
@@ -142,7 +143,8 @@ function verifyBatchChain(
   prevRunHash: string | null,
 ): void {
   for (let i = 0; i < sortedEvents.length; i++) {
-    const item = sortedEvents[i]!;
+    const item = sortedEvents[i];
+    if (!item) continue;
     const { event, rawLine } = item;
 
     // Verify this event's payload hash against the raw line
@@ -166,7 +168,8 @@ function verifyBatchChain(
       }
     } else {
       // Subsequent events: must chain to previous
-      const prevHash = sortedEvents[i - 1]!.event.hash;
+      const prevItem = sortedEvents[i - 1];
+      const prevHash = prevItem?.event.hash ?? "";
       if (event.hash_prev !== prevHash) {
         throw new TRPCError({
           code: "BAD_REQUEST",
@@ -201,13 +204,15 @@ export const eventsRouter = router({
       }),
     )
     .mutation(async ({ input, ctx }) => {
-      const tenantId = ctx.tenantId!;
+      const tenantId = ctx.tenantId ?? "";
 
       // --- Step 1: Parse and validate all lines ---
       const parsedItems: Array<{ event: ParsedEvent; rawLine: string }> = [];
 
       for (let i = 0; i < input.lines.length; i++) {
-        const rawLine = input.lines[i]!.trimEnd(); // normalize trailing newline
+        const line = input.lines[i];
+        if (!line) continue;
+        const rawLine = line.trimEnd(); // normalize trailing newline
         const event = parseEventLine(rawLine, i);
         parsedItems.push({ event, rawLine });
       }
@@ -222,7 +227,14 @@ export const eventsRouter = router({
         });
       }
 
-      const runId = parsedItems[0]!.event.run_id;
+      const firstParsed = parsedItems[0];
+      if (!firstParsed) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "No events parsed from batch",
+        });
+      }
+      const runId = firstParsed.event.run_id;
 
       // --- Step 3: Sort by seq ascending ---
       parsedItems.sort((a, b) => a.event.seq - b.event.seq);
@@ -230,8 +242,9 @@ export const eventsRouter = router({
       // --- Step 4: Check for seq gaps or duplicates within the batch ---
       const seqsInBatch = parsedItems.map((p) => p.event.seq);
       for (let i = 1; i < seqsInBatch.length; i++) {
-        const prev = seqsInBatch[i - 1]!;
-        const curr = seqsInBatch[i]!;
+        const prev = seqsInBatch[i - 1];
+        const curr = seqsInBatch[i];
+        if (prev === undefined || curr === undefined) continue;
         if (curr === prev) {
           throw new TRPCError({
             code: "BAD_REQUEST",
@@ -281,8 +294,16 @@ export const eventsRouter = router({
         verifyBatchChain(parsedItems, prevRunHash);
 
         // --- Step 7: Extract metadata from first event ---
-        const firstEvent = parsedItems[0]!.event;
-        const lastEvent = parsedItems[parsedItems.length - 1]!.event;
+        const firstItem = parsedItems[0];
+        const lastItem = parsedItems[parsedItems.length - 1];
+        if (!firstItem || !lastItem) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Empty parsed items in transaction",
+          });
+        }
+        const firstEvent = firstItem.event;
+        const lastEvent = lastItem.event;
 
         // Determine run status from event types in the batch
         let newStatus: string | undefined;

@@ -20,7 +20,7 @@ export default defineConfig({
   dialect: "postgresql",
   dbCredentials: {
     // DATABASE_URL must be set in the environment before running drizzle-kit
-    url: process.env["DATABASE_URL"]!,
+    url: process.env.DATABASE_URL ?? "",
   },
   // Verbose output for migration review
   verbose: true,

@@ -29,8 +29,8 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "./db/client.js";
-import { env } from "./env.js";
 import * as schema from "./db/schema.js";
+import { env } from "./env.js";
 
 // Build social providers config only when OAuth credentials are present.
 // This lets local development work without OAuth credentials.

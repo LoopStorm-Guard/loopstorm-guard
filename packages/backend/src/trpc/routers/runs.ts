@@ -25,7 +25,7 @@ import { and, asc, desc, eq, gt, lt } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "../../db/client.js";
 import { events, runs } from "../../db/schema.js";
-import { router, protectedProcedure } from "../trpc.js";
+import { protectedProcedure, router } from "../trpc.js";
 
 export const runsRouter = router({
   /**
@@ -60,7 +60,7 @@ export const runsRouter = router({
       }),
     )
     .query(async ({ input, ctx }) => {
-      const tenantId = ctx.tenantId!;
+      const tenantId = ctx.tenantId ?? "";
 
       const conditions = [eq(runs.tenant_id, tenantId)];
 
@@ -127,7 +127,7 @@ export const runsRouter = router({
       }),
     )
     .query(async ({ input, ctx }) => {
-      const tenantId = ctx.tenantId!;
+      const tenantId = ctx.tenantId ?? "";
 
       const [row] = await db
         .select()
@@ -173,7 +173,7 @@ export const runsRouter = router({
       }),
     )
     .query(async ({ input, ctx }) => {
-      const tenantId = ctx.tenantId!;
+      const tenantId = ctx.tenantId ?? "";
 
       // First, verify the run exists and belongs to this tenant.
       // If not found, return empty result (not an error — cross-tenant isolation).

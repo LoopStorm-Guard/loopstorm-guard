@@ -24,7 +24,7 @@ import { z } from "zod";
 import { db } from "../../db/client.js";
 import { apiKeys } from "../../db/schema.js";
 import { generateApiKey } from "../../lib/api-key-gen.js";
-import { router, protectedProcedure } from "../trpc.js";
+import { protectedProcedure, router } from "../trpc.js";
 
 export const apiKeysRouter = router({
   /**
@@ -52,8 +52,8 @@ export const apiKeysRouter = router({
     )
     .mutation(async ({ input, ctx }) => {
       // ctx.tenantId and ctx.userId are guaranteed non-null by protectedProcedure
-      const tenantId = ctx.tenantId!;
-      const userId = ctx.userId!;
+      const tenantId = ctx.tenantId ?? "";
+      const userId = ctx.userId ?? "";
 
       const { rawKey, keyHash, keyPrefix } = generateApiKey();
 
@@ -112,7 +112,7 @@ export const apiKeysRouter = router({
       }),
     )
     .query(async ({ input, ctx }) => {
-      const tenantId = ctx.tenantId!;
+      const tenantId = ctx.tenantId ?? "";
 
       const rows = await db
         .select({
@@ -172,7 +172,7 @@ export const apiKeysRouter = router({
       }),
     )
     .mutation(async ({ input, ctx }) => {
-      const tenantId = ctx.tenantId!;
+      const tenantId = ctx.tenantId ?? "";
 
       // Verify the key exists and belongs to this tenant before updating.
       // Even though RLS enforces tenant isolation at the DB level, we do

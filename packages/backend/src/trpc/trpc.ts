@@ -26,11 +26,11 @@
  * - Internal errors are NOT surfaced (no stack traces to clients).
  */
 
-import { initTRPC, TRPCError } from "@trpc/server";
-import type { TRPCContext } from "./context.js";
-import { getSession } from "../middleware/auth.js";
+import { TRPCError, initTRPC } from "@trpc/server";
 import { authenticateApiKey } from "../middleware/api-key.js";
+import { getSession } from "../middleware/auth.js";
 import { setTenantRlsContext } from "../middleware/tenant.js";
+import type { TRPCContext } from "./context.js";
 
 // Initialize tRPC with our context type.
 const t = initTRPC.context<TRPCContext>().create();
@@ -155,7 +155,7 @@ const dualAuthMiddleware = t.middleware(async ({ ctx, next }) => {
 
   // No Bearer token — try session auth
   const session = await getSession(ctx.request);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // biome-ignore lint/suspicious/noExplicitAny: Better Auth custom column not in its types
   const tenantId = (session.user as any).tenant_id as string | null | undefined;
 
   if (!tenantId) {

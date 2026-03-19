@@ -19,8 +19,10 @@
  * design keeps the auth logic testable without setting up error boundaries.
  */
 
-import { timingSafeEqual, createHash } from "crypto";
+import { createHash, timingSafeEqual } from "node:crypto";
+
 import { and, eq } from "drizzle-orm";
+
 import { db } from "../db/client.js";
 import { apiKeys } from "../db/schema.js";
 
