@@ -1,0 +1,154 @@
+/* SPDX-License-Identifier: AGPL-3.0-only */
+@import "tailwindcss";
+
+/*
+ * LoopStorm Guard Design System Tokens
+ *
+ * All semantic colors are defined here as CSS custom properties.
+ * Tailwind v4 @theme directive makes these available as Tailwind utilities.
+ *
+ * Color system uses OKLCH for perceptual uniformity across the palette.
+ * Two-layer visual distinction:
+ *   Layer 1 (enforcement): clinical, neutral — standard text/border colors
+ *   Layer 2 (supervisor): muted amber (#c4a96b), italic, brain icon
+ */
+
+@theme {
+  /* ── Layout ── */
+  --sidebar-width: 16rem;
+  --header-height: 3.5rem;
+  --page-max-width: 80rem;
+
+  /* ── Typography ── */
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "Fira Code", monospace;
+
+  /* ── Base surfaces ── */
+  --color-bg: #0a0a0a;
+  --color-surface: #111111;
+  --color-border: #1f1f1f;
+
+  /* ── Accent colors ── */
+  --color-accent-amber: #ff6b00;
+  --color-accent-red: #ff3b3b;
+  --color-accent-green: #00c853;
+  --color-accent-purple: #9b6dff;
+
+  /* ── Mono/hash color ── */
+  --color-mono: #c4a96b;
+
+  /* ── Decision colors (Layer 1 — enforcement plane) ── */
+  --color-decision-allow: oklch(0.72 0.17 142);
+  --color-decision-deny: oklch(0.63 0.21 25);
+  --color-decision-cooldown: oklch(0.75 0.16 70);
+  --color-decision-kill: oklch(0.30 0.00 0);
+  --color-decision-approval: oklch(0.65 0.15 280);
+
+  /* ── Run status colors ── */
+  --color-status-started: oklch(0.65 0.18 240);
+  --color-status-completed: oklch(0.72 0.17 142);
+  --color-status-terminated: oklch(0.63 0.21 25);
+  --color-status-abandoned: oklch(0.75 0.16 70);
+  --color-status-error: oklch(0.63 0.21 25);
+
+  /* ── Escalation severity colors ── */
+  --color-severity-low: oklch(0.60 0.00 0);
+  --color-severity-medium: oklch(0.75 0.16 70);
+  --color-severity-high: oklch(0.70 0.19 50);
+  --color-severity-critical: oklch(0.63 0.21 25);
+
+  /* ── Chain verification colors ── */
+  --color-chain-verified: oklch(0.72 0.17 142);
+  --color-chain-broken: oklch(0.63 0.21 25);
+  --color-chain-pending: oklch(0.60 0.00 0);
+  --color-chain-notfound: oklch(0.50 0.00 0);
+
+  /* ── Budget bar thresholds ── */
+  /* Below 80%: green; >=80%: amber; >=100%: red */
+  --color-budget-ok: oklch(0.72 0.17 142);
+  --color-budget-warn: oklch(0.75 0.16 70);
+  --color-budget-exceeded: oklch(0.63 0.21 25);
+
+  /* ── Layer 2 (Supervisor observation plane) ── */
+  --color-supervisor: #c4a96b;
+  --color-supervisor-border: rgba(196, 169, 107, 0.3);
+  --color-supervisor-bg: rgba(196, 169, 107, 0.05);
+}
+
+/* ── Global base styles ── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  background-color: var(--color-bg);
+  color: oklch(0.92 0.00 0);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background-color: var(--color-bg);
+}
+
+/* ── Scrollbar styling ── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-surface);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: oklch(0.35 0.00 0);
+}
+
+/* ── Monospace utility class for IDs, hashes, tool names ── */
+.mono {
+  font-family: var(--font-mono);
+  color: var(--color-mono);
+}
+
+/* ── Layer 2 supervisor styling ── */
+.supervisor-section {
+  border-top: 1px solid var(--color-supervisor-border);
+  background-color: var(--color-supervisor-bg);
+}
+
+.supervisor-label {
+  color: var(--color-supervisor);
+  font-style: italic;
+  font-size: 0.75rem;
+}
+
+/* ── Pulse animation for critical severity ── */
+@keyframes pulse-critical {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-pulse-critical {
+  animation: pulse-critical 1s ease-in-out infinite;
+}
+
+/* ── Focus visible ring ── */
+:focus-visible {
+  outline: 2px solid var(--color-accent-amber);
+  outline-offset: 2px;
+}
