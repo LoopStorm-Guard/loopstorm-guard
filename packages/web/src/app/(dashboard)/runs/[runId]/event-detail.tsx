@@ -20,7 +20,8 @@ type EventItem = {
   id: string;
   seq: number;
   event_type: string;
-  ts: Date;
+  // ts arrives as ISO string when serialized across server→client boundary
+  ts: Date | string;
   tool: string | null;
   decision: string | null;
   rule_id: string | null;
@@ -123,7 +124,7 @@ export function EventDetail({ event }: EventDetailProps) {
 
         {/* Timestamp */}
         <span style={{ fontSize: "0.6875rem", color: "oklch(0.50 0.00 0)", minWidth: "5rem" }}>
-          {event.ts.toLocaleTimeString()}
+          {(event.ts instanceof Date ? event.ts : new Date(event.ts)).toLocaleTimeString()}
         </span>
 
         {/* Event type */}

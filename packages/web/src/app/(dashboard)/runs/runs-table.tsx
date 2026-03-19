@@ -31,9 +31,10 @@ type RunItem = {
   status: string;
   total_call_count: number;
   total_cost_usd: number;
-  started_at: Date;
-  ended_at: Date | null;
-  created_at: Date;
+  // Dates arrive as ISO strings when serialized across the server→client boundary
+  started_at: Date | string;
+  ended_at: Date | string | null;
+  created_at: Date | string;
 };
 
 type StatusFilter =
@@ -51,9 +52,11 @@ interface RunsTableProps {
   initialNextCursor: string | null;
 }
 
-function formatDuration(startedAt: Date, endedAt: Date | null): string {
+function formatDuration(startedAt: Date | string, endedAt: Date | string | null): string {
   if (!endedAt) return "Running";
-  const ms = endedAt.getTime() - startedAt.getTime();
+  const start = startedAt instanceof Date ? startedAt : new Date(startedAt);
+  const end = endedAt instanceof Date ? endedAt : new Date(endedAt);
+  const ms = end.getTime() - start.getTime();
   const totalSeconds = Math.floor(ms / 1000);
   if (totalSeconds < 60) return `${totalSeconds}s`;
   const minutes = Math.floor(totalSeconds / 60);

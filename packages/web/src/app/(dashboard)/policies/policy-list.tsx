@@ -22,8 +22,9 @@ type PolicyItem = {
   environment: string | null;
   is_active: boolean;
   version: number;
-  created_at: Date;
-  updated_at: Date;
+  // Dates arrive as ISO strings when serialized across server→client boundary
+  created_at: Date | string;
+  updated_at: Date | string;
 };
 
 interface PolicyListProps {

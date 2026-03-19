@@ -27,7 +27,8 @@ type EscalationItem = {
   timeout_seconds: number | null;
   timeout_action: string | null;
   status: string;
-  created_at: Date;
+  // created_at arrives as ISO string when serialized across server→client boundary
+  created_at: Date | string;
   trigger_run_id: string | null;
 };
 

@@ -26,10 +26,11 @@ type ApiKeyItem = {
   name: string;
   key_prefix: string;
   scopes: string[];
-  last_used_at: Date | null;
-  expires_at: Date | null;
+  // Dates arrive as ISO strings when serialized across server→client boundary
+  last_used_at: Date | string | null;
+  expires_at: Date | string | null;
   is_revoked: boolean;
-  created_at: Date;
+  created_at: Date | string;
 };
 
 interface ApiKeyManagerProps {

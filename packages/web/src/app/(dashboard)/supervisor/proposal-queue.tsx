@@ -23,7 +23,8 @@ type ProposalItem = {
   confidence: number | null;
   supporting_runs: string[] | null;
   status: string;
-  created_at: Date;
+  // created_at arrives as ISO string when serialized across server→client boundary
+  created_at: Date | string;
 };
 
 type StatusFilter = "pending" | "approved" | "rejected" | "all";
