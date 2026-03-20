@@ -17,7 +17,7 @@ export default async function EditPolicyPage({ params }: EditPolicyPageProps) {
   const trpc = await createServerTRPCClient();
 
   type PolicyGetResult = Awaited<ReturnType<typeof trpc.policies.get.query>>;
-  let policy: PolicyGetResult = null;
+  let policy: PolicyGetResult | null = null;
   try {
     policy = await trpc.policies.get.query({ id });
   } catch {
@@ -34,7 +34,7 @@ export default async function EditPolicyPage({ params }: EditPolicyPageProps) {
         title={`Edit: ${policy.name}`}
         description={`Version ${policy.version} · ${policy.is_active ? "Active" : "Inactive"}`}
       />
-      <PolicyEditForm policy={policy} />
+      <PolicyEditForm policy={{ ...policy, content: policy.content ?? null }} />
     </div>
   );
 }

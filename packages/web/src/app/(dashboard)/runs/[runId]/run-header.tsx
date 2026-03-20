@@ -26,17 +26,21 @@ type Run = {
   total_output_tokens: number;
   total_call_count: number;
   event_count: number;
-  started_at: Date;
-  ended_at: Date | null;
+  started_at: string | null;
+  ended_at: string | null;
 };
 
 interface RunHeaderProps {
   run: Run;
 }
 
-function formatDuration(startedAt: Date, endedAt: Date | null): string {
+function formatDuration(
+  startedAt: string | null,
+  endedAt: string | null,
+): string {
+  if (!startedAt) return "—";
   if (!endedAt) return "Still running";
-  const ms = endedAt.getTime() - startedAt.getTime();
+  const ms = new Date(endedAt).getTime() - new Date(startedAt).getTime();
   const totalSeconds = Math.floor(ms / 1000);
   if (totalSeconds < 60) return `${totalSeconds}s`;
   const minutes = Math.floor(totalSeconds / 60);
@@ -169,7 +173,7 @@ export function RunHeader({ run }: RunHeaderProps) {
         <div style={metaItemStyle}>
           <span style={metaLabelStyle}>Started</span>
           <span style={{ ...metaValueStyle, fontSize: "0.75rem" }}>
-            {run.started_at.toLocaleString()}
+            {run.started_at ? new Date(run.started_at).toLocaleString() : "—"}
           </span>
         </div>
 
@@ -177,7 +181,7 @@ export function RunHeader({ run }: RunHeaderProps) {
           <div style={metaItemStyle}>
             <span style={metaLabelStyle}>Ended</span>
             <span style={{ ...metaValueStyle, fontSize: "0.75rem" }}>
-              {run.ended_at.toLocaleString()}
+              {new Date(run.ended_at).toLocaleString()}
             </span>
           </div>
         )}
