@@ -45,7 +45,9 @@ type PolicyData = {
   environment: string | null;
   is_active: boolean;
   version: number;
-  content: Record<string, unknown>;
+  // content is jsonb in the DB — typed as unknown at the tRPC boundary.
+  // The component JSON.stringifies it for the editor and re-parses on submit.
+  content: unknown;
 };
 
 interface PolicyEditFormProps {
@@ -81,7 +83,8 @@ export function PolicyEditForm({ policy }: PolicyEditFormProps) {
         }
         setConflictOpen(true);
       } else if (err.data?.code === "BAD_REQUEST") {
-        const cause = err.cause;
+        // err.cause is not typed on TRPCClientErrorLike — access via Error prototype
+        const cause = (err as unknown as { cause?: unknown }).cause;
         if (Array.isArray(cause)) {
           setServerErrors(cause.map((e: { message?: string }) => e.message ?? String(e)));
         } else {

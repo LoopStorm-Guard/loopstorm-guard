@@ -53,8 +53,8 @@ export default function NewPolicyPage() {
     },
     onError: (err) => {
       if (err.data?.code === "BAD_REQUEST") {
-        // Extract validation errors from the cause
-        const cause = err.cause;
+        // err.cause is not typed on TRPCClientErrorLike — access via Error prototype
+        const cause = (err as unknown as { cause?: unknown }).cause;
         if (Array.isArray(cause)) {
           setServerErrors(cause.map((e: { message?: string }) => e.message ?? String(e)));
         } else {

@@ -15,13 +15,14 @@ export const metadata = {
 export default async function PoliciesPage() {
   const trpc = await createServerTRPCClient();
 
-  let initialData: Awaited<ReturnType<typeof trpc.policies.list>> = {
+  type PolicyListResult = Awaited<ReturnType<typeof trpc.policies.list.query>>;
+  let initialData: PolicyListResult = {
     items: [],
     nextCursor: null,
   };
 
   try {
-    initialData = await trpc.policies.list({ limit: 50 });
+    initialData = await trpc.policies.list.query({ limit: 50 });
   } catch {
     // Render empty state on error
   }

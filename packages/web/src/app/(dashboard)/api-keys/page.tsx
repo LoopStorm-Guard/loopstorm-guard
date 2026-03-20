@@ -14,13 +14,14 @@ export const metadata = {
 export default async function ApiKeysPage() {
   const trpc = await createServerTRPCClient();
 
-  let initialData: Awaited<ReturnType<typeof trpc.apiKeys.list>> = {
+  type ApiKeyListResult = Awaited<ReturnType<typeof trpc.apiKeys.list.query>>;
+  let initialData: ApiKeyListResult = {
     items: [],
     nextCursor: null,
   };
 
   try {
-    initialData = await trpc.apiKeys.list({ limit: 50 });
+    initialData = await trpc.apiKeys.list.query({ limit: 50 });
   } catch {
     // Render empty state on error
   }

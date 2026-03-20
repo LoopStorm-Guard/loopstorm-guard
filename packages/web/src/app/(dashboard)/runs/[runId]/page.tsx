@@ -20,16 +20,19 @@ export default async function RunDetailPage({ params }: RunDetailPageProps) {
   const { runId } = await params;
   const trpc = await createServerTRPCClient();
 
-  let run: Awaited<ReturnType<typeof trpc.runs.get>> = null;
-  let initialEvents: Awaited<ReturnType<typeof trpc.runs.getEvents>> = {
+  type RunGetResult = Awaited<ReturnType<typeof trpc.runs.get.query>>;
+  type RunEventsResult = Awaited<ReturnType<typeof trpc.runs.getEvents.query>>;
+
+  let run: RunGetResult = null;
+  let initialEvents: RunEventsResult = {
     items: [],
     nextCursor: null,
   };
 
   try {
     [run, initialEvents] = await Promise.all([
-      trpc.runs.get({ run_id: runId }),
-      trpc.runs.getEvents({ run_id: runId, limit: 100 }),
+      trpc.runs.get.query({ run_id: runId }),
+      trpc.runs.getEvents.query({ run_id: runId, limit: 100 }),
     ]);
   } catch {
     // If fetch fails, show not found

@@ -31,8 +31,9 @@ type RunItem = {
   status: string;
   total_call_count: number;
   total_cost_usd: number;
-  // Dates arrive as ISO strings when serialized across the server→client boundary
-  started_at: Date | string;
+  // Dates arrive as ISO strings when serialized across the server→client boundary.
+  // started_at is nullable in the DB schema (set on first run_started event).
+  started_at: Date | string | null;
   ended_at: Date | string | null;
   created_at: Date | string;
 };
@@ -52,7 +53,8 @@ interface RunsTableProps {
   initialNextCursor: string | null;
 }
 
-function formatDuration(startedAt: Date | string, endedAt: Date | string | null): string {
+function formatDuration(startedAt: Date | string | null, endedAt: Date | string | null): string {
+  if (!startedAt) return "—";
   if (!endedAt) return "Running";
   const start = startedAt instanceof Date ? startedAt : new Date(startedAt);
   const end = endedAt instanceof Date ? endedAt : new Date(endedAt);

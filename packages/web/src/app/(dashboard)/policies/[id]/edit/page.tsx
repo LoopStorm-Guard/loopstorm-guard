@@ -16,9 +16,10 @@ export default async function EditPolicyPage({ params }: EditPolicyPageProps) {
   const { id } = await params;
   const trpc = await createServerTRPCClient();
 
-  let policy: Awaited<ReturnType<typeof trpc.policies.get>> = null;
+  type PolicyGetResult = Awaited<ReturnType<typeof trpc.policies.get.query>>;
+  let policy: PolicyGetResult = null;
   try {
-    policy = await trpc.policies.get({ id });
+    policy = await trpc.policies.get.query({ id });
   } catch {
     // If fetch fails, show not found
   }

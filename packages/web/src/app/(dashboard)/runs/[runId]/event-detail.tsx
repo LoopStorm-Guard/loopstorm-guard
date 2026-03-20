@@ -31,7 +31,7 @@ type EventItem = {
   output_tokens: number | null;
   estimated_cost_usd: number | null;
   latency_ms: number | null;
-  args_redacted: unknown;
+  args_redacted?: unknown | null;
   hash: string;
   args_hash: string | null;
   agent_name: string | null;

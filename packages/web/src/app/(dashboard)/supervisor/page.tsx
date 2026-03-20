@@ -21,19 +21,22 @@ export const metadata = {
 export default async function SupervisorPage() {
   const trpc = await createServerTRPCClient();
 
-  let escalations: Awaited<ReturnType<typeof trpc.supervisor.listEscalations>> = {
+  type EscalationsResult = Awaited<ReturnType<typeof trpc.supervisor.listEscalations.query>>;
+  type ProposalsResult = Awaited<ReturnType<typeof trpc.supervisor.listProposals.query>>;
+
+  let escalations: EscalationsResult = {
     items: [],
     nextCursor: null,
   };
-  let proposals: Awaited<ReturnType<typeof trpc.supervisor.listProposals>> = {
+  let proposals: ProposalsResult = {
     items: [],
     nextCursor: null,
   };
 
   try {
     [escalations, proposals] = await Promise.all([
-      trpc.supervisor.listEscalations({ status: "open", limit: 20 }),
-      trpc.supervisor.listProposals({ status: "pending", limit: 20 }),
+      trpc.supervisor.listEscalations.query({ status: "open", limit: 20 }),
+      trpc.supervisor.listProposals.query({ status: "pending", limit: 20 }),
     ]);
   } catch {
     // Render empty state on error

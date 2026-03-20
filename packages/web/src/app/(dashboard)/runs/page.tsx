@@ -17,9 +17,10 @@ export const metadata = {
 export default async function RunsPage() {
   const trpc = await createServerTRPCClient();
 
-  let initialData: Awaited<ReturnType<typeof trpc.runs.list>> | null = null;
+  type RunsListResult = Awaited<ReturnType<typeof trpc.runs.list.query>>;
+  let initialData: RunsListResult | null = null;
   try {
-    initialData = await trpc.runs.list({ limit: 50 });
+    initialData = await trpc.runs.list.query({ limit: 50 });
   } catch {
     // If the fetch fails (e.g., backend not running), render empty state
     initialData = { items: [], nextCursor: null };
