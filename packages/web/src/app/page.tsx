@@ -1,16 +1,15 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * Root page — LoopStorm Guard dashboard placeholder.
+ * Root page — redirects to /runs (dashboard) or /sign-in.
+ *
+ * The session check is handled by the (dashboard) layout's auth guard.
+ * This page simply redirects to the primary dashboard screen.
  *
  * IMPORTANT: This file is licensed AGPL-3.0-only (ADR-013).
  */
 
-export default function HomePage() {
-  return (
-    <main>
-      <h1>LoopStorm Guard</h1>
-      <p>Runtime enforcement layer for AI agents.</p>
-      {/* TODO(web): implement dashboard */}
-    </main>
-  );
+import { redirect } from "next/navigation";
+
+export default function RootPage() {
+  redirect("/runs");
 }
