@@ -9,9 +9,9 @@
 
 "use client";
 
+import { signIn, signUp } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { signIn, signUp } from "@/lib/auth-client";
 
 interface AuthFormProps {
   mode: "sign-in" | "sign-up";
@@ -106,9 +106,7 @@ export function AuthForm({ mode }: AuthFormProps) {
         if (result.error) {
           setError(result.error.message ?? "Sign-up failed. Please try again.");
         } else {
-          setSuccess(
-            "Account created. Check your email to verify your address, then sign in."
-          );
+          setSuccess("Account created. Check your email to verify your address, then sign in.");
           setTimeout(() => router.push("/sign-in?verified=1"), 2000);
         }
       }
@@ -151,8 +149,9 @@ export function AuthForm({ mode }: AuthFormProps) {
       )}
 
       {success && (
-        <div
+        <output
           style={{
+            display: "block",
             padding: "0.5rem 0.75rem",
             backgroundColor: "rgba(0, 200, 83, 0.1)",
             border: "1px solid rgba(0, 200, 83, 0.3)",
@@ -161,14 +160,16 @@ export function AuthForm({ mode }: AuthFormProps) {
             fontSize: "0.8125rem",
             marginBottom: "1rem",
           }}
-          role="status"
           data-testid="auth-success"
         >
           {success}
-        </div>
+        </output>
       )}
 
-      <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "0.875rem" }}>
+      <form
+        onSubmit={handleSubmit}
+        style={{ display: "flex", flexDirection: "column", gap: "0.875rem" }}
+      >
         {!isSignIn && (
           <div>
             <label htmlFor="name" style={labelStyle}>
@@ -272,14 +273,20 @@ export function AuthForm({ mode }: AuthFormProps) {
         {isSignIn ? (
           <>
             No account?{" "}
-            <a href="/sign-up" style={{ color: "var(--color-accent-amber)", textDecoration: "none" }}>
+            <a
+              href="/sign-up"
+              style={{ color: "var(--color-accent-amber)", textDecoration: "none" }}
+            >
               Sign up
             </a>
           </>
         ) : (
           <>
             Already have an account?{" "}
-            <a href="/sign-in" style={{ color: "var(--color-accent-amber)", textDecoration: "none" }}>
+            <a
+              href="/sign-in"
+              style={{ color: "var(--color-accent-amber)", textDecoration: "none" }}
+            >
               Sign in
             </a>
           </>

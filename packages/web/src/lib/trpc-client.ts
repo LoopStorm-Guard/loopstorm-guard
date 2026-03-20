@@ -13,8 +13,8 @@
  * the frontend bundle.
  */
 
-import { createTRPCReact } from "@trpc/react-query";
 import type { AppRouter } from "@loopstorm/api";
+import { createTRPCReact } from "@trpc/react-query";
 
 /**
  * The tRPC React Query client.

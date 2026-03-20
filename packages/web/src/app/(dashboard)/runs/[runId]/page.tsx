@@ -6,11 +6,11 @@
  * The ChainBadge and EventTimeline are client components for interactivity.
  */
 
-import { notFound } from "next/navigation";
-import { createServerTRPCClient } from "@/lib/trpc-server";
 import { PageHeader } from "@/components/ui/page-header";
-import { RunHeader } from "./run-header";
+import { createServerTRPCClient } from "@/lib/trpc-server";
+import { notFound } from "next/navigation";
 import { EventTimeline } from "./event-timeline";
+import { RunHeader } from "./run-header";
 
 interface RunDetailPageProps {
   params: Promise<{ runId: string }>;

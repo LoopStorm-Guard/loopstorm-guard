@@ -12,11 +12,11 @@
 
 "use client";
 
-import { useState } from "react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SeverityBadge } from "@/components/ui/severity-badge";
 import { TimeAgo } from "@/components/ui/time-ago";
 import { trpc } from "@/lib/trpc-client";
+import { useState } from "react";
 
 type EscalationItem = {
   id: string;
@@ -44,7 +44,10 @@ const SEVERITY_BORDER: Record<string, string> = {
   critical: "rgba(255, 59, 59, 0.7)",
 };
 
-function EscalationCard({ item, onAcknowledge }: { item: EscalationItem; onAcknowledge: (id: string, notes?: string) => void }) {
+function EscalationCard({
+  item,
+  onAcknowledge,
+}: { item: EscalationItem; onAcknowledge: (id: string, notes?: string) => void }) {
   const [showNotes, setShowNotes] = useState(false);
   const [notes, setNotes] = useState("");
 
@@ -61,11 +64,25 @@ function EscalationCard({ item, onAcknowledge }: { item: EscalationItem; onAckno
         borderLeft: `3px solid ${borderColor}`,
       }}
     >
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "0.5rem", marginBottom: "0.75rem" }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "flex-start",
+          justifyContent: "space-between",
+          gap: "0.5rem",
+          marginBottom: "0.75rem",
+        }}
+      >
         <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
           <SeverityBadge severity={item.severity} />
           {item.confidence !== null && (
-            <span style={{ fontSize: "0.6875rem", color: "oklch(0.55 0.00 0)", fontFamily: "var(--font-mono)" }}>
+            <span
+              style={{
+                fontSize: "0.6875rem",
+                color: "oklch(0.55 0.00 0)",
+                fontFamily: "var(--font-mono)",
+              }}
+            >
               {Math.round(item.confidence * 100)}% confidence
             </span>
           )}
@@ -93,7 +110,14 @@ function EscalationCard({ item, onAcknowledge }: { item: EscalationItem; onAckno
       )}
 
       {item.timeout_action && (
-        <p style={{ fontSize: "0.75rem", color: "oklch(0.50 0.00 0)", margin: "0 0 0.75rem", fontFamily: "var(--font-mono)" }}>
+        <p
+          style={{
+            fontSize: "0.75rem",
+            color: "oklch(0.50 0.00 0)",
+            margin: "0 0 0.75rem",
+            fontFamily: "var(--font-mono)",
+          }}
+        >
           Timeout action: {item.timeout_action}
         </p>
       )}
@@ -207,8 +231,19 @@ export function EscalationQueue({ initialItems, initialNextCursor: _nc }: Escala
 
   return (
     <div>
-      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.875rem" }}>
-        <h2 style={{ fontSize: "0.875rem", fontWeight: "600", color: "oklch(0.70 0.00 0)", margin: 0, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+      <div
+        style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.875rem" }}
+      >
+        <h2
+          style={{
+            fontSize: "0.875rem",
+            fontWeight: "600",
+            color: "oklch(0.70 0.00 0)",
+            margin: 0,
+            textTransform: "uppercase",
+            letterSpacing: "0.05em",
+          }}
+        >
           Escalations
         </h2>
         {items.length > 0 && (
@@ -229,7 +264,10 @@ export function EscalationQueue({ initialItems, initialNextCursor: _nc }: Escala
       </div>
 
       {items.length === 0 ? (
-        <EmptyState title="No active escalations" description="All clear — no open escalations requiring attention." />
+        <EmptyState
+          title="No active escalations"
+          description="All clear — no open escalations requiring attention."
+        />
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
           {items.map((item) => (

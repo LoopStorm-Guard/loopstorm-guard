@@ -7,9 +7,9 @@
 
 "use client";
 
+import { signOut, useSession } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { signOut, useSession } from "@/lib/auth-client";
 
 export function UserMenu() {
   const router = useRouter();

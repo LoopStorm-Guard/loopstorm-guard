@@ -14,11 +14,11 @@
 
 "use client";
 
-import { useState } from "react";
-import { LoadMoreButton } from "@/components/ui/load-more";
 import { EmptyState } from "@/components/ui/empty-state";
-import { EventDetail } from "./event-detail";
+import { LoadMoreButton } from "@/components/ui/load-more";
 import { trpc } from "@/lib/trpc-client";
+import { useState } from "react";
+import { EventDetail } from "./event-detail";
 
 type EventItem = {
   id: string;
@@ -72,12 +72,7 @@ export function EventTimeline({ runId, initialItems, initialNextCursor }: EventT
   }
 
   if (items.length === 0) {
-    return (
-      <EmptyState
-        title="No events"
-        description="This run has no recorded events."
-      />
-    );
+    return <EmptyState title="No events" description="This run has no recorded events." />;
   }
 
   return (

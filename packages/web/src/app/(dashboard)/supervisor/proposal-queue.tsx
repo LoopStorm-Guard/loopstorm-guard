@@ -10,10 +10,10 @@
 
 "use client";
 
-import { useState } from "react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { TimeAgo } from "@/components/ui/time-ago";
 import { trpc } from "@/lib/trpc-client";
+import { useState } from "react";
 
 type ProposalItem = {
   id: string;
@@ -111,7 +111,15 @@ function ProposalCard({
         borderLeft: "3px solid rgba(196, 169, 107, 0.4)",
       }}
     >
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "0.5rem", marginBottom: "0.625rem" }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "flex-start",
+          justifyContent: "space-between",
+          gap: "0.5rem",
+          marginBottom: "0.625rem",
+        }}
+      >
         <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
           <span
             style={{
@@ -132,20 +140,41 @@ function ProposalCard({
       </div>
 
       {item.target_agent && (
-        <p style={{ fontSize: "0.75rem", color: "oklch(0.55 0.00 0)", margin: "0 0 0.5rem", fontFamily: "var(--font-mono)" }}>
+        <p
+          style={{
+            fontSize: "0.75rem",
+            color: "oklch(0.55 0.00 0)",
+            margin: "0 0 0.5rem",
+            fontFamily: "var(--font-mono)",
+          }}
+        >
           Target: {item.target_agent}
         </p>
       )}
 
       {item.rationale && (
-        <p style={{ fontSize: "0.8125rem", color: "oklch(0.70 0.00 0)", margin: "0 0 0.625rem", fontStyle: "italic" }}>
+        <p
+          style={{
+            fontSize: "0.8125rem",
+            color: "oklch(0.70 0.00 0)",
+            margin: "0 0 0.625rem",
+            fontStyle: "italic",
+          }}
+        >
           {item.rationale}
         </p>
       )}
 
       {item.supporting_runs && item.supporting_runs.length > 0 && (
         <div style={{ marginBottom: "0.75rem" }}>
-          <span style={{ fontSize: "0.6875rem", color: "oklch(0.50 0.00 0)", display: "block", marginBottom: "0.25rem" }}>
+          <span
+            style={{
+              fontSize: "0.6875rem",
+              color: "oklch(0.50 0.00 0)",
+              display: "block",
+              marginBottom: "0.25rem",
+            }}
+          >
             Supporting runs:
           </span>
           <div style={{ display: "flex", gap: "0.375rem", flexWrap: "wrap" }}>
@@ -214,7 +243,9 @@ function ProposalCard({
               if (notesError) setNotesError(null);
             }}
             rows={2}
-            placeholder={action === "reject" ? "Rejection reason (required)…" : "Optional approval notes…"}
+            placeholder={
+              action === "reject" ? "Rejection reason (required)…" : "Optional approval notes…"
+            }
             data-testid={`${action}-notes-${item.id}`}
             style={{
               width: "100%",
@@ -241,10 +272,12 @@ function ProposalCard({
               data-testid={`btn-confirm-${action}-${item.id}`}
               style={{
                 padding: "0.375rem 0.75rem",
-                backgroundColor: action === "approve" ? "rgba(0, 200, 83, 0.1)" : "rgba(255, 59, 59, 0.08)",
+                backgroundColor:
+                  action === "approve" ? "rgba(0, 200, 83, 0.1)" : "rgba(255, 59, 59, 0.08)",
                 border: `1px solid ${action === "approve" ? "rgba(0, 200, 83, 0.3)" : "rgba(255, 59, 59, 0.3)"}`,
                 borderRadius: "0.375rem",
-                color: action === "approve" ? "var(--color-accent-green)" : "var(--color-accent-red)",
+                color:
+                  action === "approve" ? "var(--color-accent-green)" : "var(--color-accent-red)",
                 fontSize: "0.8125rem",
                 fontWeight: "500",
                 cursor: "pointer",
@@ -254,7 +287,11 @@ function ProposalCard({
             </button>
             <button
               type="button"
-              onClick={() => { setAction(null); setNotes(""); setNotesError(null); }}
+              onClick={() => {
+                setAction(null);
+                setNotes("");
+                setNotesError(null);
+              }}
               style={{
                 padding: "0.375rem 0.75rem",
                 backgroundColor: "transparent",
@@ -314,8 +351,19 @@ export function ProposalQueue({ initialItems, initialNextCursor: _nc }: Proposal
 
   return (
     <div>
-      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.875rem" }}>
-        <h2 style={{ fontSize: "0.875rem", fontWeight: "600", color: "oklch(0.70 0.00 0)", margin: 0, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+      <div
+        style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.875rem" }}
+      >
+        <h2
+          style={{
+            fontSize: "0.875rem",
+            fontWeight: "600",
+            color: "oklch(0.70 0.00 0)",
+            margin: 0,
+            textTransform: "uppercase",
+            letterSpacing: "0.05em",
+          }}
+        >
           Proposals
         </h2>
         {items.length > 0 && statusFilter === "pending" && (
@@ -345,7 +393,8 @@ export function ProposalQueue({ initialItems, initialNextCursor: _nc }: Proposal
             data-testid={`proposal-filter-${tab.value}`}
             style={{
               padding: "0.25rem 0.625rem",
-              backgroundColor: statusFilter === tab.value ? "rgba(196, 169, 107, 0.1)" : "transparent",
+              backgroundColor:
+                statusFilter === tab.value ? "rgba(196, 169, 107, 0.1)" : "transparent",
               border: `1px solid ${statusFilter === tab.value ? "rgba(196, 169, 107, 0.3)" : "var(--color-border)"}`,
               borderRadius: "0.25rem",
               color: statusFilter === tab.value ? "var(--color-supervisor)" : "oklch(0.55 0.00 0)",
@@ -359,7 +408,10 @@ export function ProposalQueue({ initialItems, initialNextCursor: _nc }: Proposal
       </div>
 
       {items.length === 0 ? (
-        <EmptyState title="No pending proposals" description="The AI Supervisor has no pending proposals requiring your review." />
+        <EmptyState
+          title="No pending proposals"
+          description="The AI Supervisor has no pending proposals requiring your review."
+        />
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
           {items.map((item) => (

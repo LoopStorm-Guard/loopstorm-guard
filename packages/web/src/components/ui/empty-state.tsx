@@ -45,9 +45,7 @@ export function EmptyState({ title, description, action }: EmptyStateProps) {
       <p style={{ fontWeight: "500", color: "oklch(0.70 0.00 0)", margin: "0 0 0.25rem" }}>
         {title}
       </p>
-      {description && (
-        <p style={{ fontSize: "0.8125rem", margin: "0 0 0.75rem" }}>{description}</p>
-      )}
+      {description && <p style={{ fontSize: "0.8125rem", margin: "0 0 0.75rem" }}>{description}</p>}
       {action && <div>{action}</div>}
     </div>
   );

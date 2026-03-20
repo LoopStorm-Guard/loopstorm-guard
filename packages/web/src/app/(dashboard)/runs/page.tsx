@@ -6,8 +6,8 @@
  * The RunsTable client component handles pagination and filtering.
  */
 
-import { createServerTRPCClient } from "@/lib/trpc-server";
 import { PageHeader } from "@/components/ui/page-header";
+import { createServerTRPCClient } from "@/lib/trpc-server";
 import { RunsTable } from "./runs-table";
 
 export const metadata = {

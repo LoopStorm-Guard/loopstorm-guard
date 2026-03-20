@@ -10,9 +10,9 @@
  * - Duration, started_at, ended_at
  */
 
-import { StatusBadge } from "@/components/ui/status-badge";
-import { ChainBadge } from "@/components/ui/chain-badge";
 import { BudgetBar } from "@/components/ui/budget-bar";
+import { ChainBadge } from "@/components/ui/chain-badge";
+import { StatusBadge } from "@/components/ui/status-badge";
 
 type Run = {
   run_id: string;
@@ -156,9 +156,7 @@ export function RunHeader({ run }: RunHeaderProps) {
 
         <div style={metaItemStyle}>
           <span style={metaLabelStyle}>Duration</span>
-          <span style={{ ...metaValueStyle, fontFamily: "var(--font-mono)" }}>
-            {duration}
-          </span>
+          <span style={{ ...metaValueStyle, fontFamily: "var(--font-mono)" }}>{duration}</span>
         </div>
 
         <div style={metaItemStyle}>

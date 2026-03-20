@@ -3,8 +3,8 @@
  * API Keys page — server component fetches key list.
  */
 
-import { createServerTRPCClient } from "@/lib/trpc-server";
 import { PageHeader } from "@/components/ui/page-header";
+import { createServerTRPCClient } from "@/lib/trpc-server";
 import { ApiKeyManager } from "./api-key-table";
 
 export const metadata = {
@@ -27,10 +27,7 @@ export default async function ApiKeysPage() {
 
   return (
     <div>
-      <PageHeader
-        title="API Keys"
-        description="Manage API keys for SDK agent authentication"
-      />
+      <PageHeader title="API Keys" description="Manage API keys for SDK agent authentication" />
       <ApiKeyManager initialItems={initialData.items} initialNextCursor={initialData.nextCursor} />
     </div>
   );

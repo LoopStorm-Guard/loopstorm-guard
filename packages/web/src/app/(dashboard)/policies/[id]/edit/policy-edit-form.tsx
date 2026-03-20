@@ -9,11 +9,11 @@
 
 "use client";
 
+import { trpc } from "@/lib/trpc-client";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { PolicyEditor } from "../../policy-editor";
 import { ConflictDialog } from "../../conflict-dialog";
-import { trpc } from "@/lib/trpc-client";
+import { PolicyEditor } from "../../policy-editor";
 
 const inputStyle: React.CSSProperties = {
   width: "100%",
@@ -77,7 +77,7 @@ export function PolicyEditForm({ policy }: PolicyEditFormProps) {
         // Extract stored version from error message
         const match = err.message.match(/current version: (\d+)/);
         if (match?.[1]) {
-          setStoredVersion(parseInt(match[1], 10));
+          setStoredVersion(Number.parseInt(match[1], 10));
         }
         setConflictOpen(true);
       } else if (err.data?.code === "BAD_REQUEST") {
@@ -173,7 +173,9 @@ export function PolicyEditForm({ policy }: PolicyEditFormProps) {
         )}
 
         <div>
-          <label htmlFor="policy-name" style={labelStyle}>Name *</label>
+          <label htmlFor="policy-name" style={labelStyle}>
+            Name *
+          </label>
           <input
             id="policy-name"
             type="text"
@@ -186,7 +188,9 @@ export function PolicyEditForm({ policy }: PolicyEditFormProps) {
         </div>
 
         <div>
-          <label htmlFor="policy-description" style={labelStyle}>Description</label>
+          <label htmlFor="policy-description" style={labelStyle}>
+            Description
+          </label>
           <textarea
             id="policy-description"
             value={description}
@@ -199,7 +203,9 @@ export function PolicyEditForm({ policy }: PolicyEditFormProps) {
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
           <div>
-            <label htmlFor="policy-agent-role" style={labelStyle}>Agent Role</label>
+            <label htmlFor="policy-agent-role" style={labelStyle}>
+              Agent Role
+            </label>
             <input
               id="policy-agent-role"
               type="text"
@@ -210,7 +216,9 @@ export function PolicyEditForm({ policy }: PolicyEditFormProps) {
             />
           </div>
           <div>
-            <label htmlFor="policy-environment" style={labelStyle}>Environment</label>
+            <label htmlFor="policy-environment" style={labelStyle}>
+              Environment
+            </label>
             <input
               id="policy-environment"
               type="text"
@@ -231,7 +239,10 @@ export function PolicyEditForm({ policy }: PolicyEditFormProps) {
             data-testid="toggle-is-active"
             style={{ accentColor: "var(--color-accent-amber)", width: "1rem", height: "1rem" }}
           />
-          <label htmlFor="policy-active" style={{ fontSize: "0.875rem", color: "oklch(0.70 0.00 0)", cursor: "pointer" }}>
+          <label
+            htmlFor="policy-active"
+            style={{ fontSize: "0.875rem", color: "oklch(0.70 0.00 0)", cursor: "pointer" }}
+          >
             Active policy
           </label>
         </div>

@@ -34,11 +34,10 @@ export function ConflictDialog({
   if (!open) return null;
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
+    <dialog
       aria-labelledby="conflict-dialog-title"
       data-testid="conflict-dialog"
+      open
       style={{
         position: "fixed",
         inset: 0,
@@ -47,15 +46,34 @@ export function ConflictDialog({
         alignItems: "center",
         justifyContent: "center",
         padding: "1rem",
+        border: "none",
+        background: "none",
+        maxWidth: "100vw",
+        maxHeight: "100vh",
+        width: "100%",
+        height: "100%",
       }}
     >
-      {/* Overlay */}
-      <div
-        style={{ position: "absolute", inset: 0, backgroundColor: "rgba(0, 0, 0, 0.6)" }}
+      {/* Overlay — keyboard-accessible close trigger */}
+      <button
+        type="button"
+        aria-label="Close dialog"
+        style={{
+          position: "absolute",
+          inset: 0,
+          backgroundColor: "rgba(0, 0, 0, 0.6)",
+          border: "none",
+          cursor: "default",
+          width: "100%",
+          height: "100%",
+        }}
         onClick={onCancel}
+        onKeyDown={(e) => {
+          if (e.key === "Escape" || e.key === "Enter" || e.key === " ") onCancel();
+        }}
       />
 
-      {/* Dialog */}
+      {/* Dialog panel */}
       <div
         style={{
           position: "relative",
@@ -96,11 +114,15 @@ export function ConflictDialog({
           }}
         >
           <div>
-            <div style={{ color: "oklch(0.50 0.00 0)", marginBottom: "0.125rem" }}>Your version</div>
+            <div style={{ color: "oklch(0.50 0.00 0)", marginBottom: "0.125rem" }}>
+              Your version
+            </div>
             <div style={{ color: "oklch(0.80 0.00 0)" }}>v{currentVersion}</div>
           </div>
           <div>
-            <div style={{ color: "oklch(0.50 0.00 0)", marginBottom: "0.125rem" }}>Current version</div>
+            <div style={{ color: "oklch(0.50 0.00 0)", marginBottom: "0.125rem" }}>
+              Current version
+            </div>
             <div style={{ color: "var(--color-accent-amber)" }}>v{storedVersion}</div>
           </div>
         </div>
@@ -162,6 +184,6 @@ export function ConflictDialog({
           </button>
         </div>
       </div>
-    </div>
+    </dialog>
   );
 }

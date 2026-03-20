@@ -54,7 +54,10 @@ export function BudgetBar({ label, used, cap, unit = "", formatValue }: BudgetBa
   const capStr = formatValue ? formatValue(cap) : defaultFormat(cap, unit);
 
   return (
-    <div style={{ marginBottom: "0.5rem" }} data-testid={`budget-bar-${label.toLowerCase().replace(/\s+/g, "-")}`}>
+    <div
+      style={{ marginBottom: "0.5rem" }}
+      data-testid={`budget-bar-${label.toLowerCase().replace(/\s+/g, "-")}`}
+    >
       <div
         style={{
           display: "flex",
@@ -63,7 +66,14 @@ export function BudgetBar({ label, used, cap, unit = "", formatValue }: BudgetBa
           marginBottom: "0.25rem",
         }}
       >
-        <span style={{ fontSize: "0.6875rem", color: "oklch(0.55 0.00 0)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+        <span
+          style={{
+            fontSize: "0.6875rem",
+            color: "oklch(0.55 0.00 0)",
+            textTransform: "uppercase",
+            letterSpacing: "0.05em",
+          }}
+        >
           {label}
         </span>
         <span
@@ -74,7 +84,13 @@ export function BudgetBar({ label, used, cap, unit = "", formatValue }: BudgetBa
           }}
         >
           {exceeded && (
-            <span style={{ color: "var(--color-accent-red)", fontWeight: "600", marginRight: "0.25rem" }}>
+            <span
+              style={{
+                color: "var(--color-accent-red)",
+                fontWeight: "600",
+                marginRight: "0.25rem",
+              }}
+            >
               EXCEEDED
             </span>
           )}

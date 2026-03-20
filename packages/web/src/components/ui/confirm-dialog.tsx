@@ -34,11 +34,10 @@ export function ConfirmDialog({
   if (!open) return null;
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
+    <dialog
       aria-labelledby="confirm-dialog-title"
       data-testid="confirm-dialog"
+      open
       style={{
         position: "fixed",
         inset: 0,
@@ -47,19 +46,34 @@ export function ConfirmDialog({
         alignItems: "center",
         justifyContent: "center",
         padding: "1rem",
+        border: "none",
+        background: "none",
+        maxWidth: "100vw",
+        maxHeight: "100vh",
+        width: "100%",
+        height: "100%",
       }}
     >
-      {/* Overlay */}
-      <div
+      {/* Overlay — keyboard-accessible close trigger */}
+      <button
+        type="button"
+        aria-label="Close dialog"
         style={{
           position: "absolute",
           inset: 0,
           backgroundColor: "rgba(0, 0, 0, 0.6)",
+          border: "none",
+          cursor: "default",
+          width: "100%",
+          height: "100%",
         }}
         onClick={onCancel}
+        onKeyDown={(e) => {
+          if (e.key === "Escape" || e.key === "Enter" || e.key === " ") onCancel();
+        }}
       />
 
-      {/* Dialog */}
+      {/* Dialog panel */}
       <div
         style={{
           position: "relative",
@@ -130,6 +144,6 @@ export function ConfirmDialog({
           </button>
         </div>
       </div>
-    </div>
+    </dialog>
   );
 }

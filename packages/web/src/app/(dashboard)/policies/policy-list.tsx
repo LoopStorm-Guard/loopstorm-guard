@@ -7,12 +7,12 @@
 
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useState } from "react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LoadMoreButton } from "@/components/ui/load-more";
 import { TimeAgo } from "@/components/ui/time-ago";
 import { trpc } from "@/lib/trpc-client";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 type PolicyItem = {
   id: string;
@@ -63,7 +63,13 @@ export function PolicyList({ initialItems, initialNextCursor }: PolicyListProps)
 
   return (
     <div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(20rem, 1fr))", gap: "0.75rem" }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(20rem, 1fr))",
+          gap: "0.75rem",
+        }}
+      >
         {items.map((policy) => (
           <button
             key={policy.id}
@@ -89,8 +95,17 @@ export function PolicyList({ initialItems, initialNextCursor }: PolicyListProps)
               (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--color-border)";
             }}
           >
-            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "0.5rem" }}>
-              <span style={{ fontWeight: "500", color: "oklch(0.85 0.00 0)", fontSize: "0.875rem" }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "flex-start",
+                justifyContent: "space-between",
+                gap: "0.5rem",
+              }}
+            >
+              <span
+                style={{ fontWeight: "500", color: "oklch(0.85 0.00 0)", fontSize: "0.875rem" }}
+              >
                 {policy.name}
               </span>
               <span
@@ -99,7 +114,9 @@ export function PolicyList({ initialItems, initialNextCursor }: PolicyListProps)
                   borderRadius: "0.25rem",
                   fontSize: "0.6875rem",
                   fontWeight: "500",
-                  backgroundColor: policy.is_active ? "rgba(0, 200, 83, 0.1)" : "rgba(100, 100, 100, 0.1)",
+                  backgroundColor: policy.is_active
+                    ? "rgba(0, 200, 83, 0.1)"
+                    : "rgba(100, 100, 100, 0.1)",
                   color: policy.is_active ? "var(--color-accent-green)" : "oklch(0.55 0.00 0)",
                   border: `1px solid ${policy.is_active ? "rgba(0, 200, 83, 0.3)" : "rgba(100, 100, 100, 0.3)"}`,
                   whiteSpace: "nowrap",

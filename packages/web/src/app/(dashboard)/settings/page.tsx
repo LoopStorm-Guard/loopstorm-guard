@@ -14,10 +14,7 @@ export const metadata = {
 export default function SettingsPage() {
   return (
     <div>
-      <PageHeader
-        title="Settings"
-        description="Tenant configuration and preferences"
-      />
+      <PageHeader title="Settings" description="Tenant configuration and preferences" />
       <div
         style={{
           backgroundColor: "var(--color-surface)",

@@ -13,13 +13,12 @@
 
 "use client";
 
-import { useState } from "react";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { TimeAgo } from "@/components/ui/time-ago";
-import { CopyButton } from "@/components/ui/copy-button";
-import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { CreateKeyDialog } from "./create-key-dialog";
 import { trpc } from "@/lib/trpc-client";
+import { useState } from "react";
+import { CreateKeyDialog } from "./create-key-dialog";
 
 type ApiKeyItem = {
   id: string;
@@ -66,16 +65,17 @@ function getKeyStatus(key: ApiKeyItem): { label: string; color: string } {
   return { label: "Active", color: "var(--color-accent-green)" };
 }
 
-export function ApiKeyManager({ initialItems, initialNextCursor: _initialNextCursor }: ApiKeyManagerProps) {
+export function ApiKeyManager({
+  initialItems,
+  initialNextCursor: _initialNextCursor,
+}: ApiKeyManagerProps) {
   const [items, setItems] = useState<ApiKeyItem[]>(initialItems);
   const [showCreate, setShowCreate] = useState(false);
   const [revokeId, setRevokeId] = useState<string | null>(null);
 
   const revokeMutation = trpc.apiKeys.revoke.useMutation({
     onSuccess: (result) => {
-      setItems((prev) =>
-        prev.map((k) => (k.id === result.id ? { ...k, is_revoked: true } : k))
-      );
+      setItems((prev) => prev.map((k) => (k.id === result.id ? { ...k, is_revoked: true } : k)));
       setRevokeId(null);
     },
   });
@@ -131,13 +131,14 @@ export function ApiKeyManager({ initialItems, initialNextCursor: _initialNextCur
                 <th style={thStyle}>Last Used</th>
                 <th style={thStyle}>Expires</th>
                 <th style={thStyle}>Status</th>
-                <th style={thStyle}></th>
+                <th style={thStyle} />
               </tr>
             </thead>
             <tbody>
               {items.map((key) => {
                 const status = getKeyStatus(key);
-                const isActive = !key.is_revoked && !(key.expires_at && new Date(key.expires_at) < new Date());
+                const isActive =
+                  !key.is_revoked && !(key.expires_at && new Date(key.expires_at) < new Date());
                 return (
                   <tr key={key.id} data-testid={`api-key-row-${key.id}`}>
                     <td style={tdStyle}>
@@ -218,10 +219,7 @@ export function ApiKeyManager({ initialItems, initialNextCursor: _initialNextCur
 
       {/* Create key dialog */}
       {showCreate && (
-        <CreateKeyDialog
-          onClose={() => setShowCreate(false)}
-          onCreated={handleKeyCreated}
-        />
+        <CreateKeyDialog onClose={() => setShowCreate(false)} onCreated={handleKeyCreated} />
       )}
 
       {/* Revoke confirm dialog */}

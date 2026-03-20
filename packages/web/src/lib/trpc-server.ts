@@ -14,9 +14,9 @@
  * appRouter value from @loopstorm/api.
  */
 
+import type { AppRouter } from "@loopstorm/api";
 import { createTRPCClient, httpBatchLink } from "@trpc/client";
 import { cookies } from "next/headers";
-import type { AppRouter } from "@loopstorm/api";
 import { getTRPCUrl } from "./env";
 
 /**

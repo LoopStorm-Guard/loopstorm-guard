@@ -3,9 +3,9 @@
  * Policies list page — server component.
  */
 
-import Link from "next/link";
-import { createServerTRPCClient } from "@/lib/trpc-server";
 import { PageHeader } from "@/components/ui/page-header";
+import { createServerTRPCClient } from "@/lib/trpc-server";
+import Link from "next/link";
 import { PolicyList } from "./policy-list";
 
 export const metadata = {

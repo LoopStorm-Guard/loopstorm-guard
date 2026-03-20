@@ -12,9 +12,9 @@
 
 "use client";
 
-import { useState } from "react";
 import { DecisionBadge } from "@/components/ui/decision-badge";
 import { JsonViewer } from "@/components/ui/json-viewer";
+import { useState } from "react";
 
 type EventItem = {
   id: string;
@@ -153,13 +153,18 @@ export function EventDetail({ event }: EventDetailProps) {
         )}
 
         {/* Decision badge */}
-        {event.decision && (
-          <DecisionBadge decision={event.decision} size="sm" />
-        )}
+        {event.decision && <DecisionBadge decision={event.decision} size="sm" />}
 
         {/* Latency */}
         {event.latency_ms !== null && (
-          <span style={{ marginLeft: "auto", fontSize: "0.6875rem", color: "oklch(0.45 0.00 0)", fontFamily: "var(--font-mono)" }}>
+          <span
+            style={{
+              marginLeft: "auto",
+              fontSize: "0.6875rem",
+              color: "oklch(0.45 0.00 0)",
+              fontFamily: "var(--font-mono)",
+            }}
+          >
             {event.latency_ms}ms
           </span>
         )}
@@ -188,7 +193,14 @@ export function EventDetail({ event }: EventDetailProps) {
           {event.rule_id && (
             <div>
               <div style={fieldLabelStyle}>Rule</div>
-              <span style={{ ...fieldValueStyle, fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--color-mono)" }}>
+              <span
+                style={{
+                  ...fieldValueStyle,
+                  fontFamily: "var(--font-mono)",
+                  fontSize: "0.75rem",
+                  color: "var(--color-mono)",
+                }}
+              >
                 {event.rule_id}
               </span>
             </div>
@@ -206,7 +218,9 @@ export function EventDetail({ event }: EventDetailProps) {
           {event.model && (
             <div>
               <div style={fieldLabelStyle}>Model</div>
-              <span style={{ ...fieldValueStyle, fontFamily: "var(--font-mono)", fontSize: "0.75rem" }}>
+              <span
+                style={{ ...fieldValueStyle, fontFamily: "var(--font-mono)", fontSize: "0.75rem" }}
+              >
                 {event.model}
               </span>
             </div>
@@ -242,9 +256,7 @@ export function EventDetail({ event }: EventDetailProps) {
           {/* Args (redacted) — display as-is, never unmask */}
           {event.args_redacted !== null && event.args_redacted !== undefined && (
             <div style={{ gridColumn: "1 / -1" }}>
-              <div style={{ ...fieldLabelStyle, marginBottom: "0.375rem" }}>
-                Args (redacted)
-              </div>
+              <div style={{ ...fieldLabelStyle, marginBottom: "0.375rem" }}>Args (redacted)</div>
               <JsonViewer data={event.args_redacted} initiallyExpanded={false} />
             </div>
           )}

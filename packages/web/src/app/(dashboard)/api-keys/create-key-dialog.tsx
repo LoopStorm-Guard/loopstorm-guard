@@ -10,9 +10,9 @@
 
 "use client";
 
-import { useState } from "react";
 import { CopyButton } from "@/components/ui/copy-button";
 import { trpc } from "@/lib/trpc-client";
+import { useState } from "react";
 
 type ApiKeyItem = {
   id: string;
@@ -69,7 +69,9 @@ export function CreateKeyDialog({ onClose, onCreated }: CreateKeyDialogProps) {
         key_prefix: result.key_prefix,
         scopes,
         last_used_at: null,
-        expires_at: expiryDays ? new Date(Date.now() + parseInt(expiryDays, 10) * 86400000) : null,
+        expires_at: expiryDays
+          ? new Date(Date.now() + Number.parseInt(expiryDays, 10) * 86400000)
+          : null,
         is_revoked: false,
         created_at: new Date(),
       });
@@ -88,7 +90,7 @@ export function CreateKeyDialog({ onClose, onCreated }: CreateKeyDialogProps) {
     createMutation.mutate({
       name,
       scopes: scopes as Array<"ingest" | "read">,
-      expires_in_days: expiryDays ? parseInt(expiryDays, 10) : undefined,
+      expires_in_days: expiryDays ? Number.parseInt(expiryDays, 10) : undefined,
     });
   }
 
@@ -97,11 +99,10 @@ export function CreateKeyDialog({ onClose, onCreated }: CreateKeyDialogProps) {
   }
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
+    <dialog
       aria-labelledby="create-key-dialog-title"
       data-testid="create-key-dialog"
+      open
       style={{
         position: "fixed",
         inset: 0,
@@ -110,12 +111,31 @@ export function CreateKeyDialog({ onClose, onCreated }: CreateKeyDialogProps) {
         alignItems: "center",
         justifyContent: "center",
         padding: "1rem",
+        border: "none",
+        background: "none",
+        maxWidth: "100vw",
+        maxHeight: "100vh",
+        width: "100%",
+        height: "100%",
       }}
     >
       {/* Overlay — not dismissible during key display */}
-      <div
-        style={{ position: "absolute", inset: 0, backgroundColor: "rgba(0, 0, 0, 0.7)" }}
+      <button
+        type="button"
+        aria-label="Close dialog"
+        style={{
+          position: "absolute",
+          inset: 0,
+          backgroundColor: "rgba(0, 0, 0, 0.7)",
+          border: "none",
+          cursor: createdKey ? "default" : "pointer",
+          width: "100%",
+          height: "100%",
+        }}
         onClick={createdKey ? undefined : onClose}
+        onKeyDown={(e) => {
+          if (!createdKey && (e.key === "Escape" || e.key === "Enter" || e.key === " ")) onClose();
+        }}
       />
 
       <div
@@ -135,7 +155,12 @@ export function CreateKeyDialog({ onClose, onCreated }: CreateKeyDialogProps) {
           <>
             <h3
               id="create-key-dialog-title"
-              style={{ fontSize: "1rem", fontWeight: "600", color: "oklch(0.85 0.00 0)", margin: "0 0 1.25rem" }}
+              style={{
+                fontSize: "1rem",
+                fontWeight: "600",
+                color: "oklch(0.85 0.00 0)",
+                margin: "0 0 1.25rem",
+              }}
             >
               Create API Key
             </h3>
@@ -156,9 +181,14 @@ export function CreateKeyDialog({ onClose, onCreated }: CreateKeyDialogProps) {
               </div>
             )}
 
-            <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+            <form
+              onSubmit={handleSubmit}
+              style={{ display: "flex", flexDirection: "column", gap: "1rem" }}
+            >
               <div>
-                <label htmlFor="key-name" style={labelStyle}>Key Name *</label>
+                <label htmlFor="key-name" style={labelStyle}>
+                  Key Name *
+                </label>
                 <input
                   id="key-name"
                   type="text"
@@ -193,14 +223,18 @@ export function CreateKeyDialog({ onClose, onCreated }: CreateKeyDialogProps) {
                         data-testid={`scope-${scope}`}
                         style={{ accentColor: "var(--color-accent-amber)" }}
                       />
-                      <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem" }}>{scope}</span>
+                      <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem" }}>
+                        {scope}
+                      </span>
                     </label>
                   ))}
                 </div>
               </div>
 
               <div>
-                <label htmlFor="key-expiry" style={labelStyle}>Expires In (days)</label>
+                <label htmlFor="key-expiry" style={labelStyle}>
+                  Expires In (days)
+                </label>
                 <input
                   id="key-expiry"
                   type="number"
@@ -256,7 +290,12 @@ export function CreateKeyDialog({ onClose, onCreated }: CreateKeyDialogProps) {
           <>
             <h3
               id="create-key-dialog-title"
-              style={{ fontSize: "1rem", fontWeight: "600", color: "var(--color-accent-green)", margin: "0 0 0.5rem" }}
+              style={{
+                fontSize: "1rem",
+                fontWeight: "600",
+                color: "var(--color-accent-green)",
+                margin: "0 0 0.5rem",
+              }}
             >
               API Key Created
             </h3>
@@ -347,6 +386,6 @@ export function CreateKeyDialog({ onClose, onCreated }: CreateKeyDialogProps) {
           </>
         )}
       </div>
-    </div>
+    </dialog>
   );
 }

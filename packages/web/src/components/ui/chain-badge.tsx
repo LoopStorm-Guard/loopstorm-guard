@@ -17,8 +17,8 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
 import { trpc } from "@/lib/trpc-client";
+import { useEffect, useState } from "react";
 
 type ChainState =
   | { status: "pending" }

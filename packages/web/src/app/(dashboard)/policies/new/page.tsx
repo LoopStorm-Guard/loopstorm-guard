@@ -8,11 +8,11 @@
 
 "use client";
 
+import { PageHeader } from "@/components/ui/page-header";
+import { trpc } from "@/lib/trpc-client";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { PageHeader } from "@/components/ui/page-header";
 import { PolicyEditor } from "../policy-editor";
-import { trpc } from "@/lib/trpc-client";
 
 const inputStyle: React.CSSProperties = {
   width: "100%",
@@ -92,7 +92,10 @@ export default function NewPolicyPage() {
 
   return (
     <div>
-      <PageHeader title="Create Policy" description="Define enforcement rules for agent tool calls" />
+      <PageHeader
+        title="Create Policy"
+        description="Define enforcement rules for agent tool calls"
+      />
 
       <form
         onSubmit={handleSubmit}
@@ -123,7 +126,9 @@ export default function NewPolicyPage() {
         )}
 
         <div>
-          <label htmlFor="policy-name" style={labelStyle}>Name *</label>
+          <label htmlFor="policy-name" style={labelStyle}>
+            Name *
+          </label>
           <input
             id="policy-name"
             type="text"
@@ -137,7 +142,9 @@ export default function NewPolicyPage() {
         </div>
 
         <div>
-          <label htmlFor="policy-description" style={labelStyle}>Description</label>
+          <label htmlFor="policy-description" style={labelStyle}>
+            Description
+          </label>
           <textarea
             id="policy-description"
             value={description}
@@ -151,7 +158,9 @@ export default function NewPolicyPage() {
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
           <div>
-            <label htmlFor="policy-agent-role" style={labelStyle}>Agent Role</label>
+            <label htmlFor="policy-agent-role" style={labelStyle}>
+              Agent Role
+            </label>
             <input
               id="policy-agent-role"
               type="text"
@@ -163,7 +172,9 @@ export default function NewPolicyPage() {
             />
           </div>
           <div>
-            <label htmlFor="policy-environment" style={labelStyle}>Environment</label>
+            <label htmlFor="policy-environment" style={labelStyle}>
+              Environment
+            </label>
             <input
               id="policy-environment"
               type="text"
@@ -185,7 +196,10 @@ export default function NewPolicyPage() {
             data-testid="toggle-is-active"
             style={{ accentColor: "var(--color-accent-amber)", width: "1rem", height: "1rem" }}
           />
-          <label htmlFor="policy-active" style={{ fontSize: "0.875rem", color: "oklch(0.70 0.00 0)", cursor: "pointer" }}>
+          <label
+            htmlFor="policy-active"
+            style={{ fontSize: "0.875rem", color: "oklch(0.70 0.00 0)", cursor: "pointer" }}
+          >
             Activate this policy immediately
           </label>
         </div>

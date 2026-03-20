@@ -3,9 +3,9 @@
  * Edit policy page — server component fetches policy, client component handles form.
  */
 
-import { notFound } from "next/navigation";
-import { createServerTRPCClient } from "@/lib/trpc-server";
 import { PageHeader } from "@/components/ui/page-header";
+import { createServerTRPCClient } from "@/lib/trpc-server";
+import { notFound } from "next/navigation";
 import { PolicyEditForm } from "./policy-edit-form";
 
 interface EditPolicyPageProps {
@@ -29,7 +29,10 @@ export default async function EditPolicyPage({ params }: EditPolicyPageProps) {
 
   return (
     <div>
-      <PageHeader title={`Edit: ${policy.name}`} description={`Version ${policy.version} · ${policy.is_active ? "Active" : "Inactive"}`} />
+      <PageHeader
+        title={`Edit: ${policy.name}`}
+        description={`Version ${policy.version} · ${policy.is_active ? "Active" : "Inactive"}`}
+      />
       <PolicyEditForm policy={policy} />
     </div>
   );

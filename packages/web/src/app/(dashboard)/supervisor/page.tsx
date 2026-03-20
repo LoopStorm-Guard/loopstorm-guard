@@ -72,10 +72,7 @@ export default async function SupervisorPage() {
       />
 
       {/* Proposals section */}
-      <ProposalQueue
-        initialItems={proposals.items}
-        initialNextCursor={proposals.nextCursor}
-      />
+      <ProposalQueue initialItems={proposals.items} initialNextCursor={proposals.nextCursor} />
     </div>
   );
 }

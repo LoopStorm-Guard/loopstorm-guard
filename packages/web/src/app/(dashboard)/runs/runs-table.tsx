@@ -16,13 +16,13 @@
 
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { EmptyState } from "@/components/ui/empty-state";
+import { LoadMoreButton } from "@/components/ui/load-more";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { TimeAgo } from "@/components/ui/time-ago";
-import { LoadMoreButton } from "@/components/ui/load-more";
-import { EmptyState } from "@/components/ui/empty-state";
 import { trpc } from "@/lib/trpc-client";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 type RunItem = {
   run_id: string;
@@ -200,6 +200,10 @@ export function RunsTable({ initialItems, initialNextCursor }: RunsTableProps) {
                 <tr
                   key={run.run_id}
                   onClick={() => router.push(`/runs/${run.run_id}`)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") router.push(`/runs/${run.run_id}`);
+                  }}
+                  tabIndex={0}
                   data-testid={`run-row-${run.run_id}`}
                   style={{
                     cursor: "pointer",

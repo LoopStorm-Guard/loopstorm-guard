@@ -59,7 +59,13 @@ export function PolicyEditor({ value, onChange, serverErrors }: PolicyEditorProp
         >
           Policy Content (JSON)
         </label>
-        <span style={{ fontSize: "0.6875rem", color: "oklch(0.45 0.00 0)", fontFamily: "var(--font-mono)" }}>
+        <span
+          style={{
+            fontSize: "0.6875rem",
+            color: "oklch(0.45 0.00 0)",
+            fontFamily: "var(--font-mono)",
+          }}
+        >
           {value.length} chars
         </span>
       </div>
@@ -113,12 +119,19 @@ export function PolicyEditor({ value, onChange, serverErrors }: PolicyEditorProp
           }}
           data-testid="policy-server-errors"
         >
-          <p style={{ fontSize: "0.75rem", color: "var(--color-accent-red)", margin: "0 0 0.25rem", fontWeight: "500" }}>
+          <p
+            style={{
+              fontSize: "0.75rem",
+              color: "var(--color-accent-red)",
+              margin: "0 0 0.25rem",
+              fontWeight: "500",
+            }}
+          >
             Validation errors:
           </p>
           <ul style={{ margin: 0, paddingLeft: "1.25rem" }}>
-            {serverErrors.map((err, i) => (
-              <li key={i} style={{ fontSize: "0.75rem", color: "var(--color-accent-red)" }}>
+            {serverErrors.map((err) => (
+              <li key={err} style={{ fontSize: "0.75rem", color: "var(--color-accent-red)" }}>
                 {err}
               </li>
             ))}

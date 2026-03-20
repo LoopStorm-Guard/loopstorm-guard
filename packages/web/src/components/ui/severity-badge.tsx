@@ -16,7 +16,10 @@ interface SeverityBadgeProps {
   size?: "sm" | "md";
 }
 
-const SEVERITY_CONFIG: Record<string, { label: string; style: React.CSSProperties; pulse?: boolean }> = {
+const SEVERITY_CONFIG: Record<
+  string,
+  { label: string; style: React.CSSProperties; pulse?: boolean }
+> = {
   low: {
     label: "Low",
     style: {

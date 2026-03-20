@@ -9,8 +9,8 @@
  * any MIT-licensed package (ADR-013).
  */
 
-import type { Metadata } from "next";
 import { TRPCProvider } from "@/lib/trpc-provider";
+import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {

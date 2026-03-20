@@ -9,18 +9,20 @@
  * the Better Auth /api/auth/get-session endpoint.
  */
 
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
 import { DashboardHeader } from "@/components/layout/dashboard-header";
 import { SidebarNav } from "@/components/layout/sidebar-nav";
 import { getAuthBaseURL } from "@/lib/env";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 
 async function getSession() {
   try {
     const cookieStore = await cookies();
     const cookieHeader = cookieStore.toString();
     const baseURL = getAuthBaseURL();
-    const url = baseURL ? `${baseURL}/api/auth/get-session` : "http://localhost:3001/api/auth/get-session";
+    const url = baseURL
+      ? `${baseURL}/api/auth/get-session`
+      : "http://localhost:3001/api/auth/get-session";
 
     const res = await fetch(url, {
       headers: { cookie: cookieHeader },
