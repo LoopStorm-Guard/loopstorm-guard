@@ -34,10 +34,7 @@ interface RunHeaderProps {
   run: Run;
 }
 
-function formatDuration(
-  startedAt: string | null,
-  endedAt: string | null,
-): string {
+function formatDuration(startedAt: string | null, endedAt: string | null): string {
   if (!startedAt) return "—";
   if (!endedAt) return "Still running";
   const ms = new Date(endedAt).getTime() - new Date(startedAt).getTime();
