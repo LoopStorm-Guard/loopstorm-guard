@@ -1,0 +1,425 @@
+# SPDX-License-Identifier: MIT
+# Release pipeline for LoopStorm Guard.
+#
+# Triggered on version tags (e.g. v1.0.0, v1.2.0-rc.1).
+#
+# Job graph:
+#
+#   build-binaries (matrix: 5 targets)
+#       └─> create-release
+#               ├─> publish-python  (skipped on -alpha tags)
+#               └─> publish-npm     (skipped on -alpha tags)
+#
+# Secrets required:
+#   PYPI_TOKEN          — PyPI API token (scope: project loopstorm)
+#   NPM_TOKEN           — npm automation token (scope: @loopstorm/*)
+#
+# The workflow never reads GITHUB_TOKEN explicitly — Actions injects it
+# automatically for release creation and artifact uploads.
+
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+# Releases are never concurrent — a second tag push while one is in
+# flight would produce a duplicate release. Prevent that here.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  # Keep in sync with ci.yml.
+  BUN_VERSION: "1.2.5"
+  RUST_TOOLCHAIN: "stable"
+  # Human-readable tag without the leading "v" (e.g. "1.0.0").
+  # Used in archive names and PyPI/npm version assertions.
+  VERSION: ${{ github.ref_name }}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Job 1: Build Rust binaries and produce per-platform archives.
+#
+# Matrix covers all five supported targets:
+#   linux-x86_64   — native cargo on ubuntu-22.04
+#   linux-aarch64  — cross-rs on ubuntu-22.04 (no native arm64 runner needed)
+#   macos-x86_64   — native cargo on macos-latest (Intel slice)
+#   macos-aarch64  — native cargo on macos-latest (Apple Silicon slice)
+#   windows-x86_64 — native cargo on windows-latest (MSVC)
+#
+# Each matrix leg uploads one archive artifact plus its SHA-256 line.
+# The create-release job collects all artifacts before publishing.
+# ─────────────────────────────────────────────────────────────────────────────
+jobs:
+  build-binaries:
+    name: Build ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false   # keep building other targets if one fails
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-22.04
+            cross: false
+            archive_ext: tar.gz
+            exe_suffix: ""
+
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-22.04
+            cross: true    # no native aarch64 runner; use cross-rs
+            archive_ext: tar.gz
+            exe_suffix: ""
+
+          - target: x86_64-apple-darwin
+            os: macos-latest
+            cross: false
+            archive_ext: tar.gz
+            exe_suffix: ""
+
+          - target: aarch64-apple-darwin
+            os: macos-latest
+            cross: false
+            archive_ext: tar.gz
+            exe_suffix: ""
+
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+            cross: false
+            archive_ext: zip
+            exe_suffix: ".exe"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Install the exact stable toolchain with the correct cross-compile
+      # target sysroot. dtolnay/rust-toolchain handles rustup target add.
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+          targets: ${{ matrix.target }}
+
+      # Shared Rust dependency cache — dramatically cuts build time on
+      # subsequent runs. Keyed on OS + target + Cargo.lock.
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ". -> target"
+          key: release-${{ matrix.target }}
+
+      # cross-rs is only needed for the aarch64-linux leg. We pin to the
+      # git HEAD of cross-rs because that is what engine-build.yml uses;
+      # a published crate version may lag behind cross-image updates.
+      - name: Install cross (aarch64-linux only)
+        if: matrix.cross
+        run: cargo install cross --git https://github.com/cross-rs/cross
+
+      # ── Build loopstorm-engine ──────────────────────────────────────────
+      - name: Build engine (cross)
+        if: matrix.cross
+        run: cross build --release --target ${{ matrix.target }} -p loopstorm-engine
+
+      - name: Build engine (native)
+        if: ${{ !matrix.cross }}
+        run: cargo build --release --target ${{ matrix.target }} -p loopstorm-engine
+
+      # ── Build loopstorm CLI ─────────────────────────────────────────────
+      # The CLI crate bin name is "loopstorm" (see apps/cli/Cargo.toml [[bin]]).
+      - name: Build CLI (cross)
+        if: matrix.cross
+        run: cross build --release --target ${{ matrix.target }} -p loopstorm-cli
+
+      - name: Build CLI (native)
+        if: ${{ !matrix.cross }}
+        run: cargo build --release --target ${{ matrix.target }} -p loopstorm-cli
+
+      # ── Assemble archive (Unix: tar.gz) ────────────────────────────────
+      # Archive layout:
+      #   loopstorm-guard-{version}-{target}/
+      #     loopstorm-engine
+      #     loopstorm          (CLI binary)
+      #     LICENSE
+      #     README.md
+      - name: Create archive (Unix)
+        if: matrix.archive_ext == 'tar.gz'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          ARCHIVE_NAME="loopstorm-guard-${{ env.VERSION }}-${{ matrix.target }}"
+          STAGING_DIR="${ARCHIVE_NAME}"
+          BIN_DIR="target/${{ matrix.target }}/release"
+
+          mkdir -p "${STAGING_DIR}"
+          cp "${BIN_DIR}/loopstorm-engine" "${STAGING_DIR}/"
+          cp "${BIN_DIR}/loopstorm"        "${STAGING_DIR}/"
+          cp LICENSE                        "${STAGING_DIR}/"
+          cp README.md                      "${STAGING_DIR}/"
+
+          tar -czf "${ARCHIVE_NAME}.tar.gz" "${STAGING_DIR}"
+          echo "ARCHIVE=${ARCHIVE_NAME}.tar.gz" >> "$GITHUB_ENV"
+
+      # ── Assemble archive (Windows: zip) ────────────────────────────────
+      - name: Create archive (Windows)
+        if: matrix.archive_ext == 'zip'
+        shell: pwsh
+        run: |
+          $archiveName = "loopstorm-guard-${{ env.VERSION }}-${{ matrix.target }}"
+          $stagingDir  = $archiveName
+          $binDir      = "target\${{ matrix.target }}\release"
+
+          New-Item -ItemType Directory -Path $stagingDir | Out-Null
+          Copy-Item "$binDir\loopstorm-engine.exe" "$stagingDir\"
+          Copy-Item "$binDir\loopstorm.exe"        "$stagingDir\"
+          Copy-Item "LICENSE"                       "$stagingDir\"
+          Copy-Item "README.md"                     "$stagingDir\"
+
+          Compress-Archive -Path "$stagingDir\*" -DestinationPath "$archiveName.zip"
+          "ARCHIVE=$archiveName.zip" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+      # ── Compute SHA-256 for this archive ───────────────────────────────
+      # Each leg writes one line: "<hash>  <filename>".
+      # The create-release job concatenates all lines into checksums-sha256.txt.
+      - name: Compute SHA-256 (Unix)
+        if: matrix.archive_ext == 'tar.gz'
+        shell: bash
+        run: sha256sum "${{ env.ARCHIVE }}" > checksum.txt
+
+      - name: Compute SHA-256 (Windows)
+        if: matrix.archive_ext == 'zip'
+        shell: pwsh
+        run: |
+          $hash = (Get-FileHash "${{ env.ARCHIVE }}" -Algorithm SHA256).Hash.ToLower()
+          "$hash  ${{ env.ARCHIVE }}" | Out-File -FilePath checksum.txt -Encoding utf8NoBOM
+
+      # Upload the archive and its checksum line as a named artifact so
+      # create-release can download them all in one step.
+      - name: Upload archive artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: archive-${{ matrix.target }}
+          path: |
+            ${{ env.ARCHIVE }}
+            checksum.txt
+          retention-days: 3   # only needed until the release job runs
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Job 2: Collect all archives, merge checksums, create GitHub Release.
+#
+# Runs after ALL matrix legs complete (needs: build-binaries with no
+# fail-fast, so all legs must succeed before we publish anything).
+# ─────────────────────────────────────────────────────────────────────────────
+  create-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-22.04
+    needs: build-binaries
+    permissions:
+      contents: write   # required to create a release and upload assets
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Download every archive-* artifact into ./artifacts/.
+      # actions/download-artifact@v4 places each artifact in its own
+      # subdirectory when pattern matching is used.
+      - name: Download all archive artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: archive-*
+          path: artifacts
+          merge-multiple: false
+
+      # Flatten the per-target subdirectories so all archives and checksum
+      # lines end up in a single staging directory.
+      - name: Flatten artifacts and merge checksums
+        run: |
+          set -euo pipefail
+
+          mkdir -p staging
+
+          # Move archives; collect checksum lines.
+          for subdir in artifacts/*/; do
+            # Copy archive file(s) — there is exactly one per artifact.
+            find "$subdir" -maxdepth 1 \( -name "*.tar.gz" -o -name "*.zip" \) \
+              -exec cp {} staging/ \;
+
+            # Append this leg's checksum line.
+            if [[ -f "${subdir}checksum.txt" ]]; then
+              cat "${subdir}checksum.txt" >> staging/checksums-sha256.txt
+            fi
+          done
+
+          # Sort for deterministic output and human readability.
+          sort -o staging/checksums-sha256.txt staging/checksums-sha256.txt
+
+          echo "=== Final checksums ==="
+          cat staging/checksums-sha256.txt
+
+          echo "=== Archives staged ==="
+          ls -lh staging/
+
+      # Determine whether this is a pre-release.
+      # A tag is a pre-release if it contains -alpha, -beta, or -rc.
+      # This sets the IS_PRERELEASE env var consumed by gh release create.
+      - name: Detect pre-release status
+        run: |
+          TAG="${{ github.ref_name }}"
+          if echo "$TAG" | grep -Eq '\-(alpha|beta|rc)'; then
+            echo "IS_PRERELEASE=true" >> "$GITHUB_ENV"
+            echo "Tag ${TAG} detected as pre-release."
+          else
+            echo "IS_PRERELEASE=false" >> "$GITHUB_ENV"
+            echo "Tag ${TAG} detected as stable release."
+          fi
+
+      # gh release create handles:
+      #   - Creating the release with auto-generated notes (--generate-notes)
+      #   - Uploading all staged files as release assets
+      #   - Marking as pre-release when IS_PRERELEASE=true
+      #
+      # --generate-notes produces a changelog from commits since the previous
+      # tag. No custom release body is needed; the CHANGELOG.md is linked
+      # from the repo README for readers who want the structured version.
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          PRERELEASE_FLAG=""
+          if [[ "${{ env.IS_PRERELEASE }}" == "true" ]]; then
+            PRERELEASE_FLAG="--prerelease"
+          fi
+
+          gh release create "${{ github.ref_name }}" \
+            --title "LoopStorm Guard ${{ github.ref_name }}" \
+            --generate-notes \
+            $PRERELEASE_FLAG \
+            staging/*.tar.gz \
+            staging/*.zip \
+            staging/checksums-sha256.txt
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Job 3: Publish Python shim to PyPI.
+#
+# Skipped for -alpha tags (early development builds should not flood PyPI).
+# -beta and -rc tags DO publish so installers can test release candidates.
+#
+# The Python package is built from source — no pre-compiled binaries are
+# bundled in the sdist/wheel. Users install the engine binary separately
+# or via the Mode 0 bundle. (See: docs/deployment-modes.md)
+#
+# Required secret: PYPI_TOKEN
+# ─────────────────────────────────────────────────────────────────────────────
+  publish-python:
+    name: Publish Python Shim to PyPI
+    runs-on: ubuntu-22.04
+    needs: create-release
+    # Skip alpha tags entirely. Beta and RC tags publish to PyPI so
+    # release candidates can be tested via `pip install loopstorm==x.y.0rc1`.
+    if: ${{ !contains(github.ref_name, '-alpha') }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Python 3.12 matches the highest classifier in pyproject.toml.
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install build tools
+        run: pip install build twine
+
+      # OSS release gate: verify all required community-health and
+      # documentation files are present before publishing to PyPI.
+      # A broken archive published to PyPI cannot be easily retracted.
+      - name: OSS release gate
+        run: |
+          set -euo pipefail
+          FAIL=0
+          required_files=(
+            "README.md"
+            "CHANGELOG.md"
+            "LICENSE"
+            "SECURITY.md"
+            "CONTRIBUTING.md"
+            "docs/deployment-modes.md"
+            "docs/control-philosophy.md"
+            "docs/owasp-agentic-mapping.md"
+            "examples/policy-packs/starter.yaml"
+          )
+          for f in "${required_files[@]}"; do
+            if [[ ! -f "$f" ]]; then
+              echo "MISSING REQUIRED FILE: $f"
+              FAIL=1
+            fi
+          done
+          if [[ $FAIL -ne 0 ]]; then
+            echo ""
+            echo "OSS release gate FAILED. Add the missing files before tagging a release."
+            exit 1
+          fi
+          echo "OSS release gate passed — all required files present."
+
+      - name: Build Python package
+        working-directory: apps/shim-python
+        run: python -m build
+
+      - name: Publish to PyPI
+        working-directory: apps/shim-python
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+        run: twine upload dist/*
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Job 4: Publish TypeScript shim to npm.
+#
+# Skipped for -alpha tags (same policy as PyPI above).
+#
+# Uses Bun to build (matching the monorepo's package manager) but npm to
+# publish because `bun publish` does not yet support all npm registry
+# features (provenance, access flags) as of Bun 1.2.x.
+#
+# Required secret: NPM_TOKEN
+# ─────────────────────────────────────────────────────────────────────────────
+  publish-npm:
+    name: Publish TypeScript Shim to npm
+    runs-on: ubuntu-22.04
+    needs: create-release
+    if: ${{ !contains(github.ref_name, '-alpha') }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      # Node.js is needed for npm publish. The version does not need to
+      # match the runtime target — it only drives the npm CLI itself.
+      - name: Setup Node.js (for npm publish)
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          registry-url: "https://registry.npmjs.org"
+
+      # Install monorepo dependencies so workspace packages resolve.
+      # --frozen-lockfile ensures the lockfile is not silently updated.
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build shim-ts
+        working-directory: apps/shim-ts
+        run: bun run build
+
+      # npm publish reads NODE_AUTH_TOKEN from the environment.
+      # --access public is required for scoped packages (@loopstorm/*).
+      - name: Publish to npm
+        working-directory: apps/shim-ts
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access public
