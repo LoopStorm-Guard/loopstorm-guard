@@ -45,9 +45,43 @@ Any change to a schema file (`schemas/`) requires:
 3. Updating `apps/engine/build.rs` if the policy schema changed
 4. Tagging all affected consumer teams in the PR
 
+## Coding Standards
+
+- **Commit style:** Conventional Commits — `feat:`, `fix:`, `chore:`, `docs:`, `refactor:`
+- **Package manager:** Bun exclusively. Never npm, yarn, or pnpm.
+- **Formatting:** Biome (2-space indent). Run `bunx biome check --write` before committing.
+- **Rust:** `cargo fmt` + `cargo clippy` must pass.
+- **Python:** ruff + mypy --strict.
+- **TypeScript:** strict mode with `exactOptionalPropertyTypes`.
+- **SPDX headers:** Required on every source file. MIT for `apps/` and `packages/schemas/`,
+  AGPL-3.0-only for `packages/backend/` and `packages/web/`.
+
+## Absolute Rules
+
+1. **Enforcement/observation plane separation is inviolable.** The AI Supervisor never
+   touches the enforcement path. Any PR that blurs this boundary will be rejected.
+2. **Fail-closed always.** Any ambiguity in policy evaluation results in deny.
+3. **`escalate_to_human` can never be blocked** by any policy rule.
+4. **Better Auth only** — never Supabase Auth / GoTrue.
+5. **Mode 0 first** — everything must work air-gapped before adding network features.
+
+## Certificate of Origin
+
+By contributing to this project, you certify that your contribution is made under
+the terms of the [Developer Certificate of Origin](https://developercertificate.org/)
+(DCO). You confirm this by adding a `Signed-off-by` line to your commit messages:
+
+```
+git commit --signoff -m "feat: add new feature"
+```
+
+This certifies that you have the right to submit the contribution under the project's
+license terms.
+
 ## Pull Request Guidelines
 
 - Keep PRs focused — one concern per PR
 - All CI checks must pass (license headers, schema hash, tests)
 - ADR changes require the lead architect's approval
 - Schema changes require sign-off from all consumer teams
+- Include `Signed-off-by` in commit messages (DCO)
