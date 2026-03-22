@@ -1,49 +1,41 @@
 // SPDX-License-Identifier: MIT
 /**
- * Shared type definitions for the LoopStorm TypeScript shim.
- * These mirror the IPC schemas defined in packages/schemas/.
+ * Public type definitions for the LoopStorm TypeScript shim.
  */
 
 export interface GuardOptions {
-  /** Path to a policy YAML file. Required in Mode 0. */
-  policy?: string;
-  /** Path to the engine Unix Domain Socket. Defaults to /tmp/loopstorm-engine.sock */
-  socketPath?: string;
+  /** Path to the engine socket. Defaults to platform-specific path. */
+  socketPath?: string | undefined;
+  /** If true (default), allow calls when engine is unavailable. */
+  failOpen?: boolean | undefined;
+  /** Fixed run ID. Generated as UUID v4 if not provided. */
+  runId?: string | undefined;
   /** Agent role tag for policy matching (ADR-008). */
-  agentRole?: string;
+  agentRole?: string | undefined;
   /** Human-readable agent name. */
-  agentName?: string;
+  agentName?: string | undefined;
+  /** Environment tag (e.g. "production", "staging"). */
+  environment?: string | undefined;
+  /** Model name (e.g. "gpt-4o", "claude-3-opus"). */
+  model?: string | undefined;
+  /** Socket timeout in seconds. Default: 10. */
+  timeout?: number | undefined;
 }
 
-export interface ToolCall {
-  /** Tool name (e.g., "http.request", "db.query"). */
-  tool: string;
-  /** Tool arguments — will be hashed and optionally redacted before sending to engine. */
-  args: Record<string, unknown>;
+export interface BudgetRemaining {
+  costUsd?: number | undefined;
+  inputTokens?: number | undefined;
+  outputTokens?: number | undefined;
+  callCount?: number | undefined;
+}
+
+export interface DecisionResult {
+  decision: string;
+  ruleId?: string | undefined;
+  reason?: string | undefined;
+  cooldownMs?: number | undefined;
+  cooldownMessage?: string | undefined;
+  budgetRemaining?: BudgetRemaining | undefined;
 }
 
 export type EnforcementDecision = "allow" | "deny" | "cooldown" | "kill" | "require_approval";
-
-export interface DecisionResponse {
-  schemaVersion: number;
-  runId: string;
-  seq: number;
-  decision: EnforcementDecision;
-  ruleId?: string;
-  reason?: string;
-  cooldownMs?: number;
-  cooldownMessage?: string;
-  ts: string;
-}
-
-/** Thrown when the engine returns deny or kill. */
-export class EnforcementError extends Error {
-  constructor(
-    public readonly decision: "deny" | "kill",
-    public readonly ruleId: string | undefined,
-    public readonly reason: string | undefined
-  ) {
-    super(`LoopStorm enforcement: ${decision}${reason ? ` — ${reason}` : ""}`);
-    this.name = "EnforcementError";
-  }
-}
