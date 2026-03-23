@@ -200,6 +200,46 @@ export const auth = betterAuth({
 });
 
 /**
+ * Self-healing tenant resolution for authenticated users.
+ *
+ * Called by the tRPC auth middleware when the session's tenant_id is null.
+ * This handles two failure modes:
+ * 1. Session cache is stale — tenant was provisioned but the cached session
+ *    does not include it yet. A direct DB read resolves this.
+ * 2. Post-registration hook failed — tenant was never provisioned. A lazy
+ *    provision attempt creates the tenant and back-fills the user/session rows.
+ *
+ * Returns the tenant_id on success, or null if all recovery attempts fail.
+ */
+export async function ensureTenantId(user: {
+  id: string;
+  name: string;
+  email: string;
+}): Promise<string | null> {
+  // Check if tenant_id was set but session cache is stale.
+  const [row] = await db
+    .select({ tenant_id: users.tenant_id })
+    .from(users)
+    .where(eq(users.id, user.id));
+  if (row?.tenant_id) return row.tenant_id;
+
+  // Attempt lazy provision.
+  try {
+    await provisionTenantForUser(user);
+  } catch (err) {
+    console.error("[auth] ensureTenantId: lazy provision failed:", err);
+    return null;
+  }
+
+  // Re-read after provision.
+  const [repaired] = await db
+    .select({ tenant_id: users.tenant_id })
+    .from(users)
+    .where(eq(users.id, user.id));
+  return repaired?.tenant_id ?? null;
+}
+
+/**
  * The auth instance type, exported for use in middleware and tests.
  */
 export type Auth = typeof auth;

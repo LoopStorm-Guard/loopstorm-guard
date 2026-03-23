@@ -272,8 +272,8 @@ jobs:
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
 
-      - name: Build engine binary
-        run: cargo build --release -p loopstorm-engine
+      - name: Build engine and CLI binaries
+        run: cargo build --release -p loopstorm-engine -p loopstorm-cli
 
       - name: Verify engine binary starts and prints schema hash
         run: |
@@ -284,14 +284,119 @@ jobs:
             echo "ERROR: Engine binary did not embed expected policy schema hash"
             exit 1
           fi
-          echo "Mode 0 smoke test passed."
+          echo "Version check passed."
 
-      # TODO(platform-phase2): extend smoke test to:
-      #   1. Run engine with a test policy
-      #   2. Send a DecisionRequest over UDS
-      #   3. Assert DecisionResponse is received
-      #   4. Assert JSONL audit log is written
-      #   5. Assert hash chain verifies
+      - name: Full IPC round-trip smoke test
+        run: |
+          set -euo pipefail
+
+          SOCKET="/tmp/loopstorm-smoke-$$.sock"
+          AUDIT_LOG="/tmp/loopstorm-smoke-$$.jsonl"
+
+          echo "--- Step 1: Start engine with test policy ---"
+          ./target/release/loopstorm-engine \
+            --policy examples/basic-policy.yaml \
+            --socket "$SOCKET" \
+            --audit-log "$AUDIT_LOG" \
+            --log-level info \
+            --force &
+          ENGINE_PID=$!
+          echo "Engine PID: $ENGINE_PID"
+
+          # Wait for the socket to appear (up to 5 seconds).
+          for i in $(seq 1 50); do
+            if [ -S "$SOCKET" ]; then
+              echo "Socket appeared after $((i * 100))ms"
+              break
+            fi
+            sleep 0.1
+          done
+          if [ ! -S "$SOCKET" ]; then
+            echo "ERROR: Socket did not appear at $SOCKET"
+            kill "$ENGINE_PID" 2>/dev/null || true
+            exit 1
+          fi
+
+          echo "--- Step 2: Send DecisionRequest over UDS ---"
+          # Use Python to send NDJSON over the Unix domain socket.
+          # file_read matches the *_read glob in basic-policy.yaml -> allow.
+          RESPONSE=$(python3 -c "
+          import socket, json, sys
+
+          req = json.dumps({
+              'schema_version': 1,
+              'run_id': '01234567-89ab-cdef-0123-456789abcdef',
+              'seq': 1,
+              'tool': 'file_read',
+              'args_hash': '0' * 64,
+              'ts': '2026-03-23T00:00:00Z'
+          })
+
+          sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+          sock.settimeout(10)
+          sock.connect('$SOCKET')
+          sock.sendall((req + '\n').encode())
+
+          # Read response line (up to 64 KiB).
+          buf = b''
+          while b'\n' not in buf:
+              chunk = sock.recv(65536)
+              if not chunk:
+                  break
+              buf += chunk
+          sock.close()
+
+          resp = json.loads(buf.decode().strip())
+          print(json.dumps(resp))
+          ")
+
+          echo "Response: $RESPONSE"
+
+          echo "--- Step 3: Assert DecisionResponse is valid ---"
+          DECISION=$(echo "$RESPONSE" | python3 -c "import json,sys; print(json.load(sys.stdin)['decision'])")
+          echo "Decision: $DECISION"
+          if [ "$DECISION" != "allow" ]; then
+            echo "ERROR: Expected decision 'allow' for file_read, got '$DECISION'"
+            kill "$ENGINE_PID" 2>/dev/null || true
+            exit 1
+          fi
+          echo "Decision assertion passed: file_read -> allow"
+
+          echo "--- Step 4: Graceful shutdown (SIGTERM) ---"
+          kill -TERM "$ENGINE_PID"
+          # Wait for engine to exit (up to 10 seconds).
+          for i in $(seq 1 100); do
+            if ! kill -0 "$ENGINE_PID" 2>/dev/null; then
+              echo "Engine exited after $((i * 100))ms"
+              break
+            fi
+            sleep 0.1
+          done
+          if kill -0 "$ENGINE_PID" 2>/dev/null; then
+            echo "WARNING: Engine did not exit gracefully, sending SIGKILL"
+            kill -9 "$ENGINE_PID" 2>/dev/null || true
+          fi
+
+          echo "--- Step 5: Assert JSONL audit log exists and has content ---"
+          if [ ! -f "$AUDIT_LOG" ]; then
+            echo "ERROR: Audit log not found at $AUDIT_LOG"
+            exit 1
+          fi
+          LINE_COUNT=$(wc -l < "$AUDIT_LOG")
+          echo "Audit log has $LINE_COUNT lines"
+          if [ "$LINE_COUNT" -lt 1 ]; then
+            echo "ERROR: Audit log is empty"
+            exit 1
+          fi
+          echo "Audit log assertion passed."
+
+          echo "--- Step 6: Verify hash chain with CLI ---"
+          ./target/release/loopstorm verify "$AUDIT_LOG"
+          echo "Hash chain verification passed."
+
+          echo "--- Cleanup ---"
+          rm -f "$SOCKET" "$AUDIT_LOG"
+          echo "Mode 0 full IPC smoke test PASSED."
 
   # ─────────────────────────────────────────────────────────────────────────
   # Job 8: TypeScript build (all packages)
@@ -313,6 +418,32 @@ jobs:
 
       - name: Build all TypeScript packages
         run: bun turbo run build
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Playwright E2E Tests — DEFERRED
+  #
+  # The 5 Playwright spec files in packages/web/tests/e2e/ are NOT run in CI.
+  # They require a full running stack that is not yet available in the
+  # CI environment:
+  #
+  #   1. PostgreSQL service container with migrations applied (Drizzle)
+  #   2. Hono backend server running on Bun (packages/backend)
+  #   3. Next.js dev or preview server (packages/web)
+  #   4. Better Auth configured with test credentials and tenant seed data
+  #   5. Playwright browsers installed (npx playwright install)
+  #
+  # To enable Playwright in CI, the following is needed:
+  #   - A composite job that starts Postgres, runs migrations, seeds a test
+  #     tenant + user, starts the backend, starts Next.js, then runs
+  #     `bunx playwright test`
+  #   - Alternatively, a Docker Compose-based approach with all services
+  #   - Test fixtures for auth (pre-created session tokens or test login flow)
+  #
+  # Until then, Playwright tests are run locally by developers:
+  #   cd packages/web && bunx playwright test
+  #
+  # Tracked for implementation in a future PR.
+  # ─────────────────────────────────────────────────────────────────────────
 
   # ─────────────────────────────────────────────────────────────────────────
   # Job 9: Rust dependency license audit (cargo-deny)
