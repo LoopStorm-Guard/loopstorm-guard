@@ -34,6 +34,10 @@ allow = [
     "CC0-1.0",
     "0BSD",
     "OpenSSL",
+    # MPL-2.0 is weak copyleft — compatible with MIT distribution.
+    # Only requires changes to MPL-licensed files be disclosed, not the whole project.
+    # Used by: colored (CLI output coloring).
+    "MPL-2.0",
 ]
 
 # Exceptions for crates with non-standard license identifiers.
