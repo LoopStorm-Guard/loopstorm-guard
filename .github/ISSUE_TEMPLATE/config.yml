@@ -1,0 +1,7 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Security Vulnerability
+    url: https://github.com/LoopStorm-Guard/loopstorm-guard/blob/main/SECURITY.md
+    about: >
+      Do NOT open a public issue for security vulnerabilities.
+      Please follow the responsible disclosure process in SECURITY.md.

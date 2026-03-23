@@ -713,4 +713,77 @@ rules:
         let resp2 = evaluate(&req2, &policy, &budget, &loop_det);
         assert_eq!(resp2.decision, Decision::Allow);
     }
+
+    #[test]
+    fn escalate_to_human_allowed_with_glob_deny_all() {
+        // ADR-012 invariant: escalate_to_human must be allowed even when a
+        // tool_pattern glob matches every tool name. The bypass fires BEFORE
+        // rule evaluation, so no pattern can block it.
+        let policy = make_policy(
+            r#"
+schema_version: 1
+rules:
+  - name: "deny-all-glob"
+    action: deny
+    tool_pattern: "*"
+"#,
+        );
+        let budget = BudgetTracker::new();
+        let loop_det = LoopDetector::new();
+
+        // escalate_to_human must be allowed
+        let req = make_request("escalate_to_human");
+        let resp = evaluate(&req, &policy, &budget, &loop_det);
+        assert_eq!(resp.decision, Decision::Allow);
+        assert_eq!(resp.rule_id.as_deref(), Some("__builtin_escalate_to_human"));
+
+        // any other tool should be denied by the glob
+        let req2 = make_request("some_other_tool");
+        let resp2 = evaluate(&req2, &policy, &budget, &loop_det);
+        assert_eq!(resp2.decision, Decision::Deny);
+        assert_eq!(resp2.rule_id.as_deref(), Some("deny-all-glob"));
+    }
+
+    #[test]
+    fn escalate_to_human_allowed_with_budget_exceeded() {
+        // ADR-012 invariant: escalate_to_human must be allowed even when the
+        // budget hard cap has been exceeded. Agents must always be able to
+        // ask a human for help, regardless of budget state.
+        let policy = make_policy(
+            r#"
+schema_version: 1
+budget:
+  cost_usd:
+    hard: 0.01
+rules:
+  - name: "allow-all"
+    action: allow
+"#,
+        );
+        let budget = BudgetTracker::new();
+        let loop_det = LoopDetector::new();
+
+        // Pre-record a budget update that exceeds the hard cap.
+        // evaluate() checks accumulated state via check_hard_caps_with_config,
+        // but does not record — recording happens in enforce() (lib.rs).
+        let update = crate::budget::BudgetUpdate {
+            cost_usd: 0.02,
+            ..Default::default()
+        };
+        budget.record("test-run-001", &update, policy.policy.budget.as_ref());
+
+        // Now a normal tool call should be killed (budget exceeded)
+        let req1 = make_request("expensive_tool");
+        let resp1 = evaluate(&req1, &policy, &budget, &loop_det);
+        assert_eq!(resp1.decision, Decision::Kill);
+
+        // But escalate_to_human must still be allowed
+        let req2 = make_request("escalate_to_human");
+        let resp2 = evaluate(&req2, &policy, &budget, &loop_det);
+        assert_eq!(resp2.decision, Decision::Allow);
+        assert_eq!(
+            resp2.rule_id.as_deref(),
+            Some("__builtin_escalate_to_human")
+        );
+    }
 }

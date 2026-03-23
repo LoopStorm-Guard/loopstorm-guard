@@ -1,0 +1,79 @@
+# SPDX-License-Identifier: MIT
+# Gitleaks configuration for LoopStorm Guard.
+#
+# Scans for secrets, API keys, tokens, and credentials in the repository.
+# CI runs this on every PR via the `secret-scan` job.
+#
+# See: https://github.com/gitleaks/gitleaks
+
+title = "LoopStorm Guard Secret Scanning"
+
+# Use the default gitleaks rules (AWS keys, GitHub tokens, generic secrets, etc.)
+# plus custom rules below.
+
+[extend]
+# Extend the default gitleaks config with built-in rules.
+# When using gitleaks v8+, the default rules are loaded automatically.
+# This section adds project-specific customizations.
+
+# Paths to ignore — these contain test fixtures, not real secrets.
+[allowlist]
+  description = "LoopStorm Guard global allowlist"
+  paths = [
+    # Test fixtures may contain fake API keys for testing redaction
+    '''tests/fixtures/''',
+    # CI workflow files contain placeholder/test secrets (e.g., BETTER_AUTH_SECRET: ci-test-secret-not-real)
+    '''.github/workflows/''',
+    # Lock files
+    '''bun\.lock''',
+    '''Cargo\.lock''',
+    # Documentation may reference example keys
+    '''docs/guides/''',
+    # Specs reference example hashes and tokens
+    '''specs/''',
+    # The engine redaction module contains regex patterns for secret detection (not actual secrets)
+    '''apps/engine/src/redaction\.rs''',
+    # Example env file contains placeholder values, not real secrets
+    '''\.env\.local\.example''',
+    # Backend test files contain fake API keys and localhost DB URLs
+    '''packages/backend/tests/''',
+    # API key gen source contains example key format in comments
+    '''packages/backend/src/lib/api-key-gen\.ts''',
+  ]
+
+# Custom rules for LoopStorm-specific secret formats.
+[[rules]]
+  id = "loopstorm-api-key"
+  description = "LoopStorm API key (lsg_ prefix)"
+  regex = '''lsg_[0-9a-f]{32,64}'''
+  tags = ["loopstorm", "api-key"]
+
+[[rules]]
+  id = "supabase-service-role-key"
+  description = "Supabase service role key"
+  regex = '''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.[A-Za-z0-9_-]{50,}'''
+  tags = ["supabase", "jwt"]
+
+[[rules]]
+  id = "better-auth-secret"
+  description = "Better Auth secret (long random string in config)"
+  regex = '''BETTER_AUTH_SECRET\s*[=:]\s*["']?[A-Za-z0-9+/=_-]{32,}["']?'''
+  tags = ["better-auth", "secret"]
+  [rules.allowlist]
+    # Allow the known CI test placeholder
+    regexes = ['''ci-test-secret-not-real''']
+
+[[rules]]
+  id = "database-url-with-password"
+  description = "Database URL with embedded password"
+  regex = '''postgres(ql)?://[^:]+:[^@]{8,}@[^/]+/'''
+  tags = ["database", "credential"]
+  [rules.allowlist]
+    # Allow the CI test database URL (uses 'postgres:postgres' which is a default)
+    regexes = ['''postgres:postgres@localhost''']
+
+[[rules]]
+  id = "generic-private-key"
+  description = "Private key material"
+  regex = '''-----BEGIN (RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----'''
+  tags = ["private-key"]

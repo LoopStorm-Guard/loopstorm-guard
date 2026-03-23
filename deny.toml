@@ -1,0 +1,63 @@
+# SPDX-License-Identifier: MIT
+# cargo-deny configuration for LoopStorm Guard (ADR-013).
+#
+# All Rust crates in the workspace (apps/engine, apps/cli) are MIT-licensed.
+# This configuration ensures no dependency introduces a GPL-incompatible
+# license into the MIT-licensed binaries.
+#
+# Run: cargo deny check
+# CI:  the `license-audit-rust` job runs this on every PR.
+
+[advisories]
+# The advisory database is checked for known vulnerabilities.
+db-path = "~/.cargo/advisory-db"
+db-urls = ["https://github.com/rustsec/advisory-db"]
+yanked = "warn"
+
+[licenses]
+# Confidence threshold for license file detection.
+confidence-threshold = 0.8
+# Don't fail on unused license allowances — we keep a broad safe list.
+unused-allowed-license = "allow"
+# Allowed licenses for dependencies of MIT-licensed crates.
+# This list is intentionally conservative — only permissive licenses allowed.
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Unicode-3.0",
+    "Unicode-DFS-2016",
+    "Zlib",
+    "BSL-1.0",
+    "CC0-1.0",
+    "0BSD",
+    "OpenSSL",
+    # MPL-2.0 is weak copyleft — compatible with MIT distribution.
+    # Only requires changes to MPL-licensed files be disclosed, not the whole project.
+    # Used by: colored (CLI output coloring).
+    "MPL-2.0",
+]
+
+# Exceptions for crates with non-standard license identifiers.
+# Add here only after manual review and document the rationale.
+# Example:
+# [[licenses.clarify]]
+# name = "some-crate"
+# expression = "MIT"
+# license-files = [{ path = "LICENSE", hash = 0x12345678 }]
+
+[bans]
+# Warn on duplicate crate versions (different major versions of same crate).
+multiple-versions = "warn"
+# Deny wildcard dependencies (version = "*").
+wildcards = "deny"
+highlight = "all"
+
+[sources]
+# Only allow crates from crates.io by default.
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+allow-git = []

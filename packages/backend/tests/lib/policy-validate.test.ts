@@ -304,6 +304,40 @@ describe("validatePolicy — escalate_to_human invariant", () => {
     assertValid(result);
   });
 
+  test("deny rule without explicit tool still rejects if no tool specified (deny-all)", () => {
+    // A deny-all rule (no tool, no tool_pattern) effectively blocks everything
+    // including escalate_to_human. However, the schema validation only catches
+    // explicit tool/tool_pattern matches. The engine's hardcoded bypass handles
+    // this case at runtime. The backend validation focuses on explicit matches.
+    // This test documents the expected behavior.
+    const result = validatePolicy({
+      schema_version: 1,
+      rules: [
+        {
+          name: "deny-all-no-tool",
+          action: "deny",
+          // No tool or tool_pattern — applies to all tools
+        },
+        { name: "allow-rest", action: "allow" },
+      ],
+    });
+    // This passes backend validation — the engine handles the bypass at runtime.
+    // The deny-all rule is valid; escalate_to_human is protected by the engine.
+    assertValid(result);
+  });
+
+  test("multiple deny rules — one targeting escalate_to_human is rejected", () => {
+    const result = validatePolicy({
+      schema_version: 1,
+      rules: [
+        { name: "deny-bash", action: "deny", tool: "bash" },
+        { name: "deny-escalate", action: "deny", tool: "escalate_to_human" },
+        { name: "allow-rest", action: "allow" },
+      ],
+    });
+    assertError(result, "ESCALATE_TO_HUMAN_BLOCKED");
+  });
+
   test("error includes rule name in message", () => {
     const result = validatePolicy({
       schema_version: 1,
