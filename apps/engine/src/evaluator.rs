@@ -766,7 +766,10 @@ rules:
         // Pre-record a budget update that exceeds the hard cap.
         // evaluate() checks accumulated state via check_hard_caps_with_config,
         // but does not record — recording happens in enforce() (lib.rs).
-        let update = crate::budget::BudgetUpdate { cost_usd: 0.02, ..Default::default() };
+        let update = crate::budget::BudgetUpdate {
+            cost_usd: 0.02,
+            ..Default::default()
+        };
         budget.record("test-run-001", &update, policy.policy.budget.as_ref());
 
         // Now a normal tool call should be killed (budget exceeded)
@@ -778,6 +781,9 @@ rules:
         let req2 = make_request("escalate_to_human");
         let resp2 = evaluate(&req2, &policy, &budget, &loop_det);
         assert_eq!(resp2.decision, Decision::Allow);
-        assert_eq!(resp2.rule_id.as_deref(), Some("__builtin_escalate_to_human"));
+        assert_eq!(
+            resp2.rule_id.as_deref(),
+            Some("__builtin_escalate_to_human")
+        );
     }
 }
