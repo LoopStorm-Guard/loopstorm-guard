@@ -104,20 +104,14 @@ async function provisionTenantForUser(user: {
 
   // Back-fill tenant_id on the user row. Better Auth has already committed
   // the user row before this hook fires, so a direct UPDATE is correct.
-  await db
-    .update(users)
-    .set({ tenant_id: tenantId })
-    .where(eq(users.id, user.id));
+  await db.update(users).set({ tenant_id: tenantId }).where(eq(users.id, user.id));
 
   // Back-fill tenant_id on any sessions that were created in the same
   // registration flow (Better Auth may create a session immediately on
   // email+password signup if requireEmailVerification is false, or on
   // OAuth where the provider implicitly verifies the email).
   // This prevents the first request after sign-up from hitting FORBIDDEN.
-  await db
-    .update(sessions)
-    .set({ tenant_id: tenantId })
-    .where(eq(sessions.user_id, user.id));
+  await db.update(sessions).set({ tenant_id: tenantId }).where(eq(sessions.user_id, user.id));
 }
 
 // Build social providers config only when OAuth credentials are present.
