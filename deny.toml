@@ -17,6 +17,8 @@ yanked = "warn"
 [licenses]
 # Confidence threshold for license file detection.
 confidence-threshold = 0.8
+# Don't fail on unused license allowances — we keep a broad safe list.
+unused-allowed-license = "allow"
 # Allowed licenses for dependencies of MIT-licensed crates.
 # This list is intentionally conservative — only permissive licenses allowed.
 allow = [

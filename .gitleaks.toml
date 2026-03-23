@@ -33,6 +33,12 @@ title = "LoopStorm Guard Secret Scanning"
     '''specs/''',
     # The engine redaction module contains regex patterns for secret detection (not actual secrets)
     '''apps/engine/src/redaction\.rs''',
+    # Example env file contains placeholder values, not real secrets
+    '''\.env\.local\.example''',
+    # Backend test files contain fake API keys and localhost DB URLs
+    '''packages/backend/tests/''',
+    # API key gen source contains example key format in comments
+    '''packages/backend/src/lib/api-key-gen\.ts''',
   ]
 
 # Custom rules for LoopStorm-specific secret formats.
