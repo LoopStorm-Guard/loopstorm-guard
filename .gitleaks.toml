@@ -42,6 +42,8 @@ title = "LoopStorm Guard Secret Scanning"
     '''packages/backend/tests/lib/api-key-gen\.test\.ts''',
     # Seed file contains dev-only placeholder hashes, not real secrets
     '''supabase/seed\.sql''',
+    # Backend spec document illustrates the key format with an example value — not a real key
+    '''specs/task-briefs/p3-backend-database\.md''',
   ]
 
 # Custom rules for LoopStorm-specific secret formats.
