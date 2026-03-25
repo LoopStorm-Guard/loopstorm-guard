@@ -36,10 +36,13 @@ const app = new Hono();
 // CORS — must come before all route handlers
 // ---------------------------------------------------------------------------
 
-// Parse allowed origins from env. Fall back to localhost for development.
+// Parse allowed origins from env. Fall back to localhost for development only.
+// In production, ALLOWED_ORIGINS must be set — otherwise all CORS requests are rejected.
 const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(",").map((o) => o.trim())
-  : ["http://localhost:3000"];
+  : env.NODE_ENV === "production"
+    ? []
+    : ["http://localhost:3000"];
 
 app.use(
   "*",

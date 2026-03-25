@@ -22,23 +22,28 @@ title = "LoopStorm Guard Secret Scanning"
   paths = [
     # Test fixtures may contain fake API keys for testing redaction
     '''tests/fixtures/''',
-    # CI workflow files contain placeholder/test secrets (e.g., BETTER_AUTH_SECRET: ci-test-secret-not-real)
-    '''.github/workflows/''',
+    # CI workflow — only ci.yml and deploy.yml contain known test placeholders
+    '''.github/workflows/ci\.yml''',
+    '''.github/workflows/deploy\.yml''',
+    '''.github/workflows/release\.yml''',
     # Lock files
     '''bun\.lock''',
     '''Cargo\.lock''',
-    # Documentation may reference example keys
-    '''docs/guides/''',
-    # Specs reference example hashes and tokens
-    '''specs/''',
     # The engine redaction module contains regex patterns for secret detection (not actual secrets)
     '''apps/engine/src/redaction\.rs''',
     # Example env file contains placeholder values, not real secrets
     '''\.env\.local\.example''',
-    # Backend test files contain fake API keys and localhost DB URLs
-    '''packages/backend/tests/''',
+    # Backend test setup uses localhost DB URLs and fake auth secrets
+    '''packages/backend/tests/setup\.ts''',
     # API key gen source contains example key format in comments
     '''packages/backend/src/lib/api-key-gen\.ts''',
+    # API key gen tests use clearly fake fixture keys (patterned hex like a1b2c3d4..., aaaabbbb...)
+    # to test format validation and hashing — these are not real secrets
+    '''packages/backend/tests/lib/api-key-gen\.test\.ts''',
+    # Seed file contains dev-only placeholder hashes, not real secrets
+    '''supabase/seed\.sql''',
+    # Backend spec document illustrates the key format with an example value — not a real key
+    '''specs/task-briefs/p3-backend-database\.md''',
   ]
 
 # Custom rules for LoopStorm-specific secret formats.
