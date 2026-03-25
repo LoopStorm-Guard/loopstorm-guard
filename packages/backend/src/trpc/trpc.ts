@@ -27,6 +27,7 @@
  */
 
 import { TRPCError, initTRPC } from "@trpc/server";
+import { ensureTenantId } from "../auth.js";
 import { authenticateApiKey } from "../middleware/api-key.js";
 import { getSession } from "../middleware/auth.js";
 import { setTenantRlsContext } from "../middleware/tenant.js";
@@ -57,7 +58,17 @@ const authMiddleware = t.middleware(async ({ ctx, next }) => {
   // know about the tenant_id column we added — cast through unknown is safe here
   // because the drizzleAdapter is configured with our schema that includes it.
   // biome-ignore lint/suspicious/noExplicitAny: Better Auth custom column
-  const tenantId = (session.user as any).tenant_id as string | null | undefined;
+  let tenantId = (session.user as any).tenant_id as string | null | undefined;
+
+  // Self-healing: if tenant_id is missing (stale session cache or failed hook),
+  // attempt to resolve or provision the tenant before rejecting the request.
+  if (!tenantId) {
+    tenantId = await ensureTenantId({
+      id: session.user.id,
+      name: session.user.name ?? "",
+      email: session.user.email,
+    });
+  }
 
   if (!tenantId) {
     throw new TRPCError({
@@ -156,7 +167,17 @@ const dualAuthMiddleware = t.middleware(async ({ ctx, next }) => {
   // No Bearer token — try session auth
   const session = await getSession(ctx.request);
   // biome-ignore lint/suspicious/noExplicitAny: Better Auth custom column not in its types
-  const tenantId = (session.user as any).tenant_id as string | null | undefined;
+  let tenantId = (session.user as any).tenant_id as string | null | undefined;
+
+  // Self-healing: if tenant_id is missing (stale session cache or failed hook),
+  // attempt to resolve or provision the tenant before rejecting the request.
+  if (!tenantId) {
+    tenantId = await ensureTenantId({
+      id: session.user.id,
+      name: session.user.name ?? "",
+      email: session.user.email,
+    });
+  }
 
   if (!tenantId) {
     throw new TRPCError({

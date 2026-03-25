@@ -1,9 +1,25 @@
 # SPDX-License-Identifier: MIT
+#
+# Deploy workflow for LoopStorm Guard.
+#
+# Triggers on version tags (v*) only — NOT on every push to main.
+# Requires the following repository secrets to be configured:
+#   - DATABASE_URL            (Supabase PostgreSQL connection string)
+#   - CLOUDFLARE_API_TOKEN    (Workers deploy token)
+#   - CLOUDFLARE_ACCOUNT_ID   (Cloudflare account ID)
+#   - NEXT_PUBLIC_API_URL     (Backend API URL for the frontend)
+#   - VERCEL_TOKEN            (Vercel deploy token)
+#   - VERCEL_ORG_ID           (Vercel organization ID)
+#   - VERCEL_PROJECT_ID       (Vercel project ID)
+#
+# To deploy manually, push a tag: git tag v1.0.0 && git push origin v1.0.0
+# Or use workflow_dispatch from the Actions tab.
 name: Deploy
 
 on:
   push:
-    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
 
 concurrency:
   group: deploy-${{ github.ref }}
