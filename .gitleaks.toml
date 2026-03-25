@@ -37,6 +37,9 @@ title = "LoopStorm Guard Secret Scanning"
     '''packages/backend/tests/setup\.ts''',
     # API key gen source contains example key format in comments
     '''packages/backend/src/lib/api-key-gen\.ts''',
+    # API key gen tests use clearly fake fixture keys (patterned hex like a1b2c3d4..., aaaabbbb...)
+    # to test format validation and hashing — these are not real secrets
+    '''packages/backend/tests/lib/api-key-gen\.test\.ts''',
     # Seed file contains dev-only placeholder hashes, not real secrets
     '''supabase/seed\.sql''',
   ]
