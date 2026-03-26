@@ -5,8 +5,8 @@
 LoopStorm Guard intercepts every AI agent tool call before execution, enforces policy rules, enforces budget caps (cost, tokens, call count), detects loops, and writes a tamper-evident JSONL hash-chain audit log.
 
 [![CI](https://github.com/LoopStorm-Guard/loopstorm-guard/actions/workflows/ci.yml/badge.svg)](https://github.com/LoopStorm-Guard/loopstorm-guard/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](LICENSE-AGPL)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE-MIT)
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](LICENSE-AGPL-3.0)
 
 ---
 

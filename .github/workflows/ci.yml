@@ -95,7 +95,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          SCHEMA_FILE="packages/schemas/policy/policy.schema.json"
+          SCHEMA_FILE="schemas/policy/policy.schema.json"
           BUILD_RS="apps/engine/build.rs"
 
           # Compute actual SHA-256 of the schema file

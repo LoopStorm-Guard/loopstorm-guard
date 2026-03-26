@@ -18,6 +18,7 @@ compile time. Any change to `schemas/policy/policy.schema.json` requires:
 | `schemas/events/event.schema.json` | `8769be2fbb63f7ea17765b71d00175b67992849e5c6292f600d80160900576dd` |
 | `schemas/policy/policy.schema.json` | `10725f37ecb7e82d1073afdd154a4e4d42705c806b15ce6a3a381e53be1721bb` |
 | `schemas/ipc/decision-request.schema.json` | `9cd77f8f4066479d4e8e680e02a215ba179875da45b7200412ffb7cbfd11b025` |
+| `schemas/ipc/decision-response.schema.json` | `5d791582820a4aaa540e09e9e7f93b3c14e80e3bb12be52ddff15e52422d8aa6` |
 
 ## Schema Versions
 
@@ -36,6 +37,7 @@ When a schema file is intentionally changed:
 sha256sum schemas/events/event.schema.json
 sha256sum schemas/policy/policy.schema.json
 sha256sum schemas/ipc/decision-request.schema.json
+sha256sum schemas/ipc/decision-response.schema.json
 ```
 
 Update the table above with the new hashes, bump `schema_version` in the schema,
