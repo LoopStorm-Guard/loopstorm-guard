@@ -88,6 +88,7 @@ html {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  scroll-behavior: smooth;
 }
 
 body {
@@ -152,4 +153,145 @@ body {
 :focus-visible {
   outline: 2px solid var(--color-accent-amber);
   outline-offset: 2px;
+}
+
+/* ── Scroll reveal ── */
+.scroll-reveal {
+  opacity: 0;
+  transform: translateY(32px);
+  transition:
+    opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.scroll-reveal.revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ── Hero floating orbs ── */
+@keyframes float-slow {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(30px, -40px) scale(1.05);
+  }
+  66% {
+    transform: translate(-20px, 20px) scale(0.95);
+  }
+}
+
+@keyframes float-reverse {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(-40px, 30px) scale(0.97);
+  }
+  66% {
+    transform: translate(25px, -35px) scale(1.03);
+  }
+}
+
+/* ── Glow pulse ── */
+@keyframes glow-pulse {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+/* ── Gradient border animation ── */
+@keyframes gradient-x {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* ── Terminal cursor blink ── */
+@keyframes cursor-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+.terminal-cursor {
+  animation: cursor-blink 0.8s step-end infinite;
+}
+
+/* ── Terminal line entrance ── */
+.terminal-line {
+  animation: line-appear 0.15s ease-out;
+}
+
+@keyframes line-appear {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── Card hover glow ── */
+.card-glow {
+  position: relative;
+  transition: all 0.4s ease;
+}
+
+.card-glow::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, transparent 40%, rgba(255, 107, 0, 0.3) 50%, transparent 60%);
+  background-size: 300% 300%;
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+}
+
+.card-glow:hover::before {
+  opacity: 1;
+  animation: gradient-x 3s ease infinite;
+}
+
+.card-glow:hover {
+  box-shadow: 0 0 40px rgba(255, 107, 0, 0.06);
+}
+
+/* ── Hero grid pattern ── */
+.hero-grid {
+  background-image:
+    radial-gradient(circle, oklch(0.25 0 0) 1px, transparent 1px);
+  background-size: 32px 32px;
+  mask-image: radial-gradient(ellipse 60% 50% at 50% 30%, black 30%, transparent 80%);
+}
+
+/* ── Stat counter ── */
+.stat-glow {
+  text-shadow: 0 0 20px rgba(255, 107, 0, 0.5);
 }

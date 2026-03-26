@@ -16,13 +16,15 @@
   "dependencies": {
     "@loopstorm/api": "*",
     "@loopstorm/schemas": "*",
+    "@remotion/player": "^4.0.441",
     "@tanstack/react-query": "^5.0.0",
     "@trpc/client": "^11.0.0",
     "@trpc/react-query": "^11.0.0",
     "better-auth": "^1.2.5",
     "next": "^16.2.1",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react-dom": "^19.2.0",
+    "remotion": "^4.0.441"
   },
   "devDependencies": {
     "@biomejs/biome": "*",
