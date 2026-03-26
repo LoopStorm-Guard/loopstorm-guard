@@ -23,8 +23,7 @@
     "postgres": "^3.4.5",
     "@hono/trpc-server": "^0.3.3",
     "@trpc/server": "^11.0.0",
-    "zod": "^3.24.1",
-    "@anthropic-ai/sdk": "^0.36.3"
+    "zod": "^3.24.1"
   },
   "devDependencies": {
     "@biomejs/biome": "*",
