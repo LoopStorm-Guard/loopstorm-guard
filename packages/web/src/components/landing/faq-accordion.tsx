@@ -17,7 +17,7 @@ const faqItems: FAQItem[] = [
   {
     question: "How long does integration take?",
     answer:
-      "Under 2 minutes. For Python: pip install loopstorm-py, add @guard(policy=\"loopstorm.yaml\") to your agent, and define your rules. For TypeScript: bun add loopstorm-ts with a similar one-line wrapper. No infrastructure, no account, no config server.",
+      'Under 2 minutes. For Python: pip install loopstorm-py, add @guard(policy="loopstorm.yaml") to your agent, and define your rules. For TypeScript: bun add loopstorm-ts with a similar one-line wrapper. No infrastructure, no account, no config server.',
   },
   {
     question: "Does it work without an internet connection?",
@@ -49,16 +49,15 @@ export function FAQAccordion() {
       {faqItems.map((item, i) => {
         const isOpen = openIndex === i;
         return (
-          <div
-            key={i}
-            className="border-b border-[var(--color-border)]"
-          >
+          <div key={item.question} className="border-b border-[var(--color-border)]">
             <button
               type="button"
               onClick={() => setOpenIndex(isOpen ? null : i)}
               className="flex w-full items-center justify-between py-6 text-left transition-colors duration-200 hover:text-white"
             >
-              <span className={`pr-8 text-[15px] font-semibold transition-colors duration-200 ${isOpen ? "text-white" : "text-[oklch(0.7_0_0)]"}`}>
+              <span
+                className={`pr-8 text-[15px] font-semibold transition-colors duration-200 ${isOpen ? "text-white" : "text-[oklch(0.7_0_0)]"}`}
+              >
                 {item.question}
               </span>
               <span
@@ -69,6 +68,7 @@ export function FAQAccordion() {
                 }`}
               >
                 <svg
+                  aria-hidden="true"
                   className={`h-3.5 w-3.5 transition-transform duration-300 ${isOpen ? "rotate-45" : ""}`}
                   viewBox="0 0 24 24"
                   fill="none"
@@ -77,7 +77,8 @@ export function FAQAccordion() {
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 >
-                  <path d="M12 5v14" /><path d="M5 12h14" />
+                  <path d="M12 5v14" />
+                  <path d="M5 12h14" />
                 </svg>
               </span>
             </button>
@@ -88,9 +89,7 @@ export function FAQAccordion() {
               }}
             >
               <div className="overflow-hidden">
-                <p className="pb-6 text-sm leading-relaxed text-[oklch(0.5_0_0)]">
-                  {item.answer}
-                </p>
+                <p className="pb-6 text-sm leading-relaxed text-[oklch(0.5_0_0)]">{item.answer}</p>
               </div>
             </div>
           </div>

@@ -13,19 +13,19 @@ const lines: TerminalLine[] = [
   { type: "dim", text: "" },
   { type: "info", text: "[loopstorm] policy loaded: 4 rules, budget $5.00" },
   { type: "dim", text: "" },
-  { type: "amber", text: "\u25b6 agent requests: web_search({query: \"quarterly revenue\"})" },
+  { type: "amber", text: '\u25b6 agent requests: web_search({query: "quarterly revenue"})' },
   { type: "info", text: "  \u251c\u2500 policy:    allow-web-search    \u2192 ALLOW" },
   { type: "info", text: "  \u251c\u2500 budget:    $0.12 / $5.00       \u2192 OK (2.4%)" },
   { type: "info", text: "  \u251c\u2500 loop:      fingerprint unique   \u2192 OK" },
   { type: "green", text: "  \u2514\u2500 decision:  ALLOW               (0.8ms)" },
   { type: "hash", text: "  audit: ...a1b2c3 \u2192 sha256:f4e5d6   chain \u2713" },
   { type: "dim", text: "" },
-  { type: "amber", text: "\u25b6 agent requests: http_get({url: \"169.254.169.254/metadata\"})" },
+  { type: "amber", text: '\u25b6 agent requests: http_get({url: "169.254.169.254/metadata"})' },
   { type: "info", text: "  \u251c\u2500 policy:    deny-cloud-metadata  \u2192 DENY" },
   { type: "red", text: "  \u2514\u2500 decision:  DENY                (0.3ms)" },
   { type: "hash", text: "  audit: ...f4e5d6 \u2192 sha256:7g8h9i   chain \u2713" },
   { type: "dim", text: "" },
-  { type: "amber", text: "\u25b6 agent requests: write_file({path: \"/etc/passwd\"})" },
+  { type: "amber", text: '\u25b6 agent requests: write_file({path: "/etc/passwd"})' },
   { type: "info", text: "  \u251c\u2500 policy:    deny-system-files   \u2192 DENY" },
   { type: "info", text: "  \u251c\u2500 loop:      3x same fingerprint  \u2192 LOOP DETECTED" },
   { type: "red", text: "  \u2514\u2500 decision:  KILL (escalate_to_human)" },
@@ -63,7 +63,7 @@ export function AnimatedTerminal() {
           }, 180);
         }
       },
-      { threshold: 0.3 },
+      { threshold: 0.3 }
     );
 
     observer.observe(el);
@@ -71,7 +71,10 @@ export function AnimatedTerminal() {
   }, []);
 
   return (
-    <div ref={containerRef} className="overflow-hidden rounded-xl border border-[var(--color-border)] bg-[#080808] shadow-[0_0_80px_rgba(255,107,0,0.06)]">
+    <div
+      ref={containerRef}
+      className="overflow-hidden rounded-xl border border-[var(--color-border)] bg-[#080808] shadow-[0_0_80px_rgba(255,107,0,0.06)]"
+    >
       {/* Title bar */}
       <div className="flex items-center gap-2 border-b border-[var(--color-border)] px-4 py-3">
         <span className="h-3 w-3 rounded-full bg-[#ff5f57]" />
@@ -84,9 +87,9 @@ export function AnimatedTerminal() {
 
       {/* Terminal body */}
       <div className="h-[380px] overflow-hidden px-5 py-4">
-        {lines.slice(0, visibleCount).map((line, i) => (
+        {lines.slice(0, visibleCount).map((line) => (
           <div
-            key={i}
+            key={line.text}
             className="terminal-line font-[family-name:var(--font-mono)] text-[13px] leading-[1.8]"
             style={{ color: colorMap[line.type] }}
           >

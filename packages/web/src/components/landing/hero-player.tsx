@@ -23,16 +23,18 @@ export function HeroPlayer() {
     const el = containerRef.current;
     if (!el) return;
 
-    const observer = new IntersectionObserver(
-      ([entry]) => setIsVisible(entry.isIntersecting),
-      { threshold: 0.1 },
-    );
+    const observer = new IntersectionObserver(([entry]) => setIsVisible(entry.isIntersecting), {
+      threshold: 0.1,
+    });
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
 
   return (
-    <div ref={containerRef} className="relative overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[#080808] shadow-[0_0_80px_rgba(255,107,0,0.06)]">
+    <div
+      ref={containerRef}
+      className="relative overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[#080808] shadow-[0_0_80px_rgba(255,107,0,0.06)]"
+    >
       {/* Title bar */}
       <div className="flex items-center gap-2 border-b border-[var(--color-border)] px-4 py-3">
         <span className="h-3 w-3 rounded-full bg-[#ff5f57]" />

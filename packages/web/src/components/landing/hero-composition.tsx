@@ -6,11 +6,11 @@
 
 import {
   AbsoluteFill,
+  Sequence,
   interpolate,
   spring,
   useCurrentFrame,
   useVideoConfig,
-  Sequence,
 } from "remotion";
 
 /* ── Color constants ──────────────────────────────────────────────────────── */
@@ -78,11 +78,7 @@ function Particle({
   delay: number;
 }) {
   const frame = useCurrentFrame();
-  const opacity = interpolate(
-    (frame + delay) % 120,
-    [0, 60, 120],
-    [0.1, 0.6, 0.1],
-  );
+  const opacity = interpolate((frame + delay) % 120, [0, 60, 120], [0.1, 0.6, 0.1]);
   return (
     <div
       style={{
@@ -154,11 +150,7 @@ function StageBox({
   passed: boolean;
 }) {
   const borderColor = active ? color : passed ? `${color}66` : BORDER;
-  const bgColor = active
-    ? `${color}18`
-    : passed
-      ? `${color}08`
-      : SURFACE;
+  const bgColor = active ? `${color}18` : passed ? `${color}08` : SURFACE;
   const textColor = active || passed ? color : DIM;
   const shadow = active ? `0 0 20px ${color}33` : "none";
   return (
@@ -305,7 +297,11 @@ function ScenarioAnimation({ scenario }: { scenario: (typeof scenarios)[number] 
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
-  const decisionScale = spring({ frame: Math.max(0, frame - 72), fps, config: { damping: 10, mass: 0.5 } });
+  const decisionScale = spring({
+    frame: Math.max(0, frame - 72),
+    fps,
+    config: { damping: 10, mass: 0.5 },
+  });
   const hashOpacity = interpolate(frame, [82, 90], [0, 1], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
@@ -320,11 +316,7 @@ function ScenarioAnimation({ scenario }: { scenario: (typeof scenarios)[number] 
   return (
     <AbsoluteFill style={{ backgroundColor: "transparent" }}>
       {/* Tool call label */}
-      <ToolCallLabel
-        tool={scenario.tool}
-        args={scenario.args}
-        opacity={toolAppear}
-      />
+      <ToolCallLabel tool={scenario.tool} args={scenario.args} opacity={toolAppear} />
 
       {/* Pipeline stages */}
       {pipelineStages.map((stage, i) => {
@@ -349,11 +341,11 @@ function ScenarioAnimation({ scenario }: { scenario: (typeof scenarios)[number] 
           stageProgress,
           [i / pipelineStages.length, (i + 1) / pipelineStages.length],
           [0, 1],
-          { extrapolateLeft: "clamp", extrapolateRight: "clamp" },
+          { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
         );
         return (
           <FlowDot
-            key={i}
+            key={`dot-${pipelineStages[i].label}`}
             startX={dotStartX}
             endX={dotEndX}
             y={182}
@@ -369,7 +361,7 @@ function ScenarioAnimation({ scenario }: { scenario: (typeof scenarios)[number] 
         const lineOpacity = activeStage > i ? 0.5 : 0.15;
         return (
           <div
-            key={`line-${i}`}
+            key={`line-${pipelineStages[i].label}`}
             style={{
               position: "absolute",
               left: lineX,
@@ -384,11 +376,7 @@ function ScenarioAnimation({ scenario }: { scenario: (typeof scenarios)[number] 
       })}
 
       {/* Decision badge */}
-      <DecisionBadge
-        decision={scenario.decision}
-        opacity={decisionOpacity}
-        scale={decisionScale}
-      />
+      <DecisionBadge decision={scenario.decision} opacity={decisionOpacity} scale={decisionScale} />
 
       {/* Audit hash */}
       <AuditHash hash={scenario.hash} opacity={hashOpacity} />
@@ -398,7 +386,7 @@ function ScenarioAnimation({ scenario }: { scenario: (typeof scenarios)[number] 
 
 /* ── Main composition ─────────────────────────────────────────────────────── */
 export function HeroComposition() {
-  const frame = useCurrentFrame();
+  const _frame = useCurrentFrame();
 
   /* Background particles */
   const particles = Array.from({ length: 30 }, (_, i) => ({
@@ -430,17 +418,13 @@ export function HeroComposition() {
       />
 
       {/* Background particles */}
-      {particles.map((p, i) => (
-        <Particle key={i} {...p} />
+      {particles.map((p) => (
+        <Particle key={`p-${p.x}-${p.y}`} {...p} />
       ))}
 
       {/* Scenario sequences */}
       {scenarios.map((scenario, i) => (
-        <Sequence
-          key={i}
-          from={i * SCENARIO_FRAMES}
-          durationInFrames={SCENARIO_FRAMES}
-        >
+        <Sequence key={scenario.tool} from={i * SCENARIO_FRAMES} durationInFrames={SCENARIO_FRAMES}>
           <ScenarioAnimation scenario={scenario} />
         </Sequence>
       ))}
