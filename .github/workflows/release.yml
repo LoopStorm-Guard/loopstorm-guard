@@ -139,7 +139,7 @@ jobs:
       #   loopstorm-guard-{version}-{target}/
       #     loopstorm-engine
       #     loopstorm          (CLI binary)
-      #     LICENSE
+      #     LICENSE-MIT
       #     README.md
       - name: Create archive (Unix)
         if: matrix.archive_ext == 'tar.gz'
@@ -154,7 +154,7 @@ jobs:
           mkdir -p "${STAGING_DIR}"
           cp "${BIN_DIR}/loopstorm-engine" "${STAGING_DIR}/"
           cp "${BIN_DIR}/loopstorm"        "${STAGING_DIR}/"
-          cp LICENSE                        "${STAGING_DIR}/"
+          cp LICENSE-MIT                    "${STAGING_DIR}/"
           cp README.md                      "${STAGING_DIR}/"
 
           tar -czf "${ARCHIVE_NAME}.tar.gz" "${STAGING_DIR}"
@@ -172,7 +172,7 @@ jobs:
           New-Item -ItemType Directory -Path $stagingDir | Out-Null
           Copy-Item "$binDir\loopstorm-engine.exe" "$stagingDir\"
           Copy-Item "$binDir\loopstorm.exe"        "$stagingDir\"
-          Copy-Item "LICENSE"                       "$stagingDir\"
+          Copy-Item "LICENSE-MIT"                    "$stagingDir\"
           Copy-Item "README.md"                     "$stagingDir\"
 
           Compress-Archive -Path "$stagingDir\*" -DestinationPath "$archiveName.zip"
@@ -342,7 +342,7 @@ jobs:
           required_files=(
             "README.md"
             "CHANGELOG.md"
-            "LICENSE"
+            "LICENSE-MIT"
             "SECURITY.md"
             "CONTRIBUTING.md"
             "docs/deployment-modes.md"
