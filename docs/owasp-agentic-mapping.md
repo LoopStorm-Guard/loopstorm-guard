@@ -1,9 +1,9 @@
 <!-- SPDX-License-Identifier: MIT -->
 # OWASP Top 10 for Agentic Applications -- LoopStorm Guard Coverage Mapping
 
-**Version:** 1.0
-**Date:** 2026-03-13
-**Status:** Pre-pilot deliverable (required before first enterprise security conversation)
+**Version:** 1.1
+**Date:** 2026-03-26
+**Status:** Peer-reviewed (2026-03-26). Pre-pilot deliverable (required before first enterprise security conversation)
 
 ---
 
@@ -55,7 +55,7 @@ LoopStorm's policy evaluator intercepts every tool call routed through the integ
 
 **What is not covered:**
 - Calls that bypass the shim (agent calls the API directly).
-- Novel injection patterns not anticipated by the policy author (addressed by Stage 5 Adapt, which can propose new rules).
+- Novel injection patterns not anticipated by the policy author. Stage 5 Adapt (v1.1, not yet implemented) will propose new rules based on observed patterns.
 - Content-level injection within tool arguments that does not match any configured pattern.
 
 **Verification:** Case Study 1 (SSRF blocked by policy) is a mandatory pre-ship test.
@@ -72,8 +72,8 @@ This is LoopStorm Guard's primary design target. The policy evaluator enforces w
 - Explicit allow/deny rules scope what the agent can do (Stage 1).
 - Budget hard caps terminate runs that exceed cost, token, or call-count limits (Stage 4).
 - Loop detection identifies and stops repetitive non-progress behavior (Stages 2-3).
-- `require_approval` decisions hold sensitive calls for human review (v1.1).
-- `agent_role` enables per-role scoping of allowed tools (v1.1, ADR-008).
+- `require_approval` decisions hold sensitive calls for human review (v1, tested in evaluator).
+- `agent_role` enables per-role scoping of allowed tools via policy conditions (v1, ADR-008).
 
 **What is not covered:**
 - Actions taken outside the LoopStorm integration boundary.
@@ -171,7 +171,7 @@ This is a core LoopStorm capability.
 - The hash chain detects accidental corruption and unsophisticated modification.
 - The replay CLI verifies chain integrity locally.
 - The hosted backend provides a secondary integrity path with append-only INSERT permissions.
-- The AI Supervisor's actions are themselves audited as first-class events (ADR-012).
+- (v1.1 planned) The AI Supervisor's actions will be audited as first-class events (ADR-012). Not yet implemented.
 
 **What is not covered:**
 - Forensic-grade tamper evidence against a motivated adversary with host access. The hash chain alone does not prevent recomputation (see Section 8.4). Signed checkpoint anchoring (v1.1 commercial) strengthens this.
@@ -198,7 +198,7 @@ LoopStorm Guard operates at the individual agent level. It does not model or det
 LoopStorm Guard's control philosophy (Stages 2-4) directly addresses error handling and recovery.
 
 **What is covered:**
-- Loop detection identifies error-retry patterns (Heuristic 2: identical error responses) (Stage 2).
+- Loop detection identifies error-retry patterns (Heuristic 2: identical error responses, implemented in `loop_detector.rs`) (Stage 2).
 - Cooldown with corrective context injection gives the agent a recovery opportunity (Stage 3).
 - Safe termination preserves evidence and partial output when recovery fails (Stage 4).
 - Defined failure behaviors for every engine failure scenario (Section 7.3 of the product document).
@@ -229,3 +229,5 @@ LoopStorm Guard's control philosophy (Stages 2-4) directly addresses error handl
 ## Honest Limitations Statement
 
 LoopStorm Guard is a runtime enforcement layer for cooperative systems. It enforces controls on calls routed through its integration boundary, on a host that has not been compromised, with a healthy engine process. It is not a security perimeter against adversarial agents. It does not replace identity management, network security, or application-level input validation. Its coverage claims apply within its documented trust boundary (product document Section 7).
+
+Features marked "(v1.1)" in this document are designed and specified but not yet implemented. Coverage claims for those features become valid only after implementation and test verification.
