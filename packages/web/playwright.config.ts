@@ -20,6 +20,11 @@ export default defineConfig({
   workers: 1,
   reporter: process.env.CI ? "github" : "list",
 
+  // Global setup: waits for backend + frontend to be healthy before the suite
+  // begins. Runs once per test run, not per test file.
+  // Servers are started externally (by CI workflow or by the developer locally).
+  globalSetup: "./tests/e2e/global-setup.ts",
+
   use: {
     baseURL: "http://localhost:3000",
     trace: "on-first-retry",
@@ -35,7 +40,8 @@ export default defineConfig({
     },
   ],
 
-  // Ensure the dev server is running before tests
-  // webServer is not configured here to allow manual server startup.
-  // In CI, start the servers before running playwright.
+  // webServer is intentionally NOT configured here.
+  // Developers start servers manually before running `bunx playwright test`.
+  // In CI, the e2e workflow job starts the backend and frontend as background
+  // processes before invoking playwright.
 });
