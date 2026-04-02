@@ -1,0 +1,26 @@
+# Probot DCO app configuration
+# https://github.com/dcoapp/app
+#
+# The DCO app checks that every commit on a PR carries a Signed-off-by line
+# matching the commit author. This certifies the contributor has the right to
+# submit the work under the project's license (Developer Certificate of Origin
+# v1.1 — https://developercertificate.org/).
+
+# Do NOT require DCO for automated bot accounts.
+allowedCompanies: []
+allowlist:
+  - dependabot[bot]
+  - renovate[bot]
+
+# require.members: false means the DCO check applies to ALL contributors,
+# including external forks — not just org members. This is the correct setting
+# for a public OSS project where anyone can open a PR.
+require:
+  members: false
+
+# allowRemediationCommits.individual: true lets a contributor fix an unsigned
+# commit after the fact by pushing a new signoff commit, without requiring a
+# force-push that would rewrite shared history.
+allowRemediationCommits:
+  individual: true
+  thirdParty: false
