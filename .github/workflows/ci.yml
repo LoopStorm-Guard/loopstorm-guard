@@ -192,7 +192,27 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Apply Drizzle migrations (required for RLS adversarial tests)
+        # Run both migration files in order using psql directly.
+        # The RLS migration uses FORCE ROW LEVEL SECURITY — with the postgres
+        # superuser this is safe for testing. The DO blocks for
+        # loopstorm_ingest and loopstorm_supervisor are no-ops because those
+        # roles don't exist in the plain postgres image (blocks check pg_roles).
+        env:
+          PGPASSWORD: postgres
+        run: |
+          set -euo pipefail
+          echo "Applying migration 0001_create_tables.sql..."
+          psql -h localhost -U postgres -d loopstorm_test \
+            -f packages/backend/drizzle/0001_create_tables.sql
+          echo "Applying migration 0002_enable_rls.sql..."
+          psql -h localhost -U postgres -d loopstorm_test \
+            -f packages/backend/drizzle/0002_enable_rls.sql
+          echo "Migrations applied."
+
       - name: Run backend tests
+        env:
+          TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/loopstorm_test
         run: bun turbo run test --filter=@loopstorm/api
 
   # ─────────────────────────────────────────────────────────────────────────
@@ -420,30 +440,181 @@ jobs:
         run: bun turbo run build
 
   # ─────────────────────────────────────────────────────────────────────────
-  # Playwright E2E Tests — DEFERRED
+  # Job: Playwright E2E Tests
   #
-  # The 5 Playwright spec files in packages/web/tests/e2e/ are NOT run in CI.
-  # They require a full running stack that is not yet available in the
-  # CI environment:
+  # Full-stack orchestration:
+  #   1. PostgreSQL service container (same postgres:15 image as test-backend)
+  #   2. Drizzle migrations applied via drizzle-kit
+  #   3. Hono backend started as a background process (packages/backend)
+  #   4. Next.js dev server started as a background process (packages/web)
+  #   5. global-setup.ts polls both servers until healthy
+  #   6. Playwright Chromium runs all non-skipped tests
   #
-  #   1. PostgreSQL service container with migrations applied (Drizzle)
-  #   2. Hono backend server running on Bun (packages/backend)
-  #   3. Next.js dev or preview server (packages/web)
-  #   4. Better Auth configured with test credentials and tenant seed data
-  #   5. Playwright browsers installed (npx playwright install)
+  # Currently-active tests (not test.skip):
+  #   auth.spec.ts    — page renders, unauthenticated redirects, invalid-creds error
+  #   runs.spec.ts    — unauthenticated redirect
+  #   api-keys.spec.ts — unauthenticated redirect
+  #   policies.spec.ts — unauthenticated redirect
+  #   supervisor.spec.ts — unauthenticated redirect
   #
-  # To enable Playwright in CI, the following is needed:
-  #   - A composite job that starts Postgres, runs migrations, seeds a test
-  #     tenant + user, starts the backend, starts Next.js, then runs
-  #     `bunx playwright test`
-  #   - Alternatively, a Docker Compose-based approach with all services
-  #   - Test fixtures for auth (pre-created session tokens or test login flow)
+  # Skipped tests (require seeded authenticated sessions):
+  #   All test.skip blocks — enabled in a later iteration when a test-user
+  #   seeding strategy is added (see post-v1 backlog item S1).
   #
-  # Until then, Playwright tests are run locally by developers:
-  #   cd packages/web && bunx playwright test
-  #
-  # Tracked for implementation in a future PR.
+  # Artifacts: screenshots + Playwright traces are uploaded on failure.
   # ─────────────────────────────────────────────────────────────────────────
+  e2e:
+    name: Playwright E2E Tests
+    runs-on: ubuntu-22.04
+    # Depend on build-ts so Next.js is fully built before we start servers.
+    # Also wait for test-backend so we know migrations are valid SQL before
+    # applying them in this job.
+    needs: [build-ts, test-backend]
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: loopstorm_e2e
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+          --health-start-period 5s
+    env:
+      # ── Database ───────────────────────────────────────────────────────────
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/loopstorm_e2e
+      # ── Better Auth (ADR-011) ─────────────────────────────────────────────
+      # BETTER_AUTH_SECRET must be ≥ 32 characters (validated in env.ts).
+      BETTER_AUTH_SECRET: "ci-e2e-secret-not-real-32-chars-pad"
+      # BETTER_AUTH_URL is the backend's own base URL — used in email links
+      # and as the issuer for session tokens. Port 3001 is the Bun server.
+      BETTER_AUTH_URL: "http://localhost:3001"
+      # ── Supabase (CI: not used for Storage/Realtime in E2E) ───────────────
+      # A placeholder is required because env.ts validates it as non-empty.
+      # E2E tests do not exercise Supabase Storage or Realtime paths.
+      SUPABASE_SERVICE_ROLE_KEY: "ci-placeholder-service-role-key"
+      # ── Backend server settings ───────────────────────────────────────────
+      PORT: "3001"
+      NODE_ENV: "test"
+      # Allow CORS from the Next.js dev server
+      ALLOWED_ORIGINS: "http://localhost:3000"
+      # ── Disable HTTP event sink — no engine running in E2E ────────────────
+      LOOPSTORM_DISABLE_HTTP_SINK: "1"
+      # ── Next.js: do NOT set NEXT_PUBLIC_API_URL so rewrites are used ──────
+      # The Next.js next.config.ts rewrites /api/auth/** and /api/trpc/**
+      # to http://localhost:3001 when NEXT_PUBLIC_API_URL is unset.
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Apply Drizzle migrations
+        # Run both migration files in order. We run them directly with psql
+        # rather than via drizzle-kit migrate to avoid drizzle-kit writing a
+        # journal file on the ephemeral CI filesystem (which would fail on
+        # subsequent runs that expect a clean state).
+        # The RLS migration uses FORCE ROW LEVEL SECURITY — in CI with the
+        # postgres superuser this is safe. The DO blocks for loopstorm_ingest
+        # and loopstorm_supervisor are no-ops because those roles don't exist
+        # in the plain postgres image (the blocks check pg_roles first).
+        env:
+          PGPASSWORD: postgres
+        run: |
+          set -euo pipefail
+          echo "Applying migration 0001_create_tables.sql..."
+          psql -h localhost -U postgres -d loopstorm_e2e \
+            -f packages/backend/drizzle/0001_create_tables.sql
+          echo "Applying migration 0002_enable_rls.sql..."
+          psql -h localhost -U postgres -d loopstorm_e2e \
+            -f packages/backend/drizzle/0002_enable_rls.sql
+          echo "Migrations applied."
+
+      - name: Start backend server (background)
+        # Start the Hono API server. Redirect stdout/stderr to a log file so
+        # we can upload it on failure without polluting the runner output.
+        # The global-setup.ts healthcheck will wait for the server to be ready.
+        run: |
+          mkdir -p /tmp/loopstorm-e2e-logs
+          nohup bun run packages/backend/src/index.ts \
+            > /tmp/loopstorm-e2e-logs/backend.log 2>&1 &
+          echo "Backend PID: $!"
+          echo $! > /tmp/loopstorm-e2e-logs/backend.pid
+
+      - name: Start Next.js dev server (background)
+        # Use `next dev` (not `next start`) so no build step is required here.
+        # build-ts already verified the build compiles; dev mode starts faster.
+        # next dev watches for changes but that's fine in a read-only CI env.
+        #
+        # Step-level PORT override: the job-level env sets PORT=3001 for the
+        # backend. Next.js 16.x respects the PORT env var, so without this
+        # override it would race the backend for port 3001. Explicitly set
+        # PORT=3000 here so Next.js always binds on 3000 as expected by
+        # global-setup.ts and the Playwright baseURL config.
+        env:
+          PORT: "3000"
+        run: |
+          nohup bun run --cwd packages/web dev \
+            > /tmp/loopstorm-e2e-logs/nextjs.log 2>&1 &
+          echo "Next.js PID: $!"
+          echo $! > /tmp/loopstorm-e2e-logs/nextjs.pid
+
+      - name: Install Playwright browsers (Chromium only)
+        # Only install Chromium — the playwright.config.ts projects array only
+        # contains the "chromium" project. --with-deps installs OS dependencies
+        # (fonts, nss, etc.) that Chromium needs on ubuntu-22.04.
+        run: bunx playwright install chromium --with-deps
+        working-directory: packages/web
+
+      - name: Run Playwright E2E tests
+        # global-setup.ts will poll localhost:3001/api/health and localhost:3000
+        # until both are ready (up to 60s each), then verify the DB is healthy
+        # before Playwright dispatches any tests.
+        run: bunx playwright test
+        working-directory: packages/web
+
+      - name: Upload Playwright test report
+        # Always upload the HTML report so failures are diagnosable regardless
+        # of whether an artifact already exists from a previous attempt.
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: packages/web/playwright-report/
+          retention-days: 14
+          if-no-files-found: ignore
+
+      - name: Upload Playwright failure artifacts (screenshots + traces)
+        # Screenshots and traces are only written on failure (configured in
+        # playwright.config.ts: screenshot: "only-on-failure", trace: "on-first-retry").
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-failure-artifacts
+          path: packages/web/test-results/
+          retention-days: 14
+          if-no-files-found: ignore
+
+      - name: Upload server logs on failure
+        # Backend and Next.js logs are invaluable for diagnosing E2E failures
+        # that are caused by server errors rather than frontend issues.
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-server-logs
+          path: /tmp/loopstorm-e2e-logs/
+          retention-days: 7
+          if-no-files-found: ignore
 
   # ─────────────────────────────────────────────────────────────────────────
   # Job 9: Rust dependency license audit (cargo-deny)
@@ -563,6 +734,7 @@ jobs:
       - license-boundary
       - schema-sync
       - secret-scan
+      - e2e
     if: always()
     steps:
       - name: Check all required jobs passed

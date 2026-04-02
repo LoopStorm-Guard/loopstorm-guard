@@ -44,6 +44,8 @@ title = "LoopStorm Guard Secret Scanning"
     '''supabase/seed\.sql''',
     # Backend spec document illustrates the key format with an example value — not a real key
     '''specs/task-briefs/p3-backend-database\.md''',
+    # Adversarial RLS tests use localhost postgres://postgres:postgres@ for integration testing
+    '''packages/backend/tests/integration/rls-adversarial\.test\.ts''',
   ]
 
 # Custom rules for LoopStorm-specific secret formats.
