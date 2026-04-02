@@ -69,14 +69,54 @@ Any change to a schema file (`schemas/`) requires:
 
 By contributing to this project, you certify that your contribution is made under
 the terms of the [Developer Certificate of Origin](https://developercertificate.org/)
-(DCO). You confirm this by adding a `Signed-off-by` line to your commit messages:
+(DCO). The [DCO GitHub App](https://github.com/apps/dco) is installed on this
+repository and **enforces a valid `Signed-off-by` line on every commit in every PR**.
+A PR cannot be merged until all commits carry a matching signature.
 
-```
+### How to sign off
+
+**New commits** — use `-s` (short for `--signoff`) or the long form:
+
+```bash
+git commit -s -m "feat: add new feature"
+# or
 git commit --signoff -m "feat: add new feature"
 ```
 
-This certifies that you have the right to submit the contribution under the project's
-license terms.
+Git automatically appends the trailer using your configured `user.name` and
+`user.email`:
+
+```
+Signed-off-by: Ada Lovelace <ada@example.com>
+```
+
+**Amending a commit that is missing a sign-off** — if the DCO check flags an
+existing commit you can amend it without changing anything else:
+
+```bash
+git commit --amend --signoff --no-edit
+git push --force-with-lease origin <your-branch>
+```
+
+**Signing off multiple commits at once** — if several commits in your branch are
+missing the trailer, use an interactive rebase:
+
+```bash
+# Replace N with the number of commits to touch
+git rebase HEAD~N --exec 'git commit --amend --no-edit --signoff'
+git push --force-with-lease origin <your-branch>
+```
+
+**Configure Git once so you never forget:**
+
+```bash
+git config --global user.name "Your Name"
+git config --global user.email "you@example.com"
+```
+
+> The DCO is not a CLA — you are not assigning copyright to GMW Solutions LLC.
+> You are simply certifying that you have the right to submit the code under the
+> license that governs the file you are editing (MIT or AGPL-3.0-only, per ADR-013).
 
 ## Pull Request Guidelines
 

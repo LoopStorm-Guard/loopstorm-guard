@@ -20,7 +20,7 @@ This checklist must be completed in full before tagging any v1 release. Each ite
 - [ ] `packages/schemas/`, `apps/engine/`, `apps/cli/`, `apps/shim-python/`, `apps/shim-ts/` -- all MIT.
 - [ ] `packages/backend/`, `packages/web/` -- all AGPL-3.0-only.
 - [ ] No AGPL code is imported or linked by any MIT component.
-- [ ] Contributor License Agreement (CLA) or DCO process is configured.
+- [x] Contributor License Agreement (CLA) or DCO process is configured. (DCO — Probot app `.github/dco.yml`, sign-off instructions in `CONTRIBUTING.md`)
 - [ ] Third-party dependency license audit completed (no GPL-incompatible deps in MIT components).
 
 ## 2. Schemas and Specifications

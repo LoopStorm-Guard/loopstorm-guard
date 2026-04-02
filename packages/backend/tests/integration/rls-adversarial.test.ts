@@ -848,6 +848,36 @@ describe("T2 — Cross-tenant UPDATE/DELETE: Tenant A cannot mutate Tenant B dat
     expect(rows[0]!.status).toBe("open");
   });
 
+  test("supervisor_proposals: DELETE tenantB proposal while scoped to tenantA affects 0 rows", async () => {
+    if (!requireDb()) return;
+
+    await withTenantContext(tenantA.id, async () => {
+      await sql`DELETE FROM supervisor_proposals WHERE id = ${tenantBProposal.id}`;
+    });
+
+    await sql`BEGIN`;
+    await sql`SET LOCAL row_security = off`;
+    const rows = await sql`SELECT id FROM supervisor_proposals WHERE id = ${tenantBProposal.id}`;
+    await sql`COMMIT`;
+
+    expect(rows).toHaveLength(1);
+  });
+
+  test("supervisor_escalations: DELETE tenantB escalation while scoped to tenantA affects 0 rows", async () => {
+    if (!requireDb()) return;
+
+    await withTenantContext(tenantA.id, async () => {
+      await sql`DELETE FROM supervisor_escalations WHERE id = ${tenantBEscalation.id}`;
+    });
+
+    await sql`BEGIN`;
+    await sql`SET LOCAL row_security = off`;
+    const rows = await sql`SELECT id FROM supervisor_escalations WHERE id = ${tenantBEscalation.id}`;
+    await sql`COMMIT`;
+
+    expect(rows).toHaveLength(1);
+  });
+
   test("policy_packs: UPDATE tenantB policy_pack while scoped to tenantA affects 0 rows", async () => {
     if (!requireDb()) return;
 
@@ -923,7 +953,7 @@ describe("T3 — Cross-tenant INSERT: Tenant A cannot INSERT rows with Tenant B'
     if (insertError !== null) {
       // PostgreSQL raised a row-level security policy violation. Correct.
       const errMsg = String(insertError).toLowerCase();
-      expect(errMsg).toMatch(/row.level security|rls|policy/);
+      expect(errMsg).toMatch(/row.level security policy/i);
     } else {
       // No error: verify the row count for tenantB is still exactly 1 (setup row).
       await sql`BEGIN`;
@@ -957,7 +987,7 @@ describe("T3 — Cross-tenant INSERT: Tenant A cannot INSERT rows with Tenant B'
 
     if (insertError !== null) {
       const errMsg = String(insertError).toLowerCase();
-      expect(errMsg).toMatch(/row.level security|rls|policy/);
+      expect(errMsg).toMatch(/row.level security policy/i);
     } else {
       await sql`BEGIN`;
       await sql`SET LOCAL row_security = off`;
@@ -990,7 +1020,7 @@ describe("T3 — Cross-tenant INSERT: Tenant A cannot INSERT rows with Tenant B'
 
     if (insertError !== null) {
       const errMsg = String(insertError).toLowerCase();
-      expect(errMsg).toMatch(/row.level security|rls|policy/);
+      expect(errMsg).toMatch(/row.level security policy/i);
     } else {
       await sql`BEGIN`;
       await sql`SET LOCAL row_security = off`;
@@ -1026,7 +1056,7 @@ describe("T3 — Cross-tenant INSERT: Tenant A cannot INSERT rows with Tenant B'
 
     if (insertError !== null) {
       const errMsg = String(insertError).toLowerCase();
-      expect(errMsg).toMatch(/row.level security|rls|policy/);
+      expect(errMsg).toMatch(/row.level security policy/i);
     } else {
       await sql`BEGIN`;
       await sql`SET LOCAL row_security = off`;
@@ -1063,7 +1093,7 @@ describe("T3 — Cross-tenant INSERT: Tenant A cannot INSERT rows with Tenant B'
 
     if (insertError !== null) {
       const errMsg = String(insertError).toLowerCase();
-      expect(errMsg).toMatch(/row.level security|rls|policy/);
+      expect(errMsg).toMatch(/row.level security policy/i);
     } else {
       await sql`BEGIN`;
       await sql`SET LOCAL row_security = off`;
@@ -1096,7 +1126,7 @@ describe("T3 — Cross-tenant INSERT: Tenant A cannot INSERT rows with Tenant B'
 
     if (insertError !== null) {
       const errMsg = String(insertError).toLowerCase();
-      expect(errMsg).toMatch(/row.level security|rls|policy/);
+      expect(errMsg).toMatch(/row.level security policy/i);
     } else {
       await sql`BEGIN`;
       await sql`SET LOCAL row_security = off`;
