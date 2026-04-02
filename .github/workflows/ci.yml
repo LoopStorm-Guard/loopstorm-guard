@@ -555,6 +555,14 @@ jobs:
         # Use `next dev` (not `next start`) so no build step is required here.
         # build-ts already verified the build compiles; dev mode starts faster.
         # next dev watches for changes but that's fine in a read-only CI env.
+        #
+        # Step-level PORT override: the job-level env sets PORT=3001 for the
+        # backend. Next.js 16.x respects the PORT env var, so without this
+        # override it would race the backend for port 3001. Explicitly set
+        # PORT=3000 here so Next.js always binds on 3000 as expected by
+        # global-setup.ts and the Playwright baseURL config.
+        env:
+          PORT: "3000"
         run: |
           nohup bun run --cwd packages/web dev \
             > /tmp/loopstorm-e2e-logs/nextjs.log 2>&1 &
