@@ -119,14 +119,22 @@ app.use(
 // Export
 // ---------------------------------------------------------------------------
 
-export default app;
+// Named export for tests and tRPC type extraction — use this when importing
+// the Hono app instance directly (e.g., for request injection in tests).
+export { app };
 
 // Re-export AppRouter type for the frontend package
 export type { AppRouter } from "./trpc/router.js";
 
-// Bun entry point — only runs when executed directly, not when imported
-if (import.meta.main) {
-  const port = env.PORT;
-  console.warn(`[loopstorm-api] starting on port ${port}`);
-  Bun.serve({ fetch: app.fetch, port });
-}
+// Idiomatic Bun auto-serve: exporting an object with `fetch` and `port` tells
+// Bun to start the server automatically when this file is the entry point.
+// This avoids the EADDRINUSE double-bind that occurs when Bun 1.2.x detects
+// a `.fetch` method on `export default` *and* an explicit `Bun.serve()` call
+// both fire on startup.
+const port = Number(process.env.PORT) || env.PORT;
+console.warn(`[loopstorm-api] starting on port ${port}`);
+
+export default {
+  fetch: app.fetch,
+  port,
+};
