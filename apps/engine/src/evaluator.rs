@@ -43,7 +43,7 @@ pub fn evaluate(
             run_id: request.run_id.clone(),
             seq: request.seq,
             decision: Decision::Allow,
-            rule_id: Some("__builtin_escalate_to_human".to_string()),
+            rule_id: Some("__builtin_escalate_to_human_allow".to_string()),
             reason: Some("escalate_to_human is always allowed".to_string()),
             cooldown_ms: None,
             cooldown_message: None,
@@ -435,7 +435,7 @@ rules:
         let req = make_request("escalate_to_human");
         let resp = evaluate(&req, &policy, &budget, &loop_det);
         assert_eq!(resp.decision, Decision::Allow);
-        assert_eq!(resp.rule_id.as_deref(), Some("__builtin_escalate_to_human"));
+        assert_eq!(resp.rule_id.as_deref(), Some("__builtin_escalate_to_human_allow"));
     }
 
     #[test]
@@ -735,7 +735,7 @@ rules:
         let req = make_request("escalate_to_human");
         let resp = evaluate(&req, &policy, &budget, &loop_det);
         assert_eq!(resp.decision, Decision::Allow);
-        assert_eq!(resp.rule_id.as_deref(), Some("__builtin_escalate_to_human"));
+        assert_eq!(resp.rule_id.as_deref(), Some("__builtin_escalate_to_human_allow"));
 
         // any other tool should be denied by the glob
         let req2 = make_request("some_other_tool");
@@ -783,7 +783,7 @@ rules:
         assert_eq!(resp2.decision, Decision::Allow);
         assert_eq!(
             resp2.rule_id.as_deref(),
-            Some("__builtin_escalate_to_human")
+            Some("__builtin_escalate_to_human_allow")
         );
     }
 }
