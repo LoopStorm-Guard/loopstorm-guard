@@ -1,0 +1,32 @@
+# SPDX-License-Identifier: MIT
+# LoopStorm MCP Proxy configuration example.
+# See specs/mcp-proxy-mode.md Section 6 for full reference.
+schema_version: 1
+
+# Engine connection (UDS path to loopstorm-engine)
+engine_socket: /tmp/loopstorm-engine.sock
+
+# Agent-facing transport (how the agent connects to this proxy)
+transport:
+  type: stdio
+
+# Agent identity (injected into every DecisionRequest)
+agent_name: my-agent
+agent_role: worker
+environment: production
+
+# Upstream MCP servers
+upstreams:
+  - id: filesystem
+    transport:
+      type: stdio
+      command: npx
+      args: ["-y", "@modelcontextprotocol/server-filesystem", "/home/user"]
+    prefix: false
+
+  - id: github
+    transport:
+      type: stdio
+      command: npx
+      args: ["-y", "@modelcontextprotocol/server-github"]
+    prefix: true

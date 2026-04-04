@@ -1,11 +1,14 @@
 {
-  "name": "@loopstorm/shim-ts",
+  "name": "@loopstorm/mcp-proxy",
   "version": "0.1.0",
-  "description": "LoopStorm Guard TypeScript shim — wraps agent tool calls with enforcement",
+  "description": "LoopStorm Guard MCP proxy — intercepts MCP tools/call for enforcement",
   "license": "MIT",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
+  "bin": {
+    "loopstorm-mcp-proxy": "./bin/loopstorm-mcp-proxy.ts"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -21,7 +24,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@loopstorm/ipc-client": "workspace:*"
+    "@loopstorm/ipc-client": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.10.0",
+    "yaml": "^2.0.0"
   },
   "devDependencies": {
     "@biomejs/biome": "*",
@@ -29,7 +34,7 @@
     "tsup": "^8.3.5",
     "typescript": "*"
   },
-  "keywords": ["ai", "agent", "safety", "enforcement", "loopstorm"],
+  "keywords": ["ai", "agent", "safety", "enforcement", "loopstorm", "mcp", "proxy"],
   "repository": {
     "type": "git",
     "url": "https://github.com/loopstorm/loopstorm-guard"

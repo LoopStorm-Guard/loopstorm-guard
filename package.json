@@ -5,7 +5,8 @@
   "description": "LoopStorm Guard — runtime enforcement layer and AI agent safety platform",
   "workspaces": [
     "packages/*",
-    "apps/shim-ts"
+    "apps/shim-ts",
+    "apps/mcp-proxy"
   ],
   "scripts": {
     "build": "turbo run build",
