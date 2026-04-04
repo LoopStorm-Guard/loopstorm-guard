@@ -69,6 +69,7 @@ fn make_context(yaml: &str, label: &str) -> (EnforcementContext, PathBuf) {
         loop_detector: LoopDetector::new(),
         audit_writer,
         redactor,
+        telemetry_states: std::collections::HashMap::new(),
     };
     (ctx, dir)
 }
@@ -194,7 +195,7 @@ async fn test_escalate_to_human_via_ipc() {
         resp["decision"], "allow",
         "escalate_to_human must always be allowed regardless of policy"
     );
-    assert_eq!(resp["rule_id"], "__builtin_escalate_to_human");
+    assert_eq!(resp["rule_id"], "__builtin_escalate_to_human_allow");
 }
 
 // ---------------------------------------------------------------------------

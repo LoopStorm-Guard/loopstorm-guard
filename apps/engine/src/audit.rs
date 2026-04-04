@@ -125,6 +125,19 @@ pub struct AuditEvent {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub policy_pack_id: Option<String>,
+
+    // -- Behavioral telemetry fields (v1.1) --
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub call_seq_fingerprint: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub inter_call_ms: Option<u64>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub token_rate_delta: Option<f64>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub param_shape_hash: Option<String>,
 }
 
 // ---------------------------------------------------------------------------
@@ -293,6 +306,10 @@ mod tests {
             budget: None,
             latency_ms: None,
             policy_pack_id: None,
+            call_seq_fingerprint: None,
+            inter_call_ms: None,
+            token_rate_delta: None,
+            param_shape_hash: None,
         }
     }
 
