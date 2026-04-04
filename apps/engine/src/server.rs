@@ -424,6 +424,10 @@ mod unix_server {
             budget: None,
             latency_ms: None,
             policy_pack_id: None,
+            call_seq_fingerprint: None,
+            inter_call_ms: None,
+            token_rate_delta: None,
+            param_shape_hash: None,
         };
         if let Err(e) = ctx_guard.audit_writer.write_event(&mut event) {
             error!(

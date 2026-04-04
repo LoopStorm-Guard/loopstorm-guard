@@ -69,6 +69,7 @@ fn make_context(yaml: &str, label: &str) -> (EnforcementContext, PathBuf) {
         loop_detector: LoopDetector::new(),
         audit_writer,
         redactor,
+        telemetry_states: std::collections::HashMap::new(),
     };
     (ctx, dir)
 }

@@ -1,0 +1,159 @@
+{
+  "$comment": "Test vectors from specs/behavioral-telemetry.md Section 8. SPDX-License-Identifier: MIT",
+  "call_seq_fingerprint": [
+    {
+      "id": "CSF-1",
+      "description": "Single call (window size 1)",
+      "window": [
+        { "tool": "file.read", "args_hash": "abacd07d80a52db8cd8d4d149e15a032350e8a15c2c9feb81802c2d535a1f36a" }
+      ],
+      "expected": "800285a565cfe1737f89e6af8a6c3aa73b51616e30645230a97b3a99dbb93d55"
+    },
+    {
+      "id": "CSF-2",
+      "description": "Full window (5 calls)",
+      "window": [
+        { "tool": "file.read", "args_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" },
+        { "tool": "file.write", "args_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" },
+        { "tool": "http.get", "args_hash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc" },
+        { "tool": "db.query", "args_hash": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd" },
+        { "tool": "file.read", "args_hash": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee" }
+      ],
+      "expected": "fd6a411aa09d22bc4369a38669f66e8726de95b8e5f355682dd8d910347dac12"
+    },
+    {
+      "id": "CSF-3",
+      "description": "Repeated identical calls (loop pattern)",
+      "window": [
+        { "tool": "http.get", "args_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" },
+        { "tool": "http.get", "args_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" },
+        { "tool": "http.get", "args_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" }
+      ],
+      "expected": "9ade2fe092e79592862f3a725776e716444cfcd13a6177954ed6aa01df89bc15"
+    },
+    {
+      "id": "CSF-4",
+      "description": "Window rollover (6th call evicts 1st, only calls 2-6 retained)",
+      "window": [
+        { "tool": "tool_b", "args_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" },
+        { "tool": "tool_c", "args_hash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc" },
+        { "tool": "tool_d", "args_hash": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd" },
+        { "tool": "tool_e", "args_hash": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee" },
+        { "tool": "tool_f", "args_hash": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff" }
+      ],
+      "expected": "316d12a5e7b007059f9cc0243ce704323f8f68bc898bcb710be2428428bbb2cb"
+    }
+  ],
+  "inter_call_ms": [
+    {
+      "id": "ICM-1",
+      "description": "First call in run",
+      "prev_request_ts": null,
+      "expected": 0
+    },
+    {
+      "id": "ICM-2",
+      "description": "Normal gap",
+      "delta_ms": 1500,
+      "expected": 1500
+    },
+    {
+      "id": "ICM-3",
+      "description": "Sub-millisecond gap",
+      "delta_ms": 0.7,
+      "expected": 0
+    },
+    {
+      "id": "ICM-4",
+      "description": "Large gap (1 hour)",
+      "delta_ms": 3600000,
+      "expected": 3600000
+    }
+  ],
+  "token_rate_delta": [
+    {
+      "id": "TRD-1",
+      "description": "First call (baseline)",
+      "state_before": { "total_token_sum": 0, "token_call_count": 0 },
+      "input_tokens": 500,
+      "output_tokens": 100,
+      "expected": 1.0,
+      "state_after": { "total_token_sum": 600, "token_call_count": 1 }
+    },
+    {
+      "id": "TRD-2",
+      "description": "Steady consumption",
+      "state_before": { "total_token_sum": 3000, "token_call_count": 3 },
+      "input_tokens": 800,
+      "output_tokens": 200,
+      "expected": 1.0,
+      "state_after": { "total_token_sum": 4000, "token_call_count": 4 }
+    },
+    {
+      "id": "TRD-3",
+      "description": "Consumption spike",
+      "state_before": { "total_token_sum": 3000, "token_call_count": 3 },
+      "input_tokens": 4000,
+      "output_tokens": 1000,
+      "expected": 5.0,
+      "state_after": { "total_token_sum": 8000, "token_call_count": 4 }
+    },
+    {
+      "id": "TRD-4",
+      "description": "Consumption drop",
+      "state_before": { "total_token_sum": 10000, "token_call_count": 5 },
+      "input_tokens": 100,
+      "output_tokens": 0,
+      "expected": 0.05,
+      "state_after": { "total_token_sum": 10100, "token_call_count": 6 }
+    },
+    {
+      "id": "TRD-5",
+      "description": "Zero previous average, non-zero current",
+      "state_before": { "total_token_sum": 0, "token_call_count": 2 },
+      "input_tokens": 500,
+      "output_tokens": 0,
+      "expected": 500.0,
+      "state_after": { "total_token_sum": 500, "token_call_count": 3 }
+    },
+    {
+      "id": "TRD-6",
+      "description": "No token data — field omitted",
+      "input_tokens": null,
+      "output_tokens": null,
+      "expected": null
+    }
+  ],
+  "param_shape_hash": [
+    {
+      "id": "PSH-1",
+      "description": "Simple flat object",
+      "args_redacted": { "url": "https://example.com", "method": "GET" },
+      "expected": "708ffd3968576d9f1cbfa90f8d2665a5400bc1714a73992d2b801b69eaea227d"
+    },
+    {
+      "id": "PSH-2",
+      "description": "Empty object",
+      "args_redacted": {},
+      "expected": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "PSH-3",
+      "description": "Null args",
+      "args_redacted": null,
+      "expected": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+    },
+    {
+      "id": "PSH-4",
+      "description": "Array args",
+      "args_redacted": [1, 2, 3],
+      "expected": "dbe42cc09c16704aa3d60127c60b4e1646fc6da1d4764aa517de053e65a663d7"
+    },
+    {
+      "id": "PSH-5",
+      "description": "Many keys (sorted order matters)",
+      "args_redacted": { "z_last": 1, "a_first": 2, "m_middle": 3 },
+      "expected": "a0d0b27977b9383f9990f55d0f6ff1f41d9ff6f7f1e5f1df01d905c219cabb68"
+    }
+  ]
+}

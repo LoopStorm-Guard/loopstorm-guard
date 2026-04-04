@@ -435,7 +435,10 @@ rules:
         let req = make_request("escalate_to_human");
         let resp = evaluate(&req, &policy, &budget, &loop_det);
         assert_eq!(resp.decision, Decision::Allow);
-        assert_eq!(resp.rule_id.as_deref(), Some("__builtin_escalate_to_human_allow"));
+        assert_eq!(
+            resp.rule_id.as_deref(),
+            Some("__builtin_escalate_to_human_allow")
+        );
     }
 
     #[test]
@@ -735,7 +738,10 @@ rules:
         let req = make_request("escalate_to_human");
         let resp = evaluate(&req, &policy, &budget, &loop_det);
         assert_eq!(resp.decision, Decision::Allow);
-        assert_eq!(resp.rule_id.as_deref(), Some("__builtin_escalate_to_human_allow"));
+        assert_eq!(
+            resp.rule_id.as_deref(),
+            Some("__builtin_escalate_to_human_allow")
+        );
 
         // any other tool should be denied by the glob
         let req2 = make_request("some_other_tool");

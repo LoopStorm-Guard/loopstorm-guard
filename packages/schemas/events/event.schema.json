@@ -263,6 +263,26 @@
       "type": "string",
       "enum": ["deny", "allow", "kill"],
       "description": "Action if escalation times out without human response."
+    },
+    "call_seq_fingerprint": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "SHA-256 of the last N (tool, args_hash) tuples in this run. Rolling window N=5. See specs/behavioral-telemetry.md."
+    },
+    "inter_call_ms": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Milliseconds since the previous DecisionRequest in this run. 0 for the first call. See specs/behavioral-telemetry.md."
+    },
+    "token_rate_delta": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Ratio of this call's token consumption to the run's rolling average. 1.0 = baseline. See specs/behavioral-telemetry.md."
+    },
+    "param_shape_hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "SHA-256 of the sorted top-level keys of args_redacted. See specs/behavioral-telemetry.md."
     }
   },
   "additionalProperties": false

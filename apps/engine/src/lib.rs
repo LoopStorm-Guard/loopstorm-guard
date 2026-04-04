@@ -21,6 +21,7 @@ pub mod loop_detector;
 pub mod policy;
 pub mod redaction;
 pub mod server;
+pub mod telemetry;
 
 // Re-export key types for ergonomic use by consumers.
 pub use audit::{AuditEvent, AuditWriter};
@@ -31,6 +32,7 @@ pub use loop_detector::{LoopDetector, LoopStatus};
 pub use policy::{CompiledPolicy, Policy, PolicyError};
 pub use redaction::Redactor;
 
+use std::collections::HashMap;
 use std::path::Path;
 
 use tracing::{error, info, warn};
@@ -50,6 +52,8 @@ pub struct EnforcementContext {
     pub loop_detector: LoopDetector,
     pub audit_writer: AuditWriter,
     pub redactor: Redactor,
+    /// Per-run behavioral telemetry state (v1.1).
+    pub telemetry_states: HashMap<String, telemetry::TelemetryState>,
 }
 
 impl EnforcementContext {
@@ -65,6 +69,7 @@ impl EnforcementContext {
             loop_detector: LoopDetector::new(),
             audit_writer,
             redactor,
+            telemetry_states: HashMap::new(),
         })
     }
 }
@@ -151,6 +156,20 @@ pub fn enforce(request: &DecisionRequest, ctx: &mut EnforcementContext) -> Decis
         .as_ref()
         .map(|args| ctx.redactor.redact(args));
 
+    // Step 6.5: Compute behavioral telemetry (v1.1)
+    let telemetry_state = ctx
+        .telemetry_states
+        .entry(request.run_id.clone())
+        .or_default();
+    let bt = telemetry_state.compute(
+        &request.tool,
+        &request.args_hash,
+        redacted_args.as_ref(),
+        request.input_tokens,
+        request.output_tokens,
+        start,
+    );
+
     let elapsed_ms = start.elapsed().as_secs_f64() * 1000.0;
 
     // Step 7: Write audit event
@@ -188,6 +207,10 @@ pub fn enforce(request: &DecisionRequest, ctx: &mut EnforcementContext) -> Decis
         budget: None,
         latency_ms: Some(elapsed_ms),
         policy_pack_id: ctx.policy.policy.name.clone(),
+        call_seq_fingerprint: Some(bt.call_seq_fingerprint),
+        inter_call_ms: Some(bt.inter_call_ms),
+        token_rate_delta: bt.token_rate_delta,
+        param_shape_hash: Some(bt.param_shape_hash),
     };
 
     // CRITICAL: If the audit write fails, the run MUST be killed (ADR-005).
@@ -260,6 +283,10 @@ pub fn enforce(request: &DecisionRequest, ctx: &mut EnforcementContext) -> Decis
             budget: None,
             latency_ms: None,
             policy_pack_id: None,
+            call_seq_fingerprint: None,
+            inter_call_ms: None,
+            token_rate_delta: None,
+            param_shape_hash: None,
         };
         // Best effort — if this fails, we already have the main event
         if let Err(e) = ctx.audit_writer.write_event(&mut warning_event) {
@@ -298,6 +325,7 @@ mod tests {
             loop_detector: LoopDetector::new(),
             audit_writer,
             redactor,
+            telemetry_states: HashMap::new(),
         }
     }
 

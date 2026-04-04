@@ -258,6 +258,11 @@ export const events = pgTable(
     recommendation: text("recommendation"),
     timeout_seconds: integer("timeout_seconds"),
     timeout_action: text("timeout_action"),
+    // Behavioral telemetry fields (v1.1) — nullable; absent for v1.0 events
+    call_seq_fingerprint: text("call_seq_fingerprint"),
+    inter_call_ms: integer("inter_call_ms"),
+    token_rate_delta: doublePrecision("token_rate_delta"),
+    param_shape_hash: text("param_shape_hash"),
     raw_line: text("raw_line"), // original JSONL line for bit-exact chain re-verification
   },
   (table) => [
