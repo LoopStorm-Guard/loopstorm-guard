@@ -24,7 +24,7 @@ interface UpstreamClient {
   config: UpstreamConfig;
   client: Client;
   transport: StdioClientTransport;
-  tools: Map<string, { name: string; description?: string; inputSchema: unknown }>;
+  tools: Map<string, { name: string; description?: string | undefined; inputSchema: unknown }>;
 }
 
 export class LoopStormProxy {
@@ -53,7 +53,8 @@ export class LoopStormProxy {
   private setupHandlers(): void {
     // tools/list — merge upstream tool lists
     this.server.setRequestHandler(ListToolsRequestSchema, async () => {
-      const allTools: { name: string; description?: string; inputSchema: unknown }[] = [];
+      const allTools: { name: string; description?: string | undefined; inputSchema: unknown }[] =
+        [];
       for (const upstream of this.upstreams) {
         for (const [displayName, tool] of upstream.tools) {
           allTools.push({
@@ -200,7 +201,10 @@ export class LoopStormProxy {
 
       // Fetch tool list
       const toolsResult = await client.listTools();
-      const tools = new Map<string, { name: string; description?: string; inputSchema: unknown }>();
+      const tools = new Map<
+        string,
+        { name: string; description?: string | undefined; inputSchema: unknown }
+      >();
 
       for (const tool of toolsResult.tools) {
         const displayName = upConfig.prefix ? `${upConfig.id}.${tool.name}` : tool.name;

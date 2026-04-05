@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 // SPDX-License-Identifier: MIT
 /**
  * CLI entry point for the LoopStorm MCP proxy.

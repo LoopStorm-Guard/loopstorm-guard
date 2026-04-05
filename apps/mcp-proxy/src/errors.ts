@@ -17,12 +17,12 @@ export const LOOPSTORM_ENGINE_UNAVAILABLE = -32005;
 
 export interface LoopStormErrorData {
   loopstorm: true;
-  rule_id?: string;
-  reason?: string;
-  cooldown_ms?: number;
-  cooldown_message?: string;
-  approval_id?: string;
-  approval_timeout_ms?: number;
+  rule_id?: string | undefined;
+  reason?: string | undefined;
+  cooldown_ms?: number | undefined;
+  cooldown_message?: string | undefined;
+  approval_id?: string | undefined;
+  approval_timeout_ms?: number | undefined;
 }
 
 export function buildErrorData(fields: Omit<LoopStormErrorData, "loopstorm">): LoopStormErrorData {

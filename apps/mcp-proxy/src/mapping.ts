@@ -10,6 +10,7 @@ import {
   LOOPSTORM_COOLDOWN,
   LOOPSTORM_DENIED,
   LOOPSTORM_KILLED,
+  type LoopStormErrorData,
   buildErrorData,
 } from "./errors.js";
 
@@ -22,9 +23,9 @@ export interface McpToolCallParams {
 export interface RunContext {
   runId: string;
   seq: number;
-  agentName?: string;
-  agentRole?: string;
-  environment?: string;
+  agentName?: string | undefined;
+  agentRole?: string | undefined;
+  environment?: string | undefined;
 }
 
 /**
@@ -55,7 +56,7 @@ export interface McpErrorResult {
   isError: true;
   code: number;
   message: string;
-  data: Record<string, unknown>;
+  data: LoopStormErrorData;
 }
 
 /**

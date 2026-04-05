@@ -88,15 +88,16 @@ export function validateConfig(doc: Record<string, unknown>): ProxyConfig {
     if ((ut.type === "http" || ut.type === "sse") && !ut.url) {
       throw new Error(`upstreams[${i}].transport.url is required for ${ut.type} transport`);
     }
+    const transport: UpstreamTransportConfig = {
+      type: ut.type as "stdio" | "http" | "sse",
+      args: (ut.args as string[]) ?? [],
+    };
+    if (ut.command !== undefined) transport.command = ut.command as string;
+    if (ut.url !== undefined) transport.url = ut.url as string;
+    if (ut.headers !== undefined) transport.headers = ut.headers as Record<string, string>;
     return {
       id: up.id as string,
-      transport: {
-        type: ut.type as "stdio" | "http" | "sse",
-        command: ut.command as string | undefined,
-        args: (ut.args as string[]) ?? [],
-        url: ut.url as string | undefined,
-        headers: ut.headers as Record<string, string> | undefined,
-      },
+      transport,
       prefix: (up.prefix as boolean) ?? false,
     };
   });
@@ -105,7 +106,7 @@ export function validateConfig(doc: Record<string, unknown>): ProxyConfig {
     (doc.engine_socket as string) ??
     (process.platform === "win32" ? "\\\\.\\pipe\\loopstorm-engine" : "/tmp/loopstorm-engine.sock");
 
-  return {
+  const config: ProxyConfig = {
     schema_version: 1,
     engine_socket: engineSocket,
     transport: {
@@ -113,9 +114,10 @@ export function validateConfig(doc: Record<string, unknown>): ProxyConfig {
       port: (transport.port as number) ?? 3100,
       host,
     },
-    agent_name: doc.agent_name as string | undefined,
-    agent_role: doc.agent_role as string | undefined,
-    environment: doc.environment as string | undefined,
     upstreams: parsedUpstreams,
   };
+  if (doc.agent_name !== undefined) config.agent_name = doc.agent_name as string;
+  if (doc.agent_role !== undefined) config.agent_role = doc.agent_role as string;
+  if (doc.environment !== undefined) config.environment = doc.environment as string;
+  return config;
 }
