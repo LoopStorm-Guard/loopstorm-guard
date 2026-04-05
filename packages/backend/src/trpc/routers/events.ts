@@ -96,6 +96,19 @@ const parsedEventSchema = z.object({
   recommendation: z.string().optional().nullable(),
   timeout_seconds: z.number().int().optional().nullable(),
   timeout_action: z.string().optional().nullable(),
+  // Behavioral telemetry fields (v1.1 — specs/behavioral-telemetry.md)
+  call_seq_fingerprint: z
+    .string()
+    .regex(/^[0-9a-f]{64}$/)
+    .optional()
+    .nullable(),
+  inter_call_ms: z.number().int().min(0).optional().nullable(),
+  token_rate_delta: z.number().min(0).optional().nullable(),
+  param_shape_hash: z
+    .string()
+    .regex(/^[0-9a-f]{64}$/)
+    .optional()
+    .nullable(),
 });
 
 type ParsedEvent = z.infer<typeof parsedEventSchema>;
@@ -462,6 +475,11 @@ export const eventsRouter = router({
           recommendation: event.recommendation ?? null,
           timeout_seconds: event.timeout_seconds ?? null,
           timeout_action: event.timeout_action ?? null,
+          // Behavioral telemetry (v1.1 — specs/behavioral-telemetry.md)
+          call_seq_fingerprint: event.call_seq_fingerprint ?? null,
+          inter_call_ms: event.inter_call_ms ?? null,
+          token_rate_delta: event.token_rate_delta ?? null,
+          param_shape_hash: event.param_shape_hash ?? null,
           raw_line: rawLine,
         }));
 
