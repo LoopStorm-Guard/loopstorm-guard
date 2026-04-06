@@ -1,0 +1,26 @@
+[
+  {
+    "run_id_hex": "01960e07d0e97ad086215614ec0dbd54",
+    "seq": 0,
+    "expected_span_id": "bbb16c9cc3271f92",
+    "note": "root span (synthetic seq=0)"
+  },
+  {
+    "run_id_hex": "01960e07d0e97ad086215614ec0dbd54",
+    "seq": 1,
+    "expected_span_id": "3eb8b9ba7c1e4abe",
+    "note": "first child span"
+  },
+  {
+    "run_id_hex": "01960e07d0e97ad086215614ec0dbd54",
+    "seq": 2,
+    "expected_span_id": "0801329b2ca54dbf",
+    "note": "second child span"
+  },
+  {
+    "run_id_hex": "01960e07d0e97ad086215614ec0dbd54",
+    "seq": 5,
+    "expected_span_id": "68271a005fb67213",
+    "note": "non-sequential seq"
+  }
+]
