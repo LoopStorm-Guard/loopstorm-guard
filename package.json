@@ -6,7 +6,8 @@
   "workspaces": [
     "packages/*",
     "apps/shim-ts",
-    "apps/mcp-proxy"
+    "apps/mcp-proxy",
+    "apps/otel-exporter"
   ],
   "scripts": {
     "build": "turbo run build",
