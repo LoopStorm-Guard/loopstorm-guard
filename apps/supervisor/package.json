@@ -12,10 +12,12 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.36.0"
+    "@anthropic-ai/sdk": "^0.36.0",
+    "@trpc/client": "^11.0.0"
   },
   "devDependencies": {
     "@biomejs/biome": "*",
+    "@loopstorm/api": "*",
     "@types/bun": "latest",
     "typescript": "*"
   }

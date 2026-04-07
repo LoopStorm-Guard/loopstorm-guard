@@ -23,6 +23,7 @@ export class MockLLMProvider implements LLMProvider {
 
   async chat(_params: ChatParams): Promise<LLMResponse> {
     const response = this.responses[this.callIndex];
+    this.callIndex++;
     if (!response) {
       return {
         content: [{ type: "text", text: "Session complete." }],
@@ -30,7 +31,6 @@ export class MockLLMProvider implements LLMProvider {
         usage: { input_tokens: 0, output_tokens: 0 },
       };
     }
-    this.callIndex++;
     return response;
   }
 
