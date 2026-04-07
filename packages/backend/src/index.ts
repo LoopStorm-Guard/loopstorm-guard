@@ -27,6 +27,8 @@ import { cors } from "hono/cors";
 import { auth } from "./auth.js";
 import { sql as pgSql } from "./db/client.js";
 import { env } from "./env.js";
+import { startTimeoutChecker } from "./jobs/timeout-checker.js";
+import { startTriggerDispatch } from "./lib/trigger-dispatch.js";
 import { createContext } from "./trpc/context.js";
 import { appRouter } from "./trpc/router.js";
 
@@ -133,6 +135,22 @@ export type { AppRouter } from "./trpc/router.js";
 // both fire on startup.
 const port = Number(process.env.PORT) || env.PORT;
 console.warn(`[loopstorm-api] starting on port ${port}`);
+
+// ---------------------------------------------------------------------------
+// Background jobs — started after the HTTP server is ready
+// ---------------------------------------------------------------------------
+
+const timeoutChecker = startTimeoutChecker();
+const triggerDispatch = startTriggerDispatch();
+
+function shutdown() {
+  console.warn("[loopstorm-api] shutting down background jobs...");
+  timeoutChecker.stop();
+  triggerDispatch.stop();
+}
+
+process.on("SIGTERM", shutdown);
+process.on("SIGINT", shutdown);
 
 export default {
   fetch: app.fetch,

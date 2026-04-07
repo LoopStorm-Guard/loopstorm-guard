@@ -42,7 +42,7 @@ export const apiKeysRouter = router({
         /** Human-readable label, e.g. "prod-agent-1" */
         name: z.string().min(1).max(255),
         /** Required scopes. Must include "ingest" for SDK usage. */
-        scopes: z.array(z.enum(["ingest", "read"])).min(1),
+        scopes: z.array(z.enum(["ingest", "read", "supervisor"])).min(1),
         /**
          * Number of days until expiry. Omit for no expiry.
          * Range: 1–365 days.

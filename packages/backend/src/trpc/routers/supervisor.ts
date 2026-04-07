@@ -8,6 +8,7 @@
  * - `supervisor.rejectProposal`         — reject a pending proposal
  * - `supervisor.listEscalations`        — list supervisor escalations for the tenant
  * - `supervisor.acknowledgeEscalation`  — acknowledge an open escalation
+ * - `supervisor.resolveEscalation`      — resolve an acknowledged escalation
  *
  * Enforcement/observation plane separation (ADR-012):
  * These procedures are on the OBSERVATION PLANE. They record human decisions
@@ -354,6 +355,83 @@ export const supervisorRouter = router({
             eq(supervisorEscalations.id, input.id),
             eq(supervisorEscalations.tenant_id, tenantId),
             eq(supervisorEscalations.status, "open")
+          )
+        )
+        .returning();
+
+      if (!updated) {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "Escalation status changed concurrently. Please re-fetch and retry.",
+        });
+      }
+
+      return updated;
+    }),
+
+  /**
+   * Resolve an acknowledged escalation.
+   *
+   * Sets status to "resolved", records resolution_notes and updated_at.
+   * Only acknowledged escalations can be resolved — open, resolved, and
+   * expired escalations return a CONFLICT error.
+   *
+   * Lifecycle: open → acknowledged → resolved.
+   *
+   * IMPORTANT: The `escalate_to_human` invariant (ADR-012, C13) requires that
+   * this endpoint always be reachable. It must never be guarded by policy rules.
+   */
+  resolveEscalation: protectedProcedure
+    .input(
+      z.object({
+        id: z.string().uuid(),
+        /** Optional notes describing the resolution. */
+        resolution_notes: z.string().max(2000).optional(),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const tenantId = ctx.tenantId ?? "";
+
+      const [existing] = await db
+        .select({
+          id: supervisorEscalations.id,
+          status: supervisorEscalations.status,
+        })
+        .from(supervisorEscalations)
+        .where(
+          and(eq(supervisorEscalations.id, input.id), eq(supervisorEscalations.tenant_id, tenantId))
+        )
+        .limit(1);
+
+      if (!existing) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Escalation not found",
+        });
+      }
+
+      if (existing.status !== "acknowledged") {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: `Escalation is in status "${existing.status}". Only acknowledged escalations can be resolved.`,
+        });
+      }
+
+      const now = new Date();
+
+      const [updated] = await db
+        .update(supervisorEscalations)
+        .set({
+          status: "resolved",
+          resolution_notes: input.resolution_notes ?? null,
+          updated_at: now,
+        })
+        .where(
+          and(
+            eq(supervisorEscalations.id, input.id),
+            eq(supervisorEscalations.tenant_id, tenantId),
+            // Guard: ensure status is still acknowledged (TOCTOU defense)
+            eq(supervisorEscalations.status, "acknowledged")
           )
         )
         .returning();

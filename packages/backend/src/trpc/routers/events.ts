@@ -35,6 +35,9 @@ import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "../../db/client.js";
 import { events, runs } from "../../db/schema.js";
+import { triggerQueue } from "../../lib/trigger-queue.js";
+import type { TriggerMessage } from "../../lib/trigger-queue.js";
+import { evaluatePostRunTriggers } from "../../lib/triggers.js";
 import { dualAuthProcedure, router } from "../trpc.js";
 
 /**
@@ -506,9 +509,81 @@ export const eventsRouter = router({
           total_in_batch: parsedItems.length,
           skipped: parsedItems.length - insertedCount,
           last_seq: newLastSeq,
+          // Expose to the trigger evaluation layer (not returned to caller)
+          _triggerCtx: {
+            finalStatus: newStatus ?? existingRun?.status ?? "started",
+            totalCostUsd: newTotalCost,
+          },
         };
       });
 
-      return result;
+      // --- Fire-and-forget: trigger evaluation after tx commit ---
+      // Trigger evaluation is synchronous and fast (< 1 ms). The actual
+      // dispatch to the supervisor is handled by the background TriggerDispatch
+      // worker reading from the TriggerQueue.
+      //
+      // We only evaluate post-run triggers here. Mid-run triggers would
+      // require per-event running counters that the ingest batch doesn't
+      // track yet (future enhancement — the trigger queue infrastructure
+      // is in place for when that is wired up).
+      try {
+        const terminalStatuses = new Set([
+          "completed",
+          "terminated_budget",
+          "terminated_loop",
+          "terminated_policy",
+          "abandoned",
+        ]);
+
+        const { finalStatus, totalCostUsd } = result._triggerCtx;
+
+        if (terminalStatuses.has(finalStatus)) {
+          // Build a lightweight events summary for trigger evaluation.
+          // We use the events from this batch (not a full DB query) —
+          // this is an approximation, but post-run triggers only need
+          // to know if ANY deny exists, which we can check from the batch.
+          const batchEventsForTrigger = parsedItems.map((p) => ({
+            event_type: p.event.event_type,
+            decision: p.event.decision ?? null,
+          }));
+
+          const triggers = evaluatePostRunTriggers(
+            {
+              status: finalStatus,
+              total_cost_usd: totalCostUsd,
+            },
+            batchEventsForTrigger,
+            null // budgetHardCap — requires policy lookup, deferred to SUP-A5
+          );
+
+          for (const t of triggers) {
+            const msg: TriggerMessage = {
+              trigger: t.trigger,
+              trigger_run_id: runId,
+              tenant_id: tenantId,
+              priority: t.priority,
+              enqueued_at: new Date().toISOString(),
+            };
+            const enqueued = triggerQueue.enqueue(msg);
+            if (!enqueued) {
+              console.warn(
+                `[events.ingest] Trigger queue full or deduplicated — dropped trigger=${t.trigger} ` +
+                  `run=${runId}`
+              );
+            }
+          }
+        }
+      } catch (triggerErr) {
+        // Trigger evaluation must NEVER fail the ingest response.
+        // Log and swallow — the enforcement plane is unaffected.
+        console.warn(
+          "[events.ingest] Trigger evaluation error (non-fatal):",
+          triggerErr instanceof Error ? triggerErr.message : String(triggerErr)
+        );
+      }
+
+      // Strip internal trigger context before returning to caller
+      const { _triggerCtx: _, ...publicResult } = result;
+      return publicResult;
     }),
 });

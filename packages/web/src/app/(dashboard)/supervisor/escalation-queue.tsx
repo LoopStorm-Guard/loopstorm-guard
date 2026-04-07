@@ -1,9 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * EscalationQueue — live escalation list with acknowledge action.
+ * EscalationQueue — live escalation list with acknowledge and resolve actions.
  *
  * Client component. Polls every 5 seconds (Realtime in v1.1).
  * The escalate_to_human invariant ensures this always renders.
+ *
+ * Lifecycle: open → acknowledged → resolved.
+ * Status filter tabs: Open, Acknowledged, Resolved, All.
  *
  * Design rules:
  * - Severity border colors: medium → amber, high → orange, critical → red
@@ -27,10 +30,13 @@ type EscalationItem = {
   timeout_seconds: number | null;
   timeout_action: string | null;
   status: string;
+  resolution_notes: string | null;
   // created_at arrives as ISO string when serialized across server→client boundary
   created_at: Date | string;
   trigger_run_id: string | null;
 };
+
+type StatusFilter = "open" | "acknowledged" | "resolved" | "all";
 
 interface EscalationQueueProps {
   initialItems: EscalationItem[];
@@ -47,9 +53,15 @@ const SEVERITY_BORDER: Record<string, string> = {
 function EscalationCard({
   item,
   onAcknowledge,
-}: { item: EscalationItem; onAcknowledge: (id: string, notes?: string) => void }) {
+  onResolve,
+}: {
+  item: EscalationItem;
+  onAcknowledge: (id: string, notes?: string) => void;
+  onResolve: (id: string, notes?: string) => void;
+}) {
   const [showNotes, setShowNotes] = useState(false);
   const [notes, setNotes] = useState("");
+  const [actionType, setActionType] = useState<"acknowledge" | "resolve">("acknowledge");
 
   const borderColor = SEVERITY_BORDER[item.severity] ?? "var(--color-border)";
 
@@ -138,6 +150,23 @@ function EscalationCard({
         </a>
       )}
 
+      {/* Resolution notes for resolved/acknowledged escalations */}
+      {item.resolution_notes && (
+        <p
+          style={{
+            fontSize: "0.75rem",
+            color: "oklch(0.55 0.00 0)",
+            margin: "0 0 0.75rem",
+            padding: "0.5rem",
+            backgroundColor: "rgba(255, 255, 255, 0.03)",
+            borderRadius: "0.25rem",
+            border: "1px solid var(--color-border)",
+          }}
+        >
+          Notes: {item.resolution_notes}
+        </p>
+      )}
+
       {showNotes ? (
         <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
           <textarea
@@ -162,20 +191,27 @@ function EscalationCard({
           <div style={{ display: "flex", gap: "0.5rem" }}>
             <button
               type="button"
-              onClick={() => onAcknowledge(item.id, notes)}
-              data-testid={`btn-acknowledge-${item.id}`}
+              onClick={() => {
+                if (actionType === "acknowledge") {
+                  onAcknowledge(item.id, notes);
+                } else {
+                  onResolve(item.id, notes);
+                }
+              }}
+              data-testid={`btn-${actionType}-${item.id}`}
               style={{
                 padding: "0.375rem 0.75rem",
-                backgroundColor: "rgba(0, 200, 83, 0.1)",
-                border: "1px solid rgba(0, 200, 83, 0.3)",
+                backgroundColor:
+                  actionType === "resolve" ? "rgba(96, 165, 250, 0.1)" : "rgba(0, 200, 83, 0.1)",
+                border: `1px solid ${actionType === "resolve" ? "rgba(96, 165, 250, 0.3)" : "rgba(0, 200, 83, 0.3)"}`,
                 borderRadius: "0.375rem",
-                color: "var(--color-accent-green)",
+                color: actionType === "resolve" ? "rgb(96, 165, 250)" : "var(--color-accent-green)",
                 fontSize: "0.8125rem",
                 fontWeight: "500",
                 cursor: "pointer",
               }}
             >
-              Acknowledge
+              {actionType === "resolve" ? "Resolve" : "Acknowledge"}
             </button>
             <button
               type="button"
@@ -195,22 +231,51 @@ function EscalationCard({
           </div>
         </div>
       ) : (
-        <button
-          type="button"
-          onClick={() => setShowNotes(true)}
-          style={{
-            padding: "0.375rem 0.75rem",
-            backgroundColor: "rgba(0, 200, 83, 0.08)",
-            border: "1px solid rgba(0, 200, 83, 0.25)",
-            borderRadius: "0.375rem",
-            color: "var(--color-accent-green)",
-            fontSize: "0.8125rem",
-            fontWeight: "500",
-            cursor: "pointer",
-          }}
-        >
-          Acknowledge
-        </button>
+        <div style={{ display: "flex", gap: "0.5rem" }}>
+          {item.status === "open" && (
+            <button
+              type="button"
+              onClick={() => {
+                setActionType("acknowledge");
+                setShowNotes(true);
+              }}
+              style={{
+                padding: "0.375rem 0.75rem",
+                backgroundColor: "rgba(0, 200, 83, 0.08)",
+                border: "1px solid rgba(0, 200, 83, 0.25)",
+                borderRadius: "0.375rem",
+                color: "var(--color-accent-green)",
+                fontSize: "0.8125rem",
+                fontWeight: "500",
+                cursor: "pointer",
+              }}
+            >
+              Acknowledge
+            </button>
+          )}
+          {item.status === "acknowledged" && (
+            <button
+              type="button"
+              onClick={() => {
+                setActionType("resolve");
+                setShowNotes(true);
+              }}
+              data-testid={`btn-resolve-${item.id}`}
+              style={{
+                padding: "0.375rem 0.75rem",
+                backgroundColor: "rgba(96, 165, 250, 0.08)",
+                border: "1px solid rgba(96, 165, 250, 0.25)",
+                borderRadius: "0.375rem",
+                color: "rgb(96, 165, 250)",
+                fontSize: "0.8125rem",
+                fontWeight: "500",
+                cursor: "pointer",
+              }}
+            >
+              Resolve
+            </button>
+          )}
+        </div>
       )}
     </div>
   );
@@ -218,8 +283,17 @@ function EscalationCard({
 
 export function EscalationQueue({ initialItems, initialNextCursor: _nc }: EscalationQueueProps) {
   const [items, setItems] = useState<EscalationItem[]>(initialItems);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("open");
+
+  const utils = trpc.useUtils();
 
   const acknowledgeMutation = trpc.supervisor.acknowledgeEscalation.useMutation({
+    onSuccess: (result) => {
+      setItems((prev) => prev.filter((e) => e.id !== result.id));
+    },
+  });
+
+  const resolveMutation = trpc.supervisor.resolveEscalation.useMutation({
     onSuccess: (result) => {
       setItems((prev) => prev.filter((e) => e.id !== result.id));
     },
@@ -228,6 +302,30 @@ export function EscalationQueue({ initialItems, initialNextCursor: _nc }: Escala
   function handleAcknowledge(id: string, notes?: string) {
     acknowledgeMutation.mutate({ id, resolution_notes: notes });
   }
+
+  function handleResolve(id: string, notes?: string) {
+    resolveMutation.mutate({ id, resolution_notes: notes });
+  }
+
+  async function handleFilterChange(filter: StatusFilter) {
+    setStatusFilter(filter);
+    try {
+      const result = await utils.supervisor.listEscalations.fetch({
+        status: filter === "all" ? undefined : filter,
+        limit: 20,
+      });
+      setItems(result.items);
+    } catch {
+      // Keep current items on error
+    }
+  }
+
+  const STATUS_TABS: { value: StatusFilter; label: string }[] = [
+    { value: "open", label: "Open" },
+    { value: "acknowledged", label: "Acknowledged" },
+    { value: "resolved", label: "Resolved" },
+    { value: "all", label: "All" },
+  ];
 
   return (
     <div>
@@ -246,7 +344,7 @@ export function EscalationQueue({ initialItems, initialNextCursor: _nc }: Escala
         >
           Escalations
         </h2>
-        {items.length > 0 && (
+        {items.length > 0 && statusFilter === "open" && (
           <span
             style={{
               padding: "0.125rem 0.375rem",
@@ -263,15 +361,48 @@ export function EscalationQueue({ initialItems, initialNextCursor: _nc }: Escala
         )}
       </div>
 
+      {/* Filter tabs */}
+      <div style={{ display: "flex", gap: "0.25rem", marginBottom: "0.875rem" }}>
+        {STATUS_TABS.map((tab) => (
+          <button
+            key={tab.value}
+            type="button"
+            onClick={() => handleFilterChange(tab.value)}
+            data-testid={`escalation-filter-${tab.value}`}
+            style={{
+              padding: "0.25rem 0.625rem",
+              backgroundColor:
+                statusFilter === tab.value ? "rgba(255, 59, 59, 0.1)" : "transparent",
+              border: `1px solid ${statusFilter === tab.value ? "rgba(255, 59, 59, 0.3)" : "var(--color-border)"}`,
+              borderRadius: "0.25rem",
+              color: statusFilter === tab.value ? "var(--color-accent-red)" : "oklch(0.55 0.00 0)",
+              fontSize: "0.75rem",
+              cursor: "pointer",
+            }}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
       {items.length === 0 ? (
         <EmptyState
-          title="No active escalations"
-          description="All clear — no open escalations requiring attention."
+          title="No escalations"
+          description={
+            statusFilter === "open"
+              ? "All clear — no open escalations requiring attention."
+              : `No ${statusFilter === "all" ? "" : statusFilter} escalations found.`
+          }
         />
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
           {items.map((item) => (
-            <EscalationCard key={item.id} item={item} onAcknowledge={handleAcknowledge} />
+            <EscalationCard
+              key={item.id}
+              item={item}
+              onAcknowledge={handleAcknowledge}
+              onResolve={handleResolve}
+            />
           ))}
         </div>
       )}

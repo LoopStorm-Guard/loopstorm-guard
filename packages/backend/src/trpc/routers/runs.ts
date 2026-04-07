@@ -243,6 +243,12 @@ export const runsRouter = router({
           recommendation: events.recommendation,
           timeout_seconds: events.timeout_seconds,
           timeout_action: events.timeout_action,
+          // Behavioral telemetry fields (v1.1). Nullable for events that
+          // predate v1.1 — callers must handle null gracefully.
+          call_seq_fingerprint: events.call_seq_fingerprint,
+          inter_call_ms: events.inter_call_ms,
+          token_rate_delta: events.token_rate_delta,
+          param_shape_hash: events.param_shape_hash,
           // raw_line is omitted from list responses — it is large and only
           // needed for chain verification (use verify.chain for that).
         })

@@ -6,8 +6,12 @@
 # AGPL-licensed packages, as this would contaminate the MIT code with AGPL
 # obligations.
 #
-# MIT packages:  apps/engine, apps/cli, apps/shim-python, apps/shim-ts, packages/schemas
+# MIT packages:  apps/engine, apps/cli, apps/shim-python, apps/shim-ts, apps/supervisor, packages/schemas
 # AGPL packages: packages/backend (@loopstorm/api), packages/web (@loopstorm/web)
+#
+# Special case: apps/supervisor may use `import type { AppRouter }` from
+# @loopstorm/api (type-only import — no runtime dependency). This is allowed
+# because TypeScript `import type` is erased at compile time.
 #
 # Checks performed:
 # 1. TypeScript/JavaScript: no `import ... from "@loopstorm/api"` or `@loopstorm/web`
@@ -36,6 +40,8 @@ echo "--- Check 1: TS/JS imports in MIT packages ---"
 MIT_TS_DIRS=(
   "apps/shim-ts/src"
   "apps/shim-ts/tests"
+  "apps/supervisor/src"
+  "apps/supervisor/tests"
   "packages/schemas"
 )
 
@@ -46,12 +52,16 @@ for dir in "${MIT_TS_DIRS[@]}"; do
     continue
   fi
 
-  # Search for imports of AGPL packages
-  MATCHES=$(grep -rn --include="*.ts" --include="*.tsx" --include="*.js" \
+  # Search for runtime imports of AGPL packages.
+  # `import type` is allowed (erased at compile time, no runtime dependency).
+  ALL_MATCHES=$(grep -rn --include="*.ts" --include="*.tsx" --include="*.js" \
     -E "(import|require).*['\"]${AGPL_IMPORT_PATTERN}" "$dir" 2>/dev/null || true)
 
+  # Filter out type-only imports (import type { ... } from ...)
+  MATCHES=$(echo "$ALL_MATCHES" | grep -v -E "import\s+type\s" || true)
+
   if [[ -n "$MATCHES" ]]; then
-    echo "  FAIL: AGPL import found in MIT package:"
+    echo "  FAIL: AGPL runtime import found in MIT package:"
     echo "$MATCHES" | sed 's/^/    /'
     FAIL=1
   fi
@@ -69,6 +79,7 @@ echo "--- Check 2: package.json dependencies ---"
 
 MIT_PKG_DIRS=(
   "apps/shim-ts"
+  "apps/supervisor"
   "packages/schemas"
 )
 

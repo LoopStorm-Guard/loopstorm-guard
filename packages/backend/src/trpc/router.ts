@@ -7,13 +7,16 @@
  * frontend package for end-to-end type safety.
  *
  * Router namespaces:
- * - `runs`       — list, get, getEvents
- * - `events`     — ingest
- * - `policies`   — list, get, create, update
- * - `supervisor` — listProposals, approveProposal, rejectProposal,
- *                  listEscalations, acknowledgeEscalation
- * - `verify`     — chain
- * - `apiKeys`    — list, create, revoke
+ * - `runs`             — list, get, getEvents
+ * - `events`           — ingest
+ * - `policies`         — list, get, create, update
+ * - `supervisor`       — listProposals, approveProposal, rejectProposal,
+ *                        listEscalations, acknowledgeEscalation, resolveEscalation
+ * - `supervisorTools`  — getRunEvents, getAgentBaseline, getPolicyPack,
+ *                        querySimilarRuns, createProposal, createEscalation,
+ *                        recordLearning (API key auth, supervisor scope)
+ * - `verify`           — chain
+ * - `apiKeys`          — list, create, revoke
  *
  * IMPORTANT: After Phase E (frontend integration) is merged, do NOT change
  * any procedure signatures without coordinating with the frontend-senior-engineer
@@ -24,6 +27,7 @@ import { apiKeysRouter } from "./routers/api-keys.js";
 import { eventsRouter } from "./routers/events.js";
 import { policiesRouter } from "./routers/policies.js";
 import { runsRouter } from "./routers/runs.js";
+import { supervisorToolsRouter } from "./routers/supervisor-tools.js";
 import { supervisorRouter } from "./routers/supervisor.js";
 import { verifyRouter } from "./routers/verify.js";
 import { router } from "./trpc.js";
@@ -46,6 +50,9 @@ export const appRouter = router({
 
   /** AI Supervisor observation plane — proposals and escalations */
   supervisor: supervisorRouter,
+
+  /** AI Supervisor tool APIs — API key auth with supervisor scope */
+  supervisorTools: supervisorToolsRouter,
 
   /** Hash chain verification for audit trail integrity */
   verify: verifyRouter,
