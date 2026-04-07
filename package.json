@@ -7,7 +7,8 @@
     "packages/*",
     "apps/shim-ts",
     "apps/mcp-proxy",
-    "apps/otel-exporter"
+    "apps/otel-exporter",
+    "apps/supervisor"
   ],
   "scripts": {
     "build": "turbo run build",

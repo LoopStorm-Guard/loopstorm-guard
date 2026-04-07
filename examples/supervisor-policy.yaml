@@ -1,0 +1,114 @@
+# SPDX-License-Identifier: MIT
+# supervisor-policy.yaml
+# LoopStorm's own policy pack for its AI Supervisor Agent.
+# Customers can inspect this file. Self-hosted (Mode 1) operators
+# can override it.
+
+schema_version: 1
+name: loopstorm-supervisor-policy
+description: >-
+  Policy pack for the LoopStorm AI Supervisor Agent. Enforces
+  observation-plane constraints: read tools allowed, proposals
+  require human approval, escalation always allowed, production
+  execution denied.
+agent_role: supervisor
+
+rules:
+  # --- ESCALATION: always allowed, listed first for clarity ---
+  # This rule MUST NOT be removed. It is the human-in-the-loop guarantee.
+  - name: allow-escalation
+    action: allow
+    tool: escalate_to_human
+
+  # --- OBSERVATION: reading never causes harm ---
+  - name: allow-read-run-events
+    action: allow
+    tool: read_run_events
+
+  - name: allow-read-agent-baseline
+    action: allow
+    tool: read_agent_baseline
+
+  - name: allow-read-policy-pack
+    action: allow
+    tool: read_policy_pack
+
+  - name: allow-query-similar-runs
+    action: allow
+    tool: query_similar_runs
+
+  # --- INTERPRETATION: analysis never causes harm ---
+  - name: allow-compute-risk-score
+    action: allow
+    tool: compute_risk_score
+
+  - name: allow-analyze-loop-pattern
+    action: allow
+    tool: analyze_loop_pattern
+
+  - name: allow-evaluate-recovery
+    action: allow
+    tool: evaluate_recovery_effectiveness
+
+  # --- FLAGGING: low-stakes attention request ---
+  - name: allow-flag-for-review
+    action: allow
+    tool: flag_for_review
+
+  # --- PROPOSALS: require human approval ---
+  - name: require-approval-proposals
+    action: require_approval
+    tool_pattern: "propose_*"
+    timeout: 86400
+    timeout_action: deny
+
+  # --- LEARNING: audited writes to supervisor knowledge store ---
+  - name: allow-record-incident-pattern
+    action: allow
+    tool: record_incident_pattern
+
+  - name: allow-update-agent-profile
+    action: allow
+    tool: update_agent_profile
+
+  - name: allow-record-intervention-outcome
+    action: allow
+    tool: record_intervention_outcome
+
+  # --- HARD DENY: supervisor cannot touch production infrastructure ---
+  - name: deny-production-execution
+    action: deny
+    tool_pattern: "execute_*"
+    reason: "Supervisor cannot execute production operations"
+
+  - name: deny-write-operations
+    action: deny
+    tool_pattern: "write_*"
+    reason: "Supervisor cannot perform write operations on customer infrastructure"
+
+  - name: deny-delete-operations
+    action: deny
+    tool_pattern: "delete_*"
+    reason: "Supervisor cannot perform delete operations"
+
+  - name: deny-modify-operations
+    action: deny
+    tool_pattern: "modify_*"
+    reason: "Supervisor cannot modify customer infrastructure directly"
+
+  # --- HARD DENY: supervisor cannot call external APIs except LLM providers ---
+  - name: deny-unauthorized-http
+    action: deny
+    tool: http.request
+    conditions:
+      - field: url
+        operator: not_matches
+        pattern: "https://(api.anthropic.com|api.openai.com)/.*"
+    reason: "Supervisor cannot access unauthorized external APIs"
+
+budget:
+  cost_usd:
+    soft: 1.50
+    hard: 2.00
+  call_count:
+    hard: 100
