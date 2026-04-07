@@ -44,7 +44,7 @@ export async function proposeBudgetAdjustment(
     },
   });
 
-  return { proposal_id: proposalId, ...result };
+  return result;
 }
 
 export async function flagForReview(
@@ -75,5 +75,5 @@ export async function flagForReview(
     },
   });
 
-  return { proposal_id: proposalId, ...result };
+  return result;
 }

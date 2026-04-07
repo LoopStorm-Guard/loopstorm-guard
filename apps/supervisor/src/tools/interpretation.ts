@@ -28,13 +28,14 @@ export async function computeRiskScoreTool(client: BackendClient, params: { run_
   let baseline = null;
   if (agentName) {
     try {
-      const baselineResult = await client.supervisorTools.getAgentBaseline.query({
+      // biome-ignore lint/suspicious/noExplicitAny: tRPC inference returns union; cast for property access
+      const baselineResult: any = await client.supervisorTools.getAgentBaseline.query({
         agent_name: agentName,
       });
       if (!baselineResult.warning) {
         baseline = {
-          run_count: baselineResult.run_count,
-          avg_deny_rate: baselineResult.avg_deny_rate ?? 0,
+          run_count: baselineResult.run_count as number,
+          avg_deny_rate: (baselineResult.avg_deny_rate as number | null) ?? 0,
         };
       }
     } catch {
@@ -48,7 +49,10 @@ export async function computeRiskScoreTool(client: BackendClient, params: { run_
       (runEndedEvent?.run_status ?? lastEvent?.event_type === "run_ended")
         ? "completed"
         : "running",
-    total_cost_usd: runEvents.reduce((sum, e) => sum + (e.estimated_cost_usd ?? 0), 0),
+    total_cost_usd: runEvents.reduce(
+      (sum: number, e) => sum + ((e.estimated_cost_usd as number | null) ?? 0),
+      0
+    ),
   };
 
   const eventInfos = runEvents.map((e) => ({

@@ -41,7 +41,7 @@ export async function recordIncidentPattern(
     },
   });
 
-  return { proposal_id: proposalId, ...result };
+  return result;
 }
 
 export async function updateAgentProfile(
@@ -70,7 +70,7 @@ export async function updateAgentProfile(
     proposed_changes: params.profile_update,
   });
 
-  return { proposal_id: proposalId, ...result };
+  return result;
 }
 
 export async function recordInterventionOutcome(
@@ -103,5 +103,5 @@ export async function recordInterventionOutcome(
     },
   });
 
-  return { proposal_id: proposalId, ...result };
+  return result;
 }

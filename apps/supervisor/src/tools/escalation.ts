@@ -44,5 +44,5 @@ export async function escalateToHuman(
     timeout_action: params.timeout_action,
   });
 
-  return { escalation_id: escalationId, ...result };
+  return result;
 }
