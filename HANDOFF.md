@@ -90,33 +90,22 @@ Nothing can go to production until these are resolved.
 
 ---
 
-### 5A. Backend Cannot Deploy — No `wrangler.toml`
+### 5A. Backend Deployment Target — RESOLVED (ADR-015)
 
-**Problem:** `deploy.yml` runs `bun run --cwd packages/backend deploy` but
-there is no `deploy` script in `packages/backend/package.json` and no
-`wrangler.toml` exists anywhere. Cloudflare Workers deployment is broken.
+**Resolution:** ADR-015 (2026-04-09) selected Vercel Functions as the backend
+deployment target. Cloudflare Workers were rejected because `setInterval` is
+incompatible with the Workers runtime and the backend uses long-lived processes.
 
-**Decision needed first:** The backend is a Hono + Bun HTTP server. Cloudflare
-Workers have significant constraints (no `setInterval`, no long-lived processes,
-limited Node.js compat). Two options:
+**What this means:**
+- The old `deploy.yml` (Cloudflare Workers) has been deleted (Phase 0 cleanup).
+- A new Vercel-based deploy workflow must be created as part of Phase 1 infra.
+- Background cron jobs move to Vercel Cron (configured in `vercel.json`).
+- No `wrangler.toml` is needed — Wrangler is superseded entirely.
 
-1. **Stay with Cloudflare Workers:** Requires rewriting background jobs as
-   Workers Cron Triggers or Durable Objects. Substantial effort (3-5 days).
-2. **Deploy backend to Vercel as a serverless function:** Much simpler — Hono
-   works well on Vercel via `@hono/node-server` adapter. Background jobs
-   become Vercel Cron jobs. Recommended for fastest path to working.
-
-**If choosing Vercel for backend:**
-- Add `vercel.json` to `packages/backend/`
-- Add a `deploy` script to `packages/backend/package.json`
-- Background jobs move to Vercel Cron (configured in `vercel.json`)
-- Remove any Workers-specific code from the deploy pipeline
-
-**If choosing Cloudflare Workers:**
-- Create `packages/backend/wrangler.toml`
-- Add `deploy` script: `"deploy": "wrangler deploy"`
-- Rewrite `setInterval` jobs as Cron Triggers or Durable Objects
-- Add `wrangler` dev dependency
+**Remaining work (Phase 1):**
+- Create `vercel.json` in `packages/backend/` with Vercel Cron configuration
+- Write the new `deploy.yml` workflow (Vercel Functions for backend, Vercel for web)
+- Run DB migrations before deploy (migration-before-deploy ordering per platform rules)
 
 ---
 
@@ -287,7 +276,7 @@ Two secrets from `docs/secrets-inventory.md` were not set up:
 9. Configure Resend in auth.ts (email verification) (4-8 hours)
 10. Run Supabase migrations against live project (1-2 hours)
 11. Fix RLS transaction wrapping gap (1-2 days)
-12. Decide on backend deployment target (Vercel vs Workers) and create config (2-3 days)
+12. Create Vercel deploy workflow and `vercel.json` config (ADR-015 resolved Workers vs Vercel) (2-3 days)
 13. First full deploy via GitHub Actions workflow_dispatch
 ```
 
@@ -295,12 +284,15 @@ Two secrets from `docs/secrets-inventory.md` were not set up:
 
 ## 9. How to Trigger a Deploy
 
-The deploy workflow is `.github/workflows/deploy.yml`. It triggers on:
-- `push` to tags matching `v*` (e.g., `git tag v1.1.0 && git push --tags`)
-- `workflow_dispatch` (manual trigger via GitHub Actions UI — use this for testing)
+The old `deploy.yml` (Cloudflare Workers) was deleted in Phase 0 cleanup.
+A new Vercel-based deploy workflow is part of Phase 1 infra work (ADR-015).
 
-**Do not push a `v*` tag until items 1-10 above are resolved.**
-Use `workflow_dispatch` for test deploys.
+**Until Phase 1 is complete:** Deploy manually via the Vercel dashboard or
+`bunx vercel --prod` from each package directory with the correct env vars set.
+
+**Do not push a `v*` tag until the production readiness blockers (5A–5G) are
+resolved.** The release pipeline (`release.yml`) is separate from the deploy
+workflow and handles SDK publishing only.
 
 ---
 
@@ -317,7 +309,7 @@ Use `workflow_dispatch` for test deploys.
 | `packages/backend/src/env.ts` | Env var validation |
 | `packages/backend/src/index.ts` | CORS + server entry |
 | `apps/supervisor/src/llm/deepseek.ts` | DeepSeek LLM provider (NEW) |
-| `.github/workflows/deploy.yml` | Deploy pipeline |
+| `.github/workflows/deploy.yml` | Deploy pipeline — DELETED in Phase 0. New Vercel workflow is Phase 1 work. |
 | `supabase/` | Migrations and config |
 
 ---

@@ -22,9 +22,8 @@ title = "LoopStorm Guard Secret Scanning"
   paths = [
     # Test fixtures may contain fake API keys for testing redaction
     '''tests/fixtures/''',
-    # CI workflow — only ci.yml and deploy.yml contain known test placeholders
+    # CI workflow — ci.yml and release.yml contain known test placeholders
     '''.github/workflows/ci\.yml''',
-    '''.github/workflows/deploy\.yml''',
     '''.github/workflows/release\.yml''',
     # Lock files
     '''bun\.lock''',

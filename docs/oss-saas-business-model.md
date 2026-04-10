@@ -199,7 +199,7 @@ Here is every secret the system uses, where it lives, and what it does:
 
 | Secret | What It Does | Where It Lives | What Happens If Leaked |
 |--------|-------------|----------------|----------------------|
-| `DATABASE_URL` | PostgreSQL connection string with username and password (e.g., `postgresql://user:***@host:5432/db`) | Hosting provider env vars (Cloudflare Workers secrets / Fly.io secrets) | Attacker gets full read/write access to your database. All customer data compromised. |
+| `DATABASE_URL` | PostgreSQL connection string with username and password (e.g., `postgresql://user:***@host:5432/db`) | Vercel environment variables (backend) | Attacker gets full read/write access to your database. All customer data compromised. |
 | `BETTER_AUTH_SECRET` | 32+ byte random string used to sign session cookies and JWTs. Generated with `openssl rand -base64 32`. | Hosting provider env vars | Attacker can forge session tokens, impersonate any user, bypass all auth. |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase JWT that bypasses RLS. Used for administrative operations. | Hosting provider env vars | Attacker bypasses row-level security. Can read/write any tenant's data. |
 | `GOOGLE_CLIENT_ID` | OAuth client ID for "Sign in with Google." Obtained from Google Cloud Console. | Hosting provider env vars | Low risk alone. Attacker cannot complete OAuth flow without the secret. |
@@ -212,8 +212,7 @@ Here is every secret the system uses, where it lives, and what it does:
 
 | Secret | What It Does | Where It Lives |
 |--------|-------------|----------------|
-| `ANTHROPIC_API_KEY` | API key for Anthropic's Claude API. This is YOUR key, billed to YOUR Anthropic account. The supervisor uses it to call Claude for run analysis. | Hosting provider env vars |
-| `LOOPSTORM_SUPERVISOR_MODEL` | Which Claude model to use (default: `claude-3-5-haiku-latest`). Not secret, but operational config. | Hosting provider env vars |
+| `ANTHROPIC_API_KEY` | API key for DeepSeek (ADR-017, OpenAI-compatible). This is YOUR key, billed to YOUR DeepSeek account. The supervisor uses it to call DeepSeek V3.2 for run analysis. The env var name is kept for compatibility. | Hosting provider env vars |
 
 #### Frontend Secrets (`packages/web`)
 
@@ -233,11 +232,10 @@ backend validating every request with session cookies and API keys.
 |--------|-------------|----------------|
 | `PYPI_TOKEN` | Authenticates `twine upload` to publish the Python shim to PyPI. | GitHub repository secrets |
 | `NPM_TOKEN` | Authenticates `npm publish` to publish the TypeScript shim to npm. | GitHub repository secrets |
-| `CLOUDFLARE_API_TOKEN` | Authenticates `wrangler deploy` to deploy the backend to Cloudflare Workers. | GitHub repository secrets |
-| `CLOUDFLARE_ACCOUNT_ID` | Identifies your Cloudflare account. | GitHub repository secrets |
-| `VERCEL_TOKEN` | Authenticates deployment to Vercel. | GitHub repository secrets |
+| `VERCEL_TOKEN` | Authenticates deployment of both backend and web UI to Vercel (ADR-015). | GitHub repository secrets |
 | `VERCEL_ORG_ID` | Identifies your Vercel organization. | GitHub repository secrets |
-| `VERCEL_PROJECT_ID` | Identifies the Vercel project for the web UI. | GitHub repository secrets |
+| `VERCEL_PROJECT_ID_API` | Identifies the Vercel project for the backend (Vercel Functions per ADR-015). | GitHub repository secrets |
+| `VERCEL_PROJECT_ID_WEB` | Identifies the Vercel project for the web UI. | GitHub repository secrets |
 
 #### How Secrets Get to Running Code
 
@@ -248,7 +246,6 @@ The flow is:
    connection string).
 
 2. You paste the secret into your hosting provider's dashboard. For example:
-   - Cloudflare Workers dashboard > Settings > Environment Variables
    - Vercel dashboard > Project > Settings > Environment Variables
    - GitHub > Repository > Settings > Secrets and variables > Actions
 
@@ -489,14 +486,14 @@ Mode 1 ($$$/yr)   --> Enterprise license, self-hosted, support contract
 | TypeScript shim | npm (public) | `bun add @loopstorm/shim-ts` | Published by `release.yml` using `NPM_TOKEN` |
 | Documentation | GitHub + docs site (public) | Anyone can read | `docs/`, deployed to `docs.loopstorm.dev` |
 | JSON schemas | GitHub + npm (public) | Anyone can validate against | `schemas/`, published as `@loopstorm/schemas` |
-| CI/CD tokens | GitHub Secrets (private) | Only repository admins | `PYPI_TOKEN`, `NPM_TOKEN`, `VERCEL_TOKEN`, `CLOUDFLARE_API_TOKEN` |
+| CI/CD tokens | GitHub Secrets (private) | Only repository admins | `PYPI_TOKEN`, `NPM_TOKEN`, `VERCEL_TOKEN`, `VERCEL_PROJECT_ID_API`, `VERCEL_PROJECT_ID_WEB` |
 | Production database | Supabase (private) | Only your backend code, via `DATABASE_URL` | Customer data, runs, events, proposals, escalations |
 | Auth signing key | Hosting provider env vars (private) | Only your backend code, via `BETTER_AUTH_SECRET` | 32-byte random string |
 | LLM API key | Hosting provider env vars (private) | Only your supervisor code, via `ANTHROPIC_API_KEY` | Billed to your Anthropic account |
 | OAuth credentials | Hosting provider env vars (private) | Only your backend code | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` from Google Cloud Console |
 | Payment processing | Stripe Dashboard (private) | Only you | Stripe API keys, webhook signing secrets (future) |
 | Domain names | DNS registrar (private) | Only you | `loopstorm.dev`, `api.loopstorm.dev`, `app.loopstorm.dev` |
-| SSL certificates | Hosting provider (auto-provisioned) | Transparent | Cloudflare, Vercel handle automatically |
+| SSL certificates | Hosting provider (auto-provisioned) | Transparent | Vercel handles automatically for all deployed projects |
 | Customer data backups | Supabase / S3 (private) | Only you | Point-in-time recovery, offsite backups |
 
 ### What the Release Pipeline Publishes
@@ -543,11 +540,10 @@ your public code:
    PostgreSQL instance with RLS). Configure connection pooling, backups,
    monitoring, alerting. Estimated ongoing cost: $50-500/month.
 
-2. **Deploy the backend.** Figure out the deployment target (the current
-   codebase has no wrangler.toml for Cloudflare Workers -- they would
-   need to create their own). Configure CORS, set up all environment
-   variables, handle the fact that `setInterval` background jobs do not
-   work on serverless platforms.
+2. **Deploy the backend.** The backend deploys to Vercel Functions (ADR-015).
+   Configure CORS, set up all environment variables, wire up Vercel Cron for
+   background jobs (the `setInterval` background processes must be migrated
+   to Vercel Cron endpoints before production deployment).
 
 3. **Deploy the frontend.** Set up a Vercel project, configure environment
    variables, set up a custom domain, SSL certificates, CDN.
@@ -635,8 +631,7 @@ reading source code:
 | Cost | Approximate Monthly |
 |------|-------------------|
 | Supabase (Pro plan + compute) | $25-200 |
-| Cloudflare Workers | $5-50 |
-| Vercel (Pro plan) | $20 |
+| Vercel (Pro plan — backend + web) | $20-40 |
 | Anthropic API (Supervisor LLM) | $100-2,000+ (scales with customers) |
 | Domain registration | $1 |
 | Email service (Resend/SendGrid) | $0-20 |
@@ -662,20 +657,21 @@ specific steps to go from "code on GitHub" to "revenue-generating SaaS."
 
 **1. Register and configure the domain.**
 - Register `loopstorm.dev` (or your chosen domain).
-- Set up DNS with Cloudflare (you are already deploying Workers there).
 - Configure subdomains: `api.loopstorm.dev` (backend), `app.loopstorm.dev`
-  (dashboard), `docs.loopstorm.dev` (documentation).
+  (dashboard), `docs.loopstorm.dev` (documentation). Vercel handles DNS
+  provisioning and SSL automatically for its domains.
 - Set up email addresses: `contact@loopstorm.dev`,
   `security@loopstorm.dev`, `support@loopstorm.dev`.
 
 **2. Create accounts with hosting providers.**
 - **Supabase**: Create a production project. Copy the `DATABASE_URL`,
   `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY`.
-- **Cloudflare**: Create an account. Generate an API token with Workers
-  permissions. Note the account ID.
-- **Vercel**: Create an account and project for the web UI. Note the
-  `VERCEL_ORG_ID` and `VERCEL_PROJECT_ID`.
-- **Anthropic**: Create an account. Generate an API key for the supervisor.
+- **Vercel**: Create an account. Create two projects — one for the backend
+  (Vercel Functions, per ADR-015) and one for the web UI. Note the
+  `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID_API`, and
+  `VERCEL_PROJECT_ID_WEB`.
+- **DeepSeek**: Create an account at platform.deepseek.com. Generate an API
+  key for the supervisor (stored as `ANTHROPIC_API_KEY` per ADR-017).
 - **Google Cloud Console**: Create an OAuth client for "Sign in with Google"
   on your dashboard. Note the client ID and secret.
 
@@ -687,11 +683,10 @@ Add these repository secrets:
 |-------------|-------------|
 | `PYPI_TOKEN` | PyPI account > API tokens > Create |
 | `NPM_TOKEN` | npm account > Access Tokens > Create (automation) |
-| `CLOUDFLARE_API_TOKEN` | Cloudflare dashboard > API Tokens |
-| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare dashboard > Account ID |
 | `VERCEL_TOKEN` | Vercel dashboard > Settings > Tokens |
 | `VERCEL_ORG_ID` | Vercel dashboard > Settings > General |
-| `VERCEL_PROJECT_ID` | Vercel dashboard > Project > Settings > General |
+| `VERCEL_PROJECT_ID_API` | Vercel backend project > Settings > General |
+| `VERCEL_PROJECT_ID_WEB` | Vercel web project > Settings > General |
 | `DATABASE_URL` | Supabase dashboard > Settings > Database > Connection string |
 
 ### Phase 2: Deploy (Week 2-3)
@@ -710,13 +705,12 @@ Add these repository secrets:
 - Test installation: `pip install loopstorm`, `bun add @loopstorm/shim-ts`.
 
 **6. Fix deployment blockers (from the production readiness audit).**
-- Create `wrangler.toml` in `packages/backend/` for Cloudflare Workers
-  deployment.
+- Configure the Vercel Functions deploy workflow for the backend (ADR-015).
 - Configure email transport in Better Auth (Resend or SendGrid adapter).
 - Configure `vercel.json` in `packages/web/`.
 - Run database migrations against the production Supabase instance.
 - Create the `loopstorm_ingest` and `loopstorm_supervisor` database roles.
-- Set all production environment variables in Cloudflare and Vercel.
+- Set all production environment variables in Vercel.
 
 ### Phase 3: Payments (Week 3-5)
 
