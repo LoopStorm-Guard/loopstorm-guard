@@ -47,7 +47,7 @@ export function parseConfig(): SupervisorConfig {
   const apiKey = requireEnv("LOOPSTORM_API_KEY");
   const backendUrl = process.env.LOOPSTORM_BACKEND_URL ?? "http://localhost:3001";
   const anthropicApiKey = process.env.ANTHROPIC_API_KEY ?? null;
-  const model = process.env.LOOPSTORM_SUPERVISOR_MODEL ?? "claude-3-5-haiku-latest";
+  const model = process.env.LOOPSTORM_SUPERVISOR_MODEL ?? "deepseek-chat";
   const internalKey = process.env.LOOPSTORM_SUPERVISOR_INTERNAL_KEY ?? null;
   const port = Number(process.env.LOOPSTORM_SUPERVISOR_PORT) || 3002;
   const mockMode = process.env.LOOPSTORM_SUPERVISOR_MOCK === "true";
