@@ -1,9 +1,17 @@
 <!-- SPDX-License-Identifier: MIT -->
 # ADR-017: LLM Provider Strategy (DeepSeek Primary, Anthropic Alternate)
 
-**Status:** Accepted
+**Status:** Accepted (Amended 2026-04-10)
 **Date:** 2026-04-09
 **Author:** Lead Architect
+
+---
+
+## Amendment 2026-04-10
+
+For v1.1, LoopStorm Guard ships DeepSeek V3.2 (`deepseek-chat` via OpenAI-compatible API) as the **sole supported LLM provider**. The Anthropic provider adapter (`apps/supervisor/src/llm/anthropic.ts`) has been removed as dead code. Mode 1 air-gapped deployments requiring an alternate provider are deferred to v1.2. The `AnthropicProvider` factory branch is eliminated from `apps/supervisor/src/llm/`. `@anthropic-ai/sdk` is removed from `apps/supervisor/package.json`. The env var name `ANTHROPIC_API_KEY` (which currently holds the DeepSeek API key per ADR-017's original text) will be renamed to `LOOPSTORM_LLM_API_KEY` in Wave 2 with backward-compat fallback.
+
+This amendment supersedes section 2 of the Decision ("AnthropicProvider remains as a second implementation for Mode 1 enterprise") and AC-17-5. All other acceptance criteria remain in force.
 
 ---
 
