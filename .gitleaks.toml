@@ -22,9 +22,8 @@ title = "LoopStorm Guard Secret Scanning"
   paths = [
     # Test fixtures may contain fake API keys for testing redaction
     '''tests/fixtures/''',
-    # CI workflow — only ci.yml and deploy.yml contain known test placeholders
+    # CI workflow — ci.yml and release.yml contain known test placeholders
     '''.github/workflows/ci\.yml''',
-    '''.github/workflows/deploy\.yml''',
     '''.github/workflows/release\.yml''',
     # Lock files
     '''bun\.lock''',
@@ -46,6 +45,9 @@ title = "LoopStorm Guard Secret Scanning"
     '''specs/task-briefs/p3-backend-database\.md''',
     # Adversarial RLS tests use localhost postgres://postgres:postgres@ for integration testing
     '''packages/backend/tests/integration/rls-adversarial\.test\.ts''',
+    # Business model and audit docs contain example connection string patterns for documentation purposes
+    '''docs/oss-saas-business-model\.md''',
+    '''docs/v1\.1-production-readiness-audit-2026-04-07\.md''',
   ]
 
 # Custom rules for LoopStorm-specific secret formats.

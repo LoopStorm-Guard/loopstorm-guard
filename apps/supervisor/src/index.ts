@@ -17,7 +17,7 @@
 
 import { parseConfig } from "./config.js";
 import { createBackendClient } from "./lib/backend-client.js";
-import { AnthropicProvider } from "./llm/anthropic.js";
+import { DeepSeekProvider } from "./llm/deepseek.js";
 import { MockLLMProvider } from "./llm/mock.js";
 import type { LLMProvider } from "./llm/provider.js";
 import { SupervisorSession } from "./session.js";
@@ -37,7 +37,7 @@ if (config.mockMode) {
   console.warn("[supervisor] Running in MOCK mode — no real LLM calls");
   llmProvider = new MockLLMProvider([]);
 } else {
-  llmProvider = new AnthropicProvider(config.anthropicApiKey as string);
+  llmProvider = new DeepSeekProvider(config.anthropicApiKey as string);
 }
 
 // ---------------------------------------------------------------------------

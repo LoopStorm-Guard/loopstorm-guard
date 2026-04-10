@@ -17,10 +17,10 @@ Verify: `git log --all --full-history -- '*.env'` must return empty.
 |---|---|---|---|---|
 | `RELEASE_GPG_KEY` | CI | `engine-build.yml` (tagged releases) | Annually | Base64-encoded GPG private key for signing release binaries |
 | `RELEASE_GPG_PASSPHRASE` | CI | `engine-build.yml` (tagged releases) | Annually | Passphrase for `RELEASE_GPG_KEY` |
-| `VERCEL_TOKEN` | CI/CD | `deploy.yml` | Annually | Vercel personal access token for deployment |
-| `VERCEL_ORG_ID` | CI/CD | `deploy.yml` | When org changes | Vercel organization ID |
-| `VERCEL_PROJECT_ID_API` | CI/CD | `deploy.yml` | When project changes | Vercel project ID for backend |
-| `VERCEL_PROJECT_ID_WEB` | CI/CD | `deploy.yml` | When project changes | Vercel project ID for web UI |
+| `VERCEL_TOKEN` | CI/CD | deploy workflow (ADR-015) | Annually | Vercel personal access token for deployment |
+| `VERCEL_ORG_ID` | CI/CD | deploy workflow (ADR-015) | When org changes | Vercel organization ID |
+| `VERCEL_PROJECT_ID_API` | CI/CD | deploy workflow (ADR-015) | When project changes | Vercel project ID for backend (Vercel Functions per ADR-015) |
+| `VERCEL_PROJECT_ID_WEB` | CI/CD | deploy workflow (ADR-015) | When project changes | Vercel project ID for web UI |
 | `PYPI_API_TOKEN` | CI | `shim-python-release.yml` | Annually | PyPI upload token for `loopstorm` package |
 | `NPM_TOKEN` | CI | `shim-ts-release.yml` | Annually | npm publish token for `@loopstorm/shim-ts` |
 
@@ -36,10 +36,8 @@ Verify: `git log --all --full-history -- '*.env'` must return empty.
 | `BETTER_AUTH_SECRET` | Backend runtime | On compromise | 32+ byte random secret. Rotation invalidates ALL sessions — requires maintenance window |
 | `GOOGLE_CLIENT_ID` | Backend runtime | On compromise | OAuth 2.0 client ID for Google sign-in |
 | `GOOGLE_CLIENT_SECRET` | Backend runtime | On compromise | OAuth 2.0 client secret |
-| `ANTHROPIC_API_KEY` | Backend runtime | Quarterly | Powers the AI Supervisor (ADR-012). Scope: supervisor worker only |
-| `SUPERVISOR_MODEL` | Backend runtime | On model change | Value: `claude-haiku-4-5-20251001`. Not a secret, but tracked here |
+| `ANTHROPIC_API_KEY` | Backend runtime | Quarterly | Powers the AI Supervisor (ADR-017). Holds the DeepSeek API key in Mode 3 SaaS. Scope: supervisor worker only |
 | `SUPERVISOR_BUDGET_HARD_USD` | Backend runtime | On policy change | Value: `2.00`. Not a secret, but tracked here |
-| `VERCEL_CRON_SECRET` | Backend runtime | Annually | Validates `x-vercel-cron-secret` header on cron endpoints |
 | `PRODUCTION_DATABASE_URL` | CI deploy-time | On compromise | Used by `drizzle-kit migrate` during deployment. May differ from runtime URL |
 
 ---
