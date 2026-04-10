@@ -199,7 +199,7 @@ Here is every secret the system uses, where it lives, and what it does:
 
 | Secret | What It Does | Where It Lives | What Happens If Leaked |
 |--------|-------------|----------------|----------------------|
-| `DATABASE_URL` | PostgreSQL connection string with username and password (e.g., `postgresql://user:password@host:5432/db`) | Hosting provider env vars (Cloudflare Workers secrets / Fly.io secrets) | Attacker gets full read/write access to your database. All customer data compromised. |
+| `DATABASE_URL` | PostgreSQL connection string with username and password (e.g., `postgresql://user:REDACTED@host:5432/db`) | Hosting provider env vars (Cloudflare Workers secrets / Fly.io secrets) | Attacker gets full read/write access to your database. All customer data compromised. |
 | `BETTER_AUTH_SECRET` | 32+ byte random string used to sign session cookies and JWTs. Generated with `openssl rand -base64 32`. | Hosting provider env vars | Attacker can forge session tokens, impersonate any user, bypass all auth. |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase JWT that bypasses RLS. Used for administrative operations. | Hosting provider env vars | Attacker bypasses row-level security. Can read/write any tenant's data. |
 | `GOOGLE_CLIENT_ID` | OAuth client ID for "Sign in with Google." Obtained from Google Cloud Console. | Hosting provider env vars | Low risk alone. Attacker cannot complete OAuth flow without the secret. |
