@@ -6,6 +6,12 @@ on:
   pull_request:
     branches: [main]
 
+# Least-privilege default: every job gets only `contents: read` unless a
+# job-level permissions block grants more. No job in this workflow needs
+# write access to anything — CI is pure verification.
+permissions:
+  contents: read
+
 # Cancel in-progress runs for the same PR/branch to save runner minutes.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

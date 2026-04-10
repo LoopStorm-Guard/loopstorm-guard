@@ -24,6 +24,13 @@ on:
     tags:
       - "v*"
 
+# Least-privilege default: the build matrix and publish jobs only need
+# read access. Only `create-release` needs `contents: write` (it already
+# declares that at job level). Publish jobs use registry tokens from
+# secrets, not GITHUB_TOKEN.
+permissions:
+  contents: read
+
 # Releases are never concurrent — a second tag push while one is in
 # flight would produce a duplicate release. Prevent that here.
 concurrency:
