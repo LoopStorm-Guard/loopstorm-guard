@@ -46,6 +46,9 @@ title = "LoopStorm Guard Secret Scanning"
     '''specs/task-briefs/p3-backend-database\.md''',
     # Adversarial RLS tests use localhost postgres://postgres:postgres@ for integration testing
     '''packages/backend/tests/integration/rls-adversarial\.test\.ts''',
+    # Business model and audit docs contain example connection string patterns for documentation purposes
+    '''docs/oss-saas-business-model\.md''',
+    '''docs/v1\.1-production-readiness-audit-2026-04-07\.md''',
   ]
 
 # Custom rules for LoopStorm-specific secret formats.
