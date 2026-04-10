@@ -15,7 +15,6 @@ import { z } from "zod";
 const envSchema = z.object({
   // Database
   DATABASE_URL: z.string().url(),
-  SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
 
   // Better Auth
   BETTER_AUTH_SECRET: z.string().min(32),
@@ -52,7 +51,6 @@ function loadEnv(): Env {
     // Tests that exercise DB functionality must set the real env vars.
     return {
       DATABASE_URL: process.env.DATABASE_URL ?? "postgres://localhost:5432/loopstorm_test",
-      SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY ?? "test-service-role-key",
       BETTER_AUTH_SECRET:
         process.env.BETTER_AUTH_SECRET ?? "test-secret-that-is-at-least-32-chars-long",
       BETTER_AUTH_URL: process.env.BETTER_AUTH_URL ?? "http://localhost:3001",
