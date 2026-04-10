@@ -36,3 +36,7 @@ Thumbs.db
 
 # Claude Code local config (local only)
 .claude/
+
+# Temporary log directories (CI/E2E artifacts, never committed)
+tmp-*/
+tmp-e2e-logs/
