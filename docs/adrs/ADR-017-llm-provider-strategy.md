@@ -1,13 +1,27 @@
 <!-- SPDX-License-Identifier: MIT -->
 # ADR-017: LLM Provider Strategy (DeepSeek Primary, Anthropic Alternate)
 
-**Status:** Accepted (Amended 2026-04-10)
+**Status:** Accepted (Amended 2026-04-10, Wave 2 2026-04-10)
 **Date:** 2026-04-09
 **Author:** Lead Architect
 
 ---
 
-## Amendment 2026-04-10
+## Amendment 2026-04-10 (Wave 2 — env var rename, pricing constants)
+
+The env var `ANTHROPIC_API_KEY` is renamed to `LOOPSTORM_LLM_API_KEY` as the canonical name for the supervisor LLM API key. This resolves the "env var name lies about contents" consequence documented in the original amendment. Implementation:
+
+- `apps/supervisor/src/config.ts`: reads `LOOPSTORM_LLM_API_KEY` first; falls back to `ANTHROPIC_API_KEY` with a `console.warn` deprecation warning. The field on `SupervisorConfig` is renamed `anthropicApiKey` → `llmApiKey`. The required-key error message now names `LOOPSTORM_LLM_API_KEY`.
+- `apps/supervisor/src/index.ts`: updated to reference `config.llmApiKey`.
+- `apps/supervisor/src/llm/deepseek.ts`: exports `DEEPSEEK_COST_PER_INPUT_TOKEN` and `DEEPSEEK_COST_PER_OUTPUT_TOKEN` as named constants with published rates ($0.27/M input, $1.10/M output for DeepSeek V3.2 as of 2026-04-10). This makes `deepseek.ts` the single source of truth for DeepSeek pricing.
+- `apps/supervisor/src/session.ts`: imports pricing constants from `deepseek.ts`. Removes the hardcoded Claude Haiku rates ($0.25/$1.25 per 1M) that had been left as placeholders since the provider swap.
+- `.env.local.example`: updated to use `LOOPSTORM_LLM_API_KEY=sk-your-deepseek-key-here` with `ANTHROPIC_API_KEY` commented out and marked deprecated.
+
+AC-17-6 is superseded: the supervisor now reads `LOOPSTORM_LLM_API_KEY` (preferred) or `ANTHROPIC_API_KEY` (deprecated fallback, removed in v1.2). The `ANTHROPIC_API_KEY` fallback is retained through v1.1 for zero-disruption operator migration.
+
+---
+
+## Amendment 2026-04-10 (initial)
 
 For v1.1, LoopStorm Guard ships DeepSeek V3.2 (`deepseek-chat` via OpenAI-compatible API) as the **sole supported LLM provider**. The Anthropic provider adapter (`apps/supervisor/src/llm/anthropic.ts`) has been removed as dead code. Mode 1 air-gapped deployments requiring an alternate provider are deferred to v1.2. The `AnthropicProvider` factory branch is eliminated from `apps/supervisor/src/llm/`. `@anthropic-ai/sdk` is removed from `apps/supervisor/package.json`. The env var name `ANTHROPIC_API_KEY` (which currently holds the DeepSeek API key per ADR-017's original text) will be renamed to `LOOPSTORM_LLM_API_KEY` in Wave 2 with backward-compat fallback.
 

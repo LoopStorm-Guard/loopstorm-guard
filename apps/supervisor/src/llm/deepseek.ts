@@ -12,6 +12,17 @@ import type { ChatParams, ContentBlock, LLMProvider, LLMResponse } from "./provi
 
 const DEEPSEEK_API_URL = "https://api.deepseek.com/chat/completions";
 
+// ---------------------------------------------------------------------------
+// DeepSeek V3.2 pricing constants (per-token, USD)
+// Source: https://api-docs.deepseek.com/quick_start/pricing (2026-04-10)
+// Review quarterly and on every supervisor release (ADR-017 consequence 4).
+// ---------------------------------------------------------------------------
+
+/** Cost per input token for DeepSeek V3.2 (`deepseek-chat`): $0.27 / 1M tokens. */
+export const DEEPSEEK_COST_PER_INPUT_TOKEN = 0.27 / 1_000_000;
+/** Cost per output token for DeepSeek V3.2 (`deepseek-chat`): $1.10 / 1M tokens. */
+export const DEEPSEEK_COST_PER_OUTPUT_TOKEN = 1.10 / 1_000_000;
+
 export class DeepSeekProvider implements LLMProvider {
   private apiKey: string;
 

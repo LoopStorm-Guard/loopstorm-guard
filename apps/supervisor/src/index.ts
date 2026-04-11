@@ -37,7 +37,7 @@ if (config.mockMode) {
   console.warn("[supervisor] Running in MOCK mode — no real LLM calls");
   llmProvider = new MockLLMProvider([]);
 } else {
-  llmProvider = new DeepSeekProvider(config.anthropicApiKey as string);
+  llmProvider = new DeepSeekProvider(config.llmApiKey as string);
 }
 
 // ---------------------------------------------------------------------------
