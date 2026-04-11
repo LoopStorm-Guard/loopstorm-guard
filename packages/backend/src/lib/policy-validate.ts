@@ -8,7 +8,7 @@
  * Validation steps:
  * 1. JSON schema validation against `policy.schema.json` (from @loopstorm/schemas).
  * 2. Structural invariant: no rule may have `action: "deny"` with a tool
- *    name or pattern that would match `escalate_to_human`. This invariant
+ *    name or glob pattern that would match `escalate_to_human`. This invariant
  *    ensures that the escalation pathway can NEVER be blocked.
  *
  * Import: The policy schema is imported from `@loopstorm/schemas` (the shared
@@ -20,11 +20,28 @@
  * enough that key structural checks provide adequate validation. If full AJV
  * validation is needed in the future, the schema can be passed to AJV here.
  *
+ * GLOB MATCHING (T3 Wave 2):
+ * The engine (apps/engine/src/evaluator.rs) uses glob matching for tool
+ * patterns. The TypeScript validator must match the same semantics to prevent
+ * policy bypasses. We use `picomatch` (v4, zero-dependency, matches Rust's
+ * glob crate semantics) for glob evaluation.
+ *
+ * Patterns supported:
+ * - `*` — matches any string (does not cross `/`)
+ * - `**` — matches any string including path separators
+ * - `?` — matches any single character
+ * - `[abc]` — character class
+ * - `{a,b}` — alternation
+ *
+ * The `tool` field uses exact matching. The `tool_pattern` field uses glob
+ * matching via picomatch. Both are checked against `escalate_to_human`.
+ *
  * IMPORTANT: This module must be kept in sync with the invariant checks in
  * apps/engine/src/evaluator.rs. If the Rust engine's invariant logic changes,
  * update this file too.
  */
 
+import picomatch from "picomatch";
 import { policySchema } from "@loopstorm/schemas";
 import type { PolicyPack } from "@loopstorm/schemas";
 
@@ -49,6 +66,7 @@ export interface PolicyValidationError {
 
 /**
  * The tool name that can NEVER be denied (ADR-012, C13).
+ * Absolute rule #3 from CLAUDE.md: escalate_to_human can never be blocked.
  */
 const ESCALATE_TO_HUMAN_TOOL = "escalate_to_human";
 
@@ -223,20 +241,61 @@ function validateBudget(budget: Record<string, unknown>): PolicyValidationError[
 }
 
 /**
+ * Test whether a glob pattern matches the escalate_to_human tool name.
+ *
+ * Uses picomatch with settings that match the engine's glob semantics:
+ * - `*` matches any characters (no path separator semantics — tools are flat strings)
+ * - `**` also matches any characters (same as `*` for flat tool names)
+ * - `?` matches any single character
+ * - `{a,b}` alternation
+ *
+ * We use `dot: true` so that patterns like `*` also match names starting with
+ * `.` (defensive — tool names don't start with `.` but we want no surprises).
+ *
+ * @param pattern - The glob pattern from the policy rule's `tool_pattern` field
+ * @returns true if the pattern matches `escalate_to_human`
+ */
+function globMatchesEscalateToHuman(pattern: string): boolean {
+  try {
+    const isMatch = picomatch(pattern, {
+      dot: true,
+      // nocase: false — tool names are case-sensitive
+    });
+    return isMatch(ESCALATE_TO_HUMAN_TOOL);
+  } catch {
+    // Invalid glob pattern — conservative: treat as non-matching.
+    // Invalid patterns are caught by schema validation above; if we reach
+    // here it's an edge case in picomatch's parser. We prefer not crashing.
+    return false;
+  }
+}
+
+/**
  * Check that no rule blocks `escalate_to_human` (ADR-012, C13).
+ * Absolute rule #3 from CLAUDE.md.
  *
  * The invariant: no rule may have BOTH:
  *   - `action: "deny"` (or `action: "require_approval"` which could be
  *     configured to effectively block), AND
- *   - A `tool` or `tool_pattern` that matches `"escalate_to_human"`
+ *   - A `tool` exact match OR a `tool_pattern` glob that matches
+ *     `"escalate_to_human"`
  *
  * We check:
  * 1. `rule.tool === "escalate_to_human"` with `rule.action === "deny"`
- * 2. `rule.tool_pattern` that would match `"escalate_to_human"` (regex match)
- *    with `rule.action === "deny"`
+ * 2. `rule.tool_pattern` glob that matches `"escalate_to_human"` (T3 fix:
+ *    uses picomatch instead of naive regex) with `rule.action === "deny"`
  *
  * Note: `require_approval` is allowed — escalate_to_human can require a human
  * to approve the escalation itself. Only outright `deny` is blocked.
+ *
+ * T3 improvement: The old implementation used `new RegExp(rule.tool_pattern)`
+ * which treated `tool_pattern` as a regex. This was incorrect — the engine
+ * uses glob semantics, not regex. A pattern like `escalate_*` would fail as
+ * a regex test but DOES match in glob semantics. Similarly, `*` or `**`
+ * (common deny-all globs) were only caught if they happened to be valid regexes.
+ *
+ * The new implementation uses picomatch to test glob patterns, matching the
+ * engine's evaluation logic exactly.
  */
 function checkEscalateToHumanInvariant(policy: PolicyPack): PolicyValidationError[] {
   const errors: PolicyValidationError[] = [];
@@ -254,25 +313,25 @@ function checkEscalateToHumanInvariant(policy: PolicyPack): PolicyValidationErro
     if (rule.tool === ESCALATE_TO_HUMAN_TOOL) {
       errors.push({
         path: `${rulePath}.tool`,
-        message: `Rule "${rule.name}" uses action: "deny" with tool: "escalate_to_human". The escalate_to_human tool can never be denied (ADR-012). Change the action or remove this rule.`,
+        message:
+          `Policy rejected: rule '${rule.name}' (pattern '${rule.tool}') would block ` +
+          `'${ESCALATE_TO_HUMAN_TOOL}', which is a protected invariant. ` +
+          "See ADR-012 (C13) and CLAUDE.md absolute rule #3.",
         code: "ESCALATE_TO_HUMAN_BLOCKED",
       });
     }
 
-    // Check tool_pattern match
+    // Check tool_pattern glob match (T3: uses picomatch, not regex)
     if (rule.tool_pattern) {
-      let patternMatchesEscalate = false;
-      try {
-        const regex = new RegExp(rule.tool_pattern);
-        patternMatchesEscalate = regex.test(ESCALATE_TO_HUMAN_TOOL);
-      } catch {
-        // Invalid regex is caught by schema validation above; skip here
-      }
+      const globMatchesEscalate = globMatchesEscalateToHuman(rule.tool_pattern);
 
-      if (patternMatchesEscalate) {
+      if (globMatchesEscalate) {
         errors.push({
           path: `${rulePath}.tool_pattern`,
-          message: `Rule "${rule.name}" uses action: "deny" with tool_pattern: "${rule.tool_pattern}" which matches "escalate_to_human". The escalate_to_human tool can never be denied (ADR-012). Narrow the pattern to exclude escalate_to_human.`,
+          message:
+            `Policy rejected: rule '${rule.name}' (pattern '${rule.tool_pattern}') would block ` +
+            `'${ESCALATE_TO_HUMAN_TOOL}', which is a protected invariant. ` +
+            "See ADR-012 (C13) and CLAUDE.md absolute rule #3.",
           code: "ESCALATE_TO_HUMAN_BLOCKED",
         });
       }
