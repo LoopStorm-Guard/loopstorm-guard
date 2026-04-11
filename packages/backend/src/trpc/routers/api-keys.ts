@@ -13,15 +13,16 @@
  * - All procedures are tenant-scoped via RLS + application-level checks.
  * - Revoke checks that the key belongs to the current tenant before updating.
  *
- * Pagination: `apiKeys.list` uses cursor-based pagination on the `id` UUID
- * field (UUID v4, random — not time-ordered). For the small expected number
- * of API keys per tenant (< 100), this is adequate.
+ * Pagination: `apiKeys.list` uses cursor-based pagination on the `created_at`
+ * timestamp field (ordered DESC).
+ *
+ * ADR-020: All queries use ctx.db (the transaction-scoped client injected
+ * by the protectedProcedure middleware). Never import the db singleton here.
  */
 
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, lt } from "drizzle-orm";
 import { z } from "zod";
-import { db } from "../../db/client.js";
 import { apiKeys } from "../../db/schema.js";
 import { generateApiKey } from "../../lib/api-key-gen.js";
 import { protectedProcedure, router } from "../trpc.js";
@@ -61,7 +62,8 @@ export const apiKeysRouter = router({
         ? new Date(Date.now() + input.expires_in_days * 24 * 60 * 60 * 1000)
         : null;
 
-      const [created] = await db
+      // ADR-020: ctx.db is the transaction-scoped client from the middleware.
+      const [created] = await ctx.db
         .insert(apiKeys)
         .values({
           tenant_id: tenantId,
@@ -114,7 +116,8 @@ export const apiKeysRouter = router({
     .query(async ({ input, ctx }) => {
       const tenantId = ctx.tenantId ?? "";
 
-      const rows = await db
+      // ADR-020: ctx.db is the transaction-scoped client from the middleware.
+      const rows = await ctx.db
         .select({
           id: apiKeys.id,
           name: apiKeys.name,
@@ -171,11 +174,12 @@ export const apiKeysRouter = router({
     .mutation(async ({ input, ctx }) => {
       const tenantId = ctx.tenantId ?? "";
 
+      // ADR-020: ctx.db is the transaction-scoped client from the middleware.
       // Verify the key exists and belongs to this tenant before updating.
       // Even though RLS enforces tenant isolation at the DB level, we do
       // an explicit check here to return a clear NOT_FOUND error rather than
       // silently updating 0 rows.
-      const [existing] = await db
+      const [existing] = await ctx.db
         .select({ id: apiKeys.id, is_revoked: apiKeys.is_revoked })
         .from(apiKeys)
         .where(and(eq(apiKeys.id, input.id), eq(apiKeys.tenant_id, tenantId)))
@@ -193,7 +197,7 @@ export const apiKeysRouter = router({
         return { id: existing.id, is_revoked: true as const };
       }
 
-      await db
+      await ctx.db
         .update(apiKeys)
         .set({ is_revoked: true })
         .where(and(eq(apiKeys.id, input.id), eq(apiKeys.tenant_id, tenantId)));

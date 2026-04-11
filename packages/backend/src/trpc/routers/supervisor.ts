@@ -23,12 +23,14 @@
  * Security: all procedures use protectedProcedure (session auth + tenant RLS).
  * Cross-tenant isolation is enforced at both the DB level (RLS) and
  * application level (explicit tenant_id checks in WHERE clauses).
+ *
+ * ADR-020: All queries use ctx.db (the transaction-scoped client injected
+ * by the protectedProcedure middleware). Never import the db singleton here.
  */
 
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, lt } from "drizzle-orm";
 import { z } from "zod";
-import { db } from "../../db/client.js";
 import { supervisorEscalations, supervisorProposals } from "../../db/schema.js";
 import { protectedProcedure, router } from "../trpc.js";
 
@@ -71,7 +73,8 @@ export const supervisorRouter = router({
         conditions.push(eq(supervisorProposals.proposal_type, input.proposal_type));
       }
 
-      const rows = await db
+      // ADR-020: ctx.db is the transaction-scoped client from the middleware.
+      const rows = await ctx.db
         .select()
         .from(supervisorProposals)
         .where(and(...conditions))
@@ -110,8 +113,9 @@ export const supervisorRouter = router({
       const tenantId = ctx.tenantId ?? "";
       const userId = ctx.userId ?? "";
 
+      // ADR-020: ctx.db is the transaction-scoped client from the middleware.
       // Verify the proposal exists and belongs to this tenant
-      const [existing] = await db
+      const [existing] = await ctx.db
         .select({
           id: supervisorProposals.id,
           status: supervisorProposals.status,
@@ -139,7 +143,7 @@ export const supervisorRouter = router({
 
       const now = new Date();
 
-      const [updated] = await db
+      const [updated] = await ctx.db
         .update(supervisorProposals)
         .set({
           status: "approved",
@@ -186,7 +190,8 @@ export const supervisorRouter = router({
       const tenantId = ctx.tenantId ?? "";
       const userId = ctx.userId ?? "";
 
-      const [existing] = await db
+      // ADR-020: ctx.db is the transaction-scoped client from the middleware.
+      const [existing] = await ctx.db
         .select({
           id: supervisorProposals.id,
           status: supervisorProposals.status,
@@ -213,7 +218,7 @@ export const supervisorRouter = router({
 
       const now = new Date();
 
-      const [updated] = await db
+      const [updated] = await ctx.db
         .update(supervisorProposals)
         .set({
           status: "rejected",
@@ -278,7 +283,8 @@ export const supervisorRouter = router({
         conditions.push(eq(supervisorEscalations.severity, input.severity));
       }
 
-      const rows = await db
+      // ADR-020: ctx.db is the transaction-scoped client from the middleware.
+      const rows = await ctx.db
         .select()
         .from(supervisorEscalations)
         .where(and(...conditions))
@@ -314,7 +320,8 @@ export const supervisorRouter = router({
       const tenantId = ctx.tenantId ?? "";
       const userId = ctx.userId ?? "";
 
-      const [existing] = await db
+      // ADR-020: ctx.db is the transaction-scoped client from the middleware.
+      const [existing] = await ctx.db
         .select({
           id: supervisorEscalations.id,
           status: supervisorEscalations.status,
@@ -341,7 +348,7 @@ export const supervisorRouter = router({
 
       const now = new Date();
 
-      const [updated] = await db
+      const [updated] = await ctx.db
         .update(supervisorEscalations)
         .set({
           status: "acknowledged",
@@ -392,7 +399,8 @@ export const supervisorRouter = router({
     .mutation(async ({ input, ctx }) => {
       const tenantId = ctx.tenantId ?? "";
 
-      const [existing] = await db
+      // ADR-020: ctx.db is the transaction-scoped client from the middleware.
+      const [existing] = await ctx.db
         .select({
           id: supervisorEscalations.id,
           status: supervisorEscalations.status,
@@ -419,7 +427,7 @@ export const supervisorRouter = router({
 
       const now = new Date();
 
-      const [updated] = await db
+      const [updated] = await ctx.db
         .update(supervisorEscalations)
         .set({
           status: "resolved",

@@ -20,12 +20,14 @@
  * - If matched, the update proceeds and increments `version`.
  * - If not matched, the update fails with CONFLICT.
  * This prevents lost updates when two dashboard users edit the same policy.
+ *
+ * ADR-020: All queries use ctx.db (the transaction-scoped client injected
+ * by the protectedProcedure middleware). Never import the db singleton here.
  */
 
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, lt } from "drizzle-orm";
 import { z } from "zod";
-import { db } from "../../db/client.js";
 import { policyPacks } from "../../db/schema.js";
 import { validatePolicy } from "../../lib/policy-validate.js";
 import { protectedProcedure, router } from "../trpc.js";
@@ -66,7 +68,8 @@ export const policiesRouter = router({
         conditions.push(eq(policyPacks.is_active, true));
       }
 
-      const rows = await db
+      // ADR-020: ctx.db is the transaction-scoped client from the middleware.
+      const rows = await ctx.db
         .select({
           id: policyPacks.id,
           tenant_id: policyPacks.tenant_id,
@@ -111,7 +114,8 @@ export const policiesRouter = router({
     .query(async ({ input, ctx }) => {
       const tenantId = ctx.tenantId ?? "";
 
-      const [row] = await db
+      // ADR-020: ctx.db is the transaction-scoped client from the middleware.
+      const [row] = await ctx.db
         .select()
         .from(policyPacks)
         .where(and(eq(policyPacks.id, input.id), eq(policyPacks.tenant_id, tenantId)))
@@ -155,7 +159,8 @@ export const policiesRouter = router({
         });
       }
 
-      const [created] = await db
+      // ADR-020: ctx.db is the transaction-scoped client from the middleware.
+      const [created] = await ctx.db
         .insert(policyPacks)
         .values({
           tenant_id: tenantId,
@@ -212,8 +217,9 @@ export const policiesRouter = router({
     .mutation(async ({ input, ctx }) => {
       const tenantId = ctx.tenantId ?? "";
 
+      // ADR-020: ctx.db is the transaction-scoped client from the middleware.
       // Fetch the current record to check version and tenant
-      const [existing] = await db
+      const [existing] = await ctx.db
         .select({
           id: policyPacks.id,
           version: policyPacks.version,
@@ -263,7 +269,7 @@ export const policiesRouter = router({
       if (input.content !== undefined) updateSet.content = input.content;
       if (input.is_active !== undefined) updateSet.is_active = input.is_active;
 
-      const [updated] = await db
+      const [updated] = await ctx.db
         .update(policyPacks)
         // biome-ignore lint/suspicious/noExplicitAny: dynamic update set
         .set(updateSet as any)

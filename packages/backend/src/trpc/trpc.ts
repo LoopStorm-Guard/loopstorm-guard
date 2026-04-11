@@ -7,18 +7,29 @@
  * - `publicProcedure`   — no auth required (e.g., health check)
  * - `protectedProcedure`— requires a valid Better Auth session + tenant
  * - `apiKeyProcedure`   — requires a valid API key (for ingest operations)
+ * - `dualAuthProcedure` — accepts either session or API key
+ *
+ * ADR-020: Every authenticated procedure is wrapped in a `db.transaction()`
+ * that sets the tenant RLS context on the transaction client BEFORE any query
+ * runs. The transaction client is injected into `ctx.db`, shadowing the
+ * module-level singleton. Procedures MUST use `ctx.db` exclusively.
  *
  * Auth middleware flow (protectedProcedure):
  * 1. Extract Better Auth session from request headers/cookies.
  * 2. Read `tenant_id` from session.user (our custom column).
- * 3. Call `setTenantRlsContext(tenantId)` to set the PostgreSQL RLS variable.
- * 4. Attach `userId` and `tenantId` to context and call `next()`.
+ * 3. Open a database transaction (`db.transaction()`).
+ * 4. Call `setTenantRlsContext(tx, tenantId)` on the tx client inside the transaction.
+ * 5. Shadow `ctx.db = tx` so all procedure queries use the scoped client.
+ * 6. Attach `userId`, `tenantId`, and `db` to context and call `next()`.
+ * 7. Commit on success, roll back on throw.
  *
  * API key middleware flow (apiKeyProcedure):
  * 1. Read `Authorization: Bearer` header.
  * 2. Hash the key and look it up in `api_keys` table.
- * 3. Call `setTenantRlsContext(tenantId)` to set the PostgreSQL RLS variable.
- * 4. Attach `tenantId` to context and call `next()`.
+ * 3. Open a database transaction.
+ * 4. Call `setTenantRlsContext(tx, tenantId)` inside the transaction.
+ * 5. Shadow `ctx.db = tx`.
+ * 6. Attach `tenantId`, `apiKeyScopes`, `apiKeyId` to context and call `next()`.
  *
  * Error contract:
  * - Authentication failures throw UNAUTHORIZED.
@@ -28,6 +39,7 @@
 
 import { TRPCError, initTRPC } from "@trpc/server";
 import { ensureTenantId } from "../auth.js";
+import { db } from "../db/client.js";
 import { authenticateApiKey } from "../middleware/api-key.js";
 import { getSession } from "../middleware/auth.js";
 import { setTenantRlsContext } from "../middleware/tenant.js";
@@ -77,17 +89,22 @@ const authMiddleware = t.middleware(async ({ ctx, next }) => {
     });
   }
 
-  // Set the PostgreSQL RLS context so all subsequent queries in this request
-  // are filtered to the correct tenant. This is defense-in-depth: RLS at the
-  // DB level ensures isolation even if application-level checks are bypassed.
-  await setTenantRlsContext(tenantId);
+  // ADR-020: Open a transaction, set RLS context on the tx client, and shadow
+  // ctx.db with the tx. The entire procedure handler runs inside this transaction.
+  // On success: transaction commits, RLS context is cleared automatically.
+  // On throw: transaction rolls back, RLS context is cleared automatically.
+  // Either way, the connection returns to the pool with no lingering state.
+  return db.transaction(async (tx) => {
+    await setTenantRlsContext(tx, tenantId as string);
 
-  return next({
-    ctx: {
-      ...ctx,
-      userId: session.user.id,
-      tenantId,
-    },
+    return next({
+      ctx: {
+        ...ctx,
+        userId: session.user.id,
+        tenantId,
+        db: tx, // ADR-020: shadow the singleton with the transaction client
+      },
+    });
   });
 });
 
@@ -112,20 +129,23 @@ const apiKeyMiddleware = t.middleware(async ({ ctx, next }) => {
     });
   }
 
-  // Set the PostgreSQL RLS context for tenant isolation.
-  await setTenantRlsContext(result.tenant_id);
+  // ADR-020: Open a transaction, set RLS context, shadow ctx.db.
+  return db.transaction(async (tx) => {
+    await setTenantRlsContext(tx, result.tenant_id);
 
-  return next({
-    ctx: {
-      ...ctx,
-      userId: null, // API keys are not tied to a specific user
-      tenantId: result.tenant_id,
-      // Expose scopes so the ingest handler can verify "ingest" scope.
-      // We extend the context type inline here rather than polluting
-      // TRPCContext (which is shared by all procedure types).
-      apiKeyScopes: result.scopes,
-      apiKeyId: result.api_key_id,
-    },
+    return next({
+      ctx: {
+        ...ctx,
+        userId: null, // API keys are not tied to a specific user
+        tenantId: result.tenant_id,
+        db: tx, // ADR-020: shadow the singleton with the transaction client
+        // Expose scopes so the ingest handler can verify "ingest" scope.
+        // We extend the context type inline here rather than polluting
+        // TRPCContext (which is shared by all procedure types).
+        apiKeyScopes: result.scopes,
+        apiKeyId: result.api_key_id,
+      },
+    });
   });
 });
 
@@ -147,13 +167,17 @@ const dualAuthMiddleware = t.middleware(async ({ ctx, next }) => {
   if (authHeader?.startsWith("Bearer ")) {
     const result = await authenticateApiKey(authHeader);
     if (result) {
-      await setTenantRlsContext(result.tenant_id);
-      return next({
-        ctx: {
-          ...ctx,
-          userId: null,
-          tenantId: result.tenant_id,
-        },
+      // ADR-020: transaction + RLS context on tx client.
+      return db.transaction(async (tx) => {
+        await setTenantRlsContext(tx, result.tenant_id);
+        return next({
+          ctx: {
+            ...ctx,
+            userId: null,
+            tenantId: result.tenant_id,
+            db: tx, // ADR-020: shadow the singleton
+          },
+        });
       });
     }
     // Bearer token present but invalid — reject immediately (don't fall through
@@ -186,14 +210,17 @@ const dualAuthMiddleware = t.middleware(async ({ ctx, next }) => {
     });
   }
 
-  await setTenantRlsContext(tenantId);
-
-  return next({
-    ctx: {
-      ...ctx,
-      userId: session.user.id,
-      tenantId,
-    },
+  // ADR-020: transaction + RLS context on tx client.
+  return db.transaction(async (tx) => {
+    await setTenantRlsContext(tx, tenantId as string);
+    return next({
+      ctx: {
+        ...ctx,
+        userId: session.user.id,
+        tenantId,
+        db: tx, // ADR-020: shadow the singleton
+      },
+    });
   });
 });
 
