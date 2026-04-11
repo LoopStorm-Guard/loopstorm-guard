@@ -83,6 +83,32 @@ title = "LoopStorm Guard Secret Scanning"
     # value in prose. Kept whole-file because the spec may contain other
     # example values added in the future.
     '''specs/task-briefs/p3-backend-database\.md''',
+
+    # Backend integration tests: use localhost postgres://postgres:postgres@
+    # and in the rls-adversarial case also Supabase local port 54322. The
+    # database-url-with-password rule has a per-rule allowlist regex for
+    # `postgres(ql)?://[^:]*:postgres@localhost`, but gitleaks matches
+    # that regex against the captured secret portion only, not the full
+    # line — and the rule's capture is the whole URL. Keeping these three
+    # files whole-file allowlisted until we migrate to gitleaks v8.22+
+    # where `regexTarget = "line"` can widen the scope.
+    '''packages/backend/tests/setup\.ts''',
+    '''packages/backend/tests/integration/rls-adversarial\.test\.ts''',
+    '''packages/backend/tests/integration/rls-transaction-scoping\.test\.ts''',
+
+    # CI workflow files: contain placeholder test DB URLs using
+    # postgresql:// which don't match the global regex allowlist due to
+    # the secret-capture matching quirk described above. release.yml is
+    # left OUT of the allowlist because its only secrets are
+    # ${{ secrets.X }} references, not literal values.
+    '''\.github/workflows/ci\.yml''',
+
+    # Business model and audit docs contain example connection strings in
+    # prose form that vary (postgres:// and postgresql:// prefixes, various
+    # hosts). Whole-file allowlisted because line-anchored regex would
+    # require enumerating every prose example.
+    '''docs/oss-saas-business-model\.md''',
+    '''docs/v1\.1-production-readiness-audit-2026-04-07\.md''',
   ]
 
   # Line-anchored regexes — match specific placeholder values anywhere in

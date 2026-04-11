@@ -41,9 +41,9 @@
  * update this file too.
  */
 
-import picomatch from "picomatch";
 import { policySchema } from "@loopstorm/schemas";
 import type { PolicyPack } from "@loopstorm/schemas";
+import picomatch from "picomatch";
 
 /**
  * Result of a policy validation.
@@ -313,10 +313,7 @@ function checkEscalateToHumanInvariant(policy: PolicyPack): PolicyValidationErro
     if (rule.tool === ESCALATE_TO_HUMAN_TOOL) {
       errors.push({
         path: `${rulePath}.tool`,
-        message:
-          `Policy rejected: rule '${rule.name}' (pattern '${rule.tool}') would block ` +
-          `'${ESCALATE_TO_HUMAN_TOOL}', which is a protected invariant. ` +
-          "See ADR-012 (C13) and CLAUDE.md absolute rule #3.",
+        message: `Policy rejected: rule '${rule.name}' (pattern '${rule.tool}') would block '${ESCALATE_TO_HUMAN_TOOL}', which is a protected invariant. See ADR-012 (C13) and CLAUDE.md absolute rule #3.`,
         code: "ESCALATE_TO_HUMAN_BLOCKED",
       });
     }
@@ -328,10 +325,7 @@ function checkEscalateToHumanInvariant(policy: PolicyPack): PolicyValidationErro
       if (globMatchesEscalate) {
         errors.push({
           path: `${rulePath}.tool_pattern`,
-          message:
-            `Policy rejected: rule '${rule.name}' (pattern '${rule.tool_pattern}') would block ` +
-            `'${ESCALATE_TO_HUMAN_TOOL}', which is a protected invariant. ` +
-            "See ADR-012 (C13) and CLAUDE.md absolute rule #3.",
+          message: `Policy rejected: rule '${rule.name}' (pattern '${rule.tool_pattern}') would block '${ESCALATE_TO_HUMAN_TOOL}', which is a protected invariant. See ADR-012 (C13) and CLAUDE.md absolute rule #3.`,
           code: "ESCALATE_TO_HUMAN_BLOCKED",
         });
       }

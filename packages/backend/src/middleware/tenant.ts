@@ -56,10 +56,7 @@ export type DrizzleClient = Pick<Database, "execute">;
  *                 NEVER pass the db singleton here — that breaks the LOCAL scope.
  * @param tenantId - UUID of the current tenant
  */
-export async function setTenantRlsContext(
-  client: DrizzleClient,
-  tenantId: string
-): Promise<void> {
+export async function setTenantRlsContext(client: DrizzleClient, tenantId: string): Promise<void> {
   const claims = JSON.stringify({ tenant_id: tenantId });
   await client.execute(sql`SELECT set_config('request.jwt.claims', ${claims}, true)`);
 }

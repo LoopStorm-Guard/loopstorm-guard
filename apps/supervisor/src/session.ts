@@ -16,16 +16,9 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import type { SupervisorConfig } from "./config.js";
 import type { BackendClient } from "./lib/backend-client.js";
+import { buildTriggerMessage, checkTripwire, sanitizeToolResult } from "./lib/sanitize.js";
+import { DEEPSEEK_COST_PER_INPUT_TOKEN, DEEPSEEK_COST_PER_OUTPUT_TOKEN } from "./llm/deepseek.js";
 import type { ContentBlock, LLMProvider, LLMResponse, Message } from "./llm/provider.js";
-import {
-  DEEPSEEK_COST_PER_INPUT_TOKEN,
-  DEEPSEEK_COST_PER_OUTPUT_TOKEN,
-} from "./llm/deepseek.js";
-import {
-  buildTriggerMessage,
-  checkTripwire,
-  sanitizeToolResult,
-} from "./lib/sanitize.js";
 import { getSystemPrompt } from "./prompt.js";
 import { TOOL_REGISTRY, getToolDefinitions } from "./tools/registry.js";
 

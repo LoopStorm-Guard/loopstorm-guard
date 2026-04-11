@@ -95,8 +95,7 @@ function validateProductionOrigins(origins: string[], nodeEnv: string): void {
 
   if (invalidOrigins.length > 0) {
     throw new Error(
-      `[loopstorm-api] STARTUP FAILED: Invalid origins in ALLOWED_ORIGINS: ${invalidOrigins.join(", ")}. ` +
-        "Each origin must be a valid URL with an explicit protocol (https:// or http://)."
+      `[loopstorm-api] STARTUP FAILED: Invalid origins in ALLOWED_ORIGINS: ${invalidOrigins.join(", ")}. Each origin must be a valid URL with an explicit protocol (https:// or http://).`
     );
   }
 }

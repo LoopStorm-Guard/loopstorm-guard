@@ -21,7 +21,7 @@ const DEEPSEEK_API_URL = "https://api.deepseek.com/chat/completions";
 /** Cost per input token for DeepSeek V3.2 (`deepseek-chat`): $0.27 / 1M tokens. */
 export const DEEPSEEK_COST_PER_INPUT_TOKEN = 0.27 / 1_000_000;
 /** Cost per output token for DeepSeek V3.2 (`deepseek-chat`): $1.10 / 1M tokens. */
-export const DEEPSEEK_COST_PER_OUTPUT_TOKEN = 1.10 / 1_000_000;
+export const DEEPSEEK_COST_PER_OUTPUT_TOKEN = 1.1 / 1_000_000;
 
 export class DeepSeekProvider implements LLMProvider {
   private apiKey: string;
