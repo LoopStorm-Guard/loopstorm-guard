@@ -16,6 +16,8 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import type { SupervisorConfig } from "./config.js";
 import type { BackendClient } from "./lib/backend-client.js";
+import { buildTriggerMessage, checkTripwire, sanitizeToolResult } from "./lib/sanitize.js";
+import { DEEPSEEK_COST_PER_INPUT_TOKEN, DEEPSEEK_COST_PER_OUTPUT_TOKEN } from "./llm/deepseek.js";
 import type { ContentBlock, LLMProvider, LLMResponse, Message } from "./llm/provider.js";
 import { getSystemPrompt } from "./prompt.js";
 import { TOOL_REGISTRY, getToolDefinitions } from "./tools/registry.js";
@@ -46,13 +48,15 @@ export interface SessionResult {
 
 // ---------------------------------------------------------------------------
 // Cost constants (per-token pricing for budget tracking)
+// T4: DeepSeek V3.2 pricing imported from llm/deepseek.ts (canonical source).
+// Previous Claude Haiku constants ($0.25/$1.25 per 1M) replaced.
 // ---------------------------------------------------------------------------
 
-/** Approximate cost per input token (Claude Haiku pricing). */
-const COST_PER_INPUT_TOKEN = 0.25 / 1_000_000;
-/** Approximate cost per output token (Claude Haiku pricing). */
-const COST_PER_OUTPUT_TOKEN = 1.25 / 1_000_000;
-/** Maximum cost per session in USD. */
+/** Cost per input token (DeepSeek V3.2 `deepseek-chat`). From deepseek.ts. */
+const COST_PER_INPUT_TOKEN = DEEPSEEK_COST_PER_INPUT_TOKEN;
+/** Cost per output token (DeepSeek V3.2 `deepseek-chat`). From deepseek.ts. */
+const COST_PER_OUTPUT_TOKEN = DEEPSEEK_COST_PER_OUTPUT_TOKEN;
+/** Maximum cost per session in USD (ADR-012, ADR-017). */
 const MAX_SESSION_COST_USD = 2.0;
 /** Maximum tool calls per session. */
 const MAX_TOOL_CALLS = 100;
@@ -110,10 +114,12 @@ export class SupervisorSession {
       const systemPrompt = getSystemPrompt(this.config);
       const toolDefs = getToolDefinitions();
 
+      // T5: use buildTriggerMessage — wraps trigger/runId in XML delimiters
+      // and caps length, preventing prompt injection via the trigger payload.
       const messages: Message[] = [
         {
           role: "user",
-          content: `A trigger has fired. Trigger type: "${this.trigger}". Triggering run ID: "${this.triggerRunId}". Please analyze this run and take appropriate action according to your workflow guidelines.`,
+          content: buildTriggerMessage(this.trigger, this.triggerRunId),
         },
       ];
 
@@ -152,6 +158,17 @@ export class SupervisorSession {
         // Track usage
         this.totalInputTokens += response.usage.input_tokens;
         this.totalOutputTokens += response.usage.output_tokens;
+
+        // T5: tripwire check — if the LLM response contains the internal key,
+        // terminate immediately (possible secret exfiltration via injection).
+        const responseText = response.content
+          .filter((b): b is ContentBlock & { type: "text" } => b.type === "text")
+          .map((b) => b.text)
+          .join("\n");
+        if (checkTripwire(responseText, this.config.internalKey)) {
+          terminationReason = "error";
+          break;
+        }
 
         // Check for end of conversation
         if (response.stop_reason === "end_turn" || response.stop_reason === "max_tokens") {
@@ -193,7 +210,8 @@ export class SupervisorSession {
                 this.supervisorRunId,
                 toolBlock.input as Record<string, unknown>
               );
-              resultContent = JSON.stringify(result);
+              // T5: sanitize tool results — cap length to prevent context stuffing
+              resultContent = sanitizeToolResult(result);
             } catch (err) {
               resultContent = JSON.stringify({
                 error: err instanceof Error ? err.message : String(err),

@@ -38,13 +38,15 @@ const app = new Hono();
 // CORS — must come before all route handlers
 // ---------------------------------------------------------------------------
 
-// Parse allowed origins from env. Fall back to localhost for development only.
-// In production, ALLOWED_ORIGINS must be set — otherwise all CORS requests are rejected.
-const allowedOrigins = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(",").map((o) => o.trim())
-  : env.NODE_ENV === "production"
-    ? []
-    : ["http://localhost:3000"];
+// Parse allowed origins from env.ts (already validated by zod + production guard).
+// In production, ALLOWED_ORIGINS must be set or the server fails to boot (T2 fix).
+// In development, falls back to localhost:3000 if not set.
+const allowedOrigins =
+  (env.ALLOWED_ORIGINS?.length ?? 0) > 0
+    ? (env.ALLOWED_ORIGINS ?? [])
+    : env.NODE_ENV === "production"
+      ? [] // Will never reach here — validateProductionOrigins() would have thrown at startup
+      : ["http://localhost:3000"];
 
 app.use(
   "*",

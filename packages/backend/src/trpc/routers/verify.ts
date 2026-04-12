@@ -19,11 +19,13 @@
  * Performance: for large runs this query may be expensive. The events are
  * fetched in pages of 1000 to avoid loading the entire run into memory.
  * The chain is verified incrementally as pages are fetched.
+ *
+ * ADR-020: All queries use ctx.db (the transaction-scoped client injected
+ * by the protectedProcedure middleware). Never import the db singleton here.
  */
 
 import { and, asc, eq, gt } from "drizzle-orm";
 import { z } from "zod";
-import { db } from "../../db/client.js";
 import { events, runs } from "../../db/schema.js";
 import { verifyChain } from "../../lib/chain-verify.js";
 import { protectedProcedure, router } from "../trpc.js";
@@ -52,8 +54,9 @@ export const verifyRouter = router({
     .query(async ({ input, ctx }) => {
       const tenantId = ctx.tenantId ?? "";
 
+      // ADR-020: ctx.db is the transaction-scoped client from the middleware.
       // Verify the run exists and belongs to this tenant
-      const [run] = await db
+      const [run] = await ctx.db
         .select({
           run_id: runs.run_id,
           event_count: runs.event_count,
@@ -92,7 +95,7 @@ export const verifyRouter = router({
       let hasMore = true;
 
       while (hasMore) {
-        const page = await db
+        const page = await ctx.db
           .select({
             seq: events.seq,
             hash: events.hash,

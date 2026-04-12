@@ -33,7 +33,6 @@ import { createHash } from "node:crypto";
 import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
-import { db } from "../../db/client.js";
 import { events, runs } from "../../db/schema.js";
 import { triggerQueue } from "../../lib/trigger-queue.js";
 import type { TriggerMessage } from "../../lib/trigger-queue.js";
@@ -279,8 +278,13 @@ export const eventsRouter = router({
         }
       }
 
-      // --- Step 5: Execute within a single transaction ---
-      const result = await db.transaction(async (tx) => {
+      // --- Step 5: Execute within the middleware-provided transaction ---
+      // ADR-020: The dualAuthMiddleware already opened a transaction and set
+      // the tenant RLS context on ctx.db. We use ctx.db directly here — no
+      // nested db.transaction() is needed. If any query below throws, the
+      // middleware's outer transaction rolls back, clearing the RLS context.
+      const result = await (async () => {
+        const tx = ctx.db;
         // Fetch the existing run (if any) for continuation verification
         const [existingRun] = await tx
           .select({
@@ -515,7 +519,7 @@ export const eventsRouter = router({
             totalCostUsd: newTotalCost,
           },
         };
-      });
+      })(); // End of IIFE — uses ctx.db (transaction from middleware, ADR-020)
 
       // --- Fire-and-forget: trigger evaluation after tx commit ---
       // Trigger evaluation is synchronous and fast (< 1 ms). The actual

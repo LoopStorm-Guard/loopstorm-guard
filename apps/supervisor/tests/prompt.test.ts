@@ -14,7 +14,7 @@ function makeConfig(overrides: Partial<SupervisorConfig> = {}): SupervisorConfig
   return {
     apiKey: "test",
     backendUrl: "http://localhost:3001",
-    anthropicApiKey: null,
+    llmApiKey: null,
     model: "test",
     systemPromptOverride: null,
     internalKey: null,
@@ -31,6 +31,12 @@ describe("getSystemPrompt", () => {
     expect(DEFAULT_SYSTEM_PROMPT).toContain("BEHAVIORAL GUIDELINES");
     expect(DEFAULT_SYSTEM_PROMPT).toContain("escalate_to_human");
     expect(DEFAULT_SYSTEM_PROMPT).toContain("compute_risk_score");
+  });
+
+  test("T5: default prompt includes prompt injection defense section", () => {
+    expect(DEFAULT_SYSTEM_PROMPT).toContain("untrusted_data");
+    expect(DEFAULT_SYSTEM_PROMPT).toContain("DATA ONLY");
+    expect(DEFAULT_SYSTEM_PROMPT).toContain("prompt injection attack");
   });
 
   test("AC-B8-1: returns default when no override", () => {

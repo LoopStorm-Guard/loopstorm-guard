@@ -19,11 +19,13 @@
  * Rationale for cursor-over-offset: offset-based pagination is O(n) in
  * PostgreSQL for large tables. Cursor-based pagination is O(log n) using
  * the timestamp/seq index.
+ *
+ * ADR-020: All queries use ctx.db (the transaction-scoped client injected
+ * by the protectedProcedure middleware). Never import the db singleton here.
  */
 
 import { and, asc, desc, eq, gt, lt } from "drizzle-orm";
 import { z } from "zod";
-import { db } from "../../db/client.js";
 import { events, runs } from "../../db/schema.js";
 import { protectedProcedure, router } from "../trpc.js";
 
@@ -72,7 +74,8 @@ export const runsRouter = router({
         conditions.push(eq(runs.status, input.status));
       }
 
-      const rows = await db
+      // ADR-020: ctx.db is the transaction-scoped client from the middleware.
+      const rows = await ctx.db
         .select({
           run_id: runs.run_id,
           tenant_id: runs.tenant_id,
@@ -128,7 +131,8 @@ export const runsRouter = router({
     .query(async ({ input, ctx }) => {
       const tenantId = ctx.tenantId ?? "";
 
-      const [row] = await db
+      // ADR-020: ctx.db is the transaction-scoped client from the middleware.
+      const [row] = await ctx.db
         .select()
         .from(runs)
         .where(and(eq(runs.run_id, input.run_id), eq(runs.tenant_id, tenantId)))
@@ -174,9 +178,10 @@ export const runsRouter = router({
     .query(async ({ input, ctx }) => {
       const tenantId = ctx.tenantId ?? "";
 
+      // ADR-020: ctx.db is the transaction-scoped client from the middleware.
       // First, verify the run exists and belongs to this tenant.
       // If not found, return empty result (not an error — cross-tenant isolation).
-      const [run] = await db
+      const [run] = await ctx.db
         .select({ run_id: runs.run_id })
         .from(runs)
         .where(and(eq(runs.run_id, input.run_id), eq(runs.tenant_id, tenantId)))
@@ -197,7 +202,7 @@ export const runsRouter = router({
         conditions.push(eq(events.event_type, input.event_type));
       }
 
-      const rows = await db
+      const rows = await ctx.db
         .select({
           id: events.id,
           run_id: events.run_id,

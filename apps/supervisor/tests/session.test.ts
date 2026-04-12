@@ -4,7 +4,7 @@
  *
  * These test the session orchestration logic: tool-use loop, budget tracking,
  * and termination conditions. They do NOT require a running backend or
- * ANTHROPIC_API_KEY.
+ * LOOPSTORM_LLM_API_KEY.
  *
  * AC-B9-1: Session generates valid supervisorRunId format.
  * AC-B9-5: Session stops on end_turn stop reason.
@@ -120,7 +120,7 @@ describe("SupervisorSession", () => {
       config: {
         apiKey: "test",
         backendUrl: "http://localhost:3001",
-        anthropicApiKey: null,
+        llmApiKey: null,
         model: "test",
         systemPromptOverride: null,
         internalKey: null,

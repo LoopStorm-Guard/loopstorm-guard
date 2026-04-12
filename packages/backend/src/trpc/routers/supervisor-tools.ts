@@ -19,12 +19,14 @@
  * - recordLearning      — insert a learning record (auto-approved)
  *
  * Spec reference: specs/task-briefs/v1.1-ai-supervisor.md, Task SUP-A5.
+ *
+ * ADR-020: All queries use ctx.db (the transaction-scoped client injected
+ * by the apiKeyProcedure middleware). Never import the db singleton here.
  */
 
 import { TRPCError } from "@trpc/server";
 import { and, asc, count, eq, gt, gte, sql } from "drizzle-orm";
 import { z } from "zod";
-import { db } from "../../db/client.js";
 import {
   events,
   policyPacks,
@@ -116,7 +118,8 @@ export const supervisorToolsRouter = router({
         conditions.push(eq(events.event_type, input.event_type));
       }
 
-      const rows = await db
+      // ADR-020: ctx.db is the transaction-scoped client from the middleware.
+      const rows = await ctx.db
         .select({
           id: events.id,
           run_id: events.run_id,
@@ -207,8 +210,9 @@ export const supervisorToolsRouter = router({
 
       const cutoff = new Date(Date.now() - input.lookback_days * 24 * 60 * 60 * 1000);
 
+      // ADR-020: ctx.db is the transaction-scoped client from the middleware.
       // Main run aggregates
-      const [runAgg] = await db
+      const [runAgg] = await ctx.db
         .select({
           run_count: count(),
           avg_cost_usd: sql<number>`AVG(${runs.total_cost_usd})`,
@@ -249,7 +253,7 @@ export const supervisorToolsRouter = router({
       }
 
       // Deny counts from events
-      const [denyAgg] = await db
+      const [denyAgg] = await ctx.db
         .select({
           total_deny_count: sql<number>`COUNT(*) FILTER (WHERE ${events.decision} = 'deny')`,
           total_decision_count: sql<number>`COUNT(*) FILTER (WHERE ${events.event_type} = 'policy_decision')`,
@@ -298,7 +302,8 @@ export const supervisorToolsRouter = router({
       requireSupervisorScope(ctx);
       const tenantId = ctx.tenantId ?? "";
 
-      const [row] = await db
+      // ADR-020: ctx.db is the transaction-scoped client from the middleware.
+      const [row] = await ctx.db
         .select()
         .from(policyPacks)
         .where(and(eq(policyPacks.id, input.id), eq(policyPacks.tenant_id, tenantId)))
@@ -346,7 +351,8 @@ export const supervisorToolsRouter = router({
       // Match on first 16 hex chars of fingerprint prefix
       const prefix = input.fingerprint.slice(0, 16);
 
-      const matchingEvents = await db
+      // ADR-020: ctx.db is the transaction-scoped client from the middleware.
+      const matchingEvents = await ctx.db
         .select({
           run_id: events.run_id,
           call_seq_fingerprint: events.call_seq_fingerprint,
@@ -379,7 +385,7 @@ export const supervisorToolsRouter = router({
       }
 
       // Fetch run details
-      const matchedRuns = await db
+      const matchedRuns = await ctx.db
         .select({
           run_id: runs.run_id,
           agent_name: runs.agent_name,
@@ -418,7 +424,8 @@ export const supervisorToolsRouter = router({
       requireSupervisorScope(ctx);
       const tenantId = ctx.tenantId ?? "";
 
-      const [created] = await db
+      // ADR-020: ctx.db is the transaction-scoped client from the middleware.
+      const [created] = await ctx.db
         .insert(supervisorProposals)
         .values({
           tenant_id: tenantId,
@@ -475,7 +482,8 @@ export const supervisorToolsRouter = router({
       requireSupervisorScope(ctx);
       const tenantId = ctx.tenantId ?? "";
 
-      const [created] = await db
+      // ADR-020: ctx.db is the transaction-scoped client from the middleware.
+      const [created] = await ctx.db
         .insert(supervisorEscalations)
         .values({
           tenant_id: tenantId,
@@ -535,7 +543,8 @@ export const supervisorToolsRouter = router({
 
       const now = new Date();
 
-      const [created] = await db
+      // ADR-020: ctx.db is the transaction-scoped client from the middleware.
+      const [created] = await ctx.db
         .insert(supervisorProposals)
         .values({
           tenant_id: tenantId,
@@ -614,7 +623,8 @@ export const supervisorToolsRouter = router({
 
       const rawLine = JSON.stringify(input);
 
-      await db
+      // ADR-020: ctx.db is the transaction-scoped client from the middleware.
+      await ctx.db
         .insert(events)
         .values({
           run_id: input.run_id,
@@ -646,14 +656,14 @@ export const supervisorToolsRouter = router({
         .onConflictDoNothing({ target: [events.run_id, events.seq] });
 
       // Upsert the supervisor's run record
-      const existingRun = await db
+      const existingRun = await ctx.db
         .select({ run_id: runs.run_id })
         .from(runs)
         .where(and(eq(runs.run_id, input.run_id), eq(runs.tenant_id, tenantId)))
         .limit(1);
 
       if (existingRun.length === 0) {
-        await db
+        await ctx.db
           .insert(runs)
           .values({
             run_id: input.run_id,
@@ -671,7 +681,7 @@ export const supervisorToolsRouter = router({
           })
           .onConflictDoNothing({ target: runs.run_id });
       } else {
-        await db
+        await ctx.db
           .update(runs)
           .set({
             last_seq: input.seq,

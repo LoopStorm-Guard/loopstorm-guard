@@ -1,0 +1,80 @@
+# Dependabot configuration — LoopStorm Guard
+#
+# Keeps dependencies up to date across three ecosystems:
+#   1. GitHub Actions (workflows use SHA-pinned actions — Dependabot surfaces
+#      upgrade PRs that bump both the SHA and the trailing tag comment)
+#   2. npm / Bun — monorepo workspaces under apps/* and packages/*
+#   3. Cargo — Rust workspace (engine + CLI)
+#
+# All updates run weekly on Monday to batch PR review load.
+# Grouping reduces PR churn for related packages (types, @trpc/*, drizzle-*,
+# next, dev-only minor/patch bumps).
+#
+# Commit prefixes align with conventional-commit convention enforced by CI:
+#   - "ci" for GitHub Actions updates
+#   - "chore(deps)" for npm and cargo
+
+version: 2
+updates:
+  # ── GitHub Actions ────────────────────────────────────────────────────────
+  # Workflows are SHA-pinned (see ci(workflows): SHA-pin all third-party
+  # GitHub Actions). Dependabot resolves new SHAs from the trailing tag
+  # comment (`# v4.3.1`) and opens upgrade PRs with both bumped.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "ci"
+    groups:
+      actions-minor-patch:
+        update-types: ["minor", "patch"]
+
+  # ── npm / Bun monorepo ────────────────────────────────────────────────────
+  # Root package.json declares the Bun workspaces; Dependabot walks every
+  # workspace member automatically when directory: "/" is set.
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      types:
+        patterns:
+          - "@types/*"
+      trpc:
+        patterns:
+          - "@trpc/*"
+      drizzle:
+        patterns:
+          - "drizzle-*"
+          - "drizzle-kit"
+      next:
+        patterns:
+          - "next"
+          - "@next/*"
+          - "eslint-config-next"
+      better-auth:
+        patterns:
+          - "better-auth"
+          - "@better-auth/*"
+      dev-minor-patch:
+        dependency-type: "development"
+        update-types: ["minor", "patch"]
+
+  # ── Cargo (Rust workspace) ────────────────────────────────────────────────
+  # Root Cargo.toml is the workspace manifest; members include apps/engine
+  # and apps/cli. Dependabot updates the root Cargo.lock.
+  - package-ecosystem: "cargo"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
