@@ -40,7 +40,7 @@ hex = "0.4"
 uuid = { version = "1.11", features = ["v4", "v7"] }
 
 # JSON schema validation
-jsonschema = "0.18"
+jsonschema = "0.46"
 
 # YAML parsing
 serde_yaml = "0.9"
