@@ -1016,7 +1016,7 @@ function PricingSection() {
                 ))}
               </ul>
               <a
-                href="mailto:contact@loopstorm.dev"
+                href="mailto:contact@loop-storm.com"
                 className="mt-auto inline-flex items-center justify-center gap-2 rounded-xl border border-[var(--color-border)] bg-transparent px-6 py-3 text-[15px] font-semibold text-[oklch(0.8_0_0)] no-underline transition-all duration-300 hover:border-[var(--color-accent-purple)] hover:text-white"
               >
                 Contact Sales
@@ -1261,7 +1261,7 @@ function SiteFooter() {
             <ul className="flex flex-col gap-2.5">
               {[
                 { label: "Sign In", href: "/sign-in" },
-                { label: "Contact", href: "mailto:contact@loopstorm.dev" },
+                { label: "Contact", href: "mailto:contact@loop-storm.com" },
               ].map((link) => (
                 <li key={link.label}>
                   <a

@@ -41,7 +41,7 @@ const envSchema = z.object({
 
   // Better Auth
   BETTER_AUTH_SECRET: z.string().min(32),
-  BETTER_AUTH_URL: z.string().url(), // e.g., "https://api.loopstorm.dev"
+  BETTER_AUTH_URL: z.string().url(), // e.g., "https://api.loop-storm.com"
 
   // OAuth (optional — Google OAuth only activates when both vars are present)
   GOOGLE_CLIENT_ID: z.string().optional(),

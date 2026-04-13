@@ -22,7 +22,7 @@ Examples of unacceptable behavior:
 ## Enforcement
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may be
-reported by contacting the project team at **conduct@loopstorm.dev**.
+reported by contacting the project team at **conduct@loop-storm.com**.
 
 All complaints will be reviewed and investigated promptly and fairly.
 
