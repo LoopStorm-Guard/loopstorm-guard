@@ -10,7 +10,7 @@
 
 import { test, expect } from "@playwright/test";
 
-const TEST_EMAIL = process.env.TEST_USER_EMAIL ?? "test@loopstorm.dev";
+const TEST_EMAIL = process.env.TEST_USER_EMAIL ?? "test@loop-storm.com";
 const TEST_PASSWORD = process.env.TEST_USER_PASSWORD ?? "test-password-123";
 
 test.describe("Authentication", () => {

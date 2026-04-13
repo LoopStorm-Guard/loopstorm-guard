@@ -206,7 +206,7 @@ Here is every secret the system uses, where it lives, and what it does:
 | `GOOGLE_CLIENT_SECRET` | OAuth client secret. Paired with the client ID. | Hosting provider env vars | Attacker can impersonate your app in Google OAuth flows. |
 | `LOOPSTORM_SUPERVISOR_INTERNAL_KEY` | Shared secret between the backend and the AI Supervisor process. Authenticates trigger dispatch requests. | Hosting provider env vars (both backend and supervisor) | Attacker can send fake triggers to the supervisor, causing unnecessary LLM spend. |
 | `LOOPSTORM_API_KEY` | API key for the supervisor to authenticate with the backend's tRPC API. Created via the backend's `apiKeys.create` procedure. Format: `lsg_` + 32 hex chars. | Hosting provider env vars (supervisor) | Attacker can read event data and create proposals through the backend API. |
-| `ALLOWED_ORIGINS` | Comma-separated list of allowed CORS origins (e.g., `https://app.loopstorm.dev`). | Hosting provider env vars | Not a secret per se, but misconfiguration allows cross-origin attacks. |
+| `ALLOWED_ORIGINS` | Comma-separated list of allowed CORS origins (e.g., `https://app.loop-storm.com`). | Hosting provider env vars | Not a secret per se, but misconfiguration allows cross-origin attacks. |
 
 #### Supervisor Secrets (`apps/supervisor`)
 
@@ -218,7 +218,7 @@ Here is every secret the system uses, where it lives, and what it does:
 
 | Secret | What It Does | Where It Lives |
 |--------|-------------|----------------|
-| `NEXT_PUBLIC_API_URL` | The URL of your backend API (e.g., `https://api.loopstorm.dev`). Public by design -- the browser needs to know where to send requests. | Vercel project env vars |
+| `NEXT_PUBLIC_API_URL` | The URL of your backend API (e.g., `https://api.loop-storm.com`). Public by design -- the browser needs to know where to send requests. | Vercel project env vars |
 | `NEXT_PUBLIC_BETTER_AUTH_URL` | The URL for auth endpoints. Also public by design. | Vercel project env vars |
 
 Note: Frontend "secrets" prefixed with `NEXT_PUBLIC_` are not secret at all.
@@ -335,7 +335,7 @@ barrier -- it is a legal and business barrier.
 
 Even if a competitor forked everything and built their own hosted service:
 
-- They cannot use your **brand** ("LoopStorm Guard" and the loopstorm.dev
+- They cannot use your **brand** ("LoopStorm Guard" and the loop-storm.com
   domain are yours).
 - They cannot access your **customers** (customer relationships, contracts,
   support history).
@@ -434,8 +434,8 @@ You provide (running on your servers):
 - `BETTER_AUTH_SECRET` -- your session signing key.
 - `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` -- your Google OAuth app
   (so customers can "Sign in with Google" on your dashboard).
-- `ALLOWED_ORIGINS` -- `https://app.loopstorm.dev`.
-- `NEXT_PUBLIC_API_URL` -- `https://api.loopstorm.dev`.
+- `ALLOWED_ORIGINS` -- `https://app.loop-storm.com`.
+- `NEXT_PUBLIC_API_URL` -- `https://api.loop-storm.com`.
 
 **Revenue model:** Monthly subscription based on event volume, team seats,
 or flat tier pricing.
@@ -484,7 +484,7 @@ Mode 1 ($$$/yr)   --> Enterprise license, self-hosted, support contract
 | Rust binaries | GitHub Releases (public) | Anyone can download | `loopstorm-guard-v1.1.0-x86_64-unknown-linux-gnu.tar.gz`, `checksums-sha256.txt` |
 | Python shim | PyPI (public) | `pip install loopstorm` | Published by `release.yml` using `PYPI_TOKEN` |
 | TypeScript shim | npm (public) | `bun add @loopstorm/shim-ts` | Published by `release.yml` using `NPM_TOKEN` |
-| Documentation | GitHub + docs site (public) | Anyone can read | `docs/`, deployed to `docs.loopstorm.dev` |
+| Documentation | GitHub + docs site (public) | Anyone can read | `docs/`, deployed to `docs.loop-storm.com` |
 | JSON schemas | GitHub + npm (public) | Anyone can validate against | `schemas/`, published as `@loopstorm/schemas` |
 | CI/CD tokens | GitHub Secrets (private) | Only repository admins | `PYPI_TOKEN`, `NPM_TOKEN`, `VERCEL_TOKEN`, `VERCEL_PROJECT_ID_API`, `VERCEL_PROJECT_ID_WEB` |
 | Production database | Supabase (private) | Only your backend code, via `DATABASE_URL` | Customer data, runs, events, proposals, escalations |
@@ -492,7 +492,7 @@ Mode 1 ($$$/yr)   --> Enterprise license, self-hosted, support contract
 | LLM API key | Hosting provider env vars (private) | Only your supervisor code, via `ANTHROPIC_API_KEY` | Billed to your Anthropic account |
 | OAuth credentials | Hosting provider env vars (private) | Only your backend code | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` from Google Cloud Console |
 | Payment processing | Stripe Dashboard (private) | Only you | Stripe API keys, webhook signing secrets (future) |
-| Domain names | DNS registrar (private) | Only you | `loopstorm.dev`, `api.loopstorm.dev`, `app.loopstorm.dev` |
+| Domain names | DNS registrar (private) | Only you | `loop-storm.com`, `api.loop-storm.com`, `app.loop-storm.com` |
 | SSL certificates | Hosting provider (auto-provisioned) | Transparent | Vercel handles automatically for all deployed projects |
 | Customer data backups | Supabase / S3 (private) | Only you | Point-in-time recovery, offsite backups |
 
@@ -656,12 +656,12 @@ specific steps to go from "code on GitHub" to "revenue-generating SaaS."
 ### Phase 1: Foundation (Week 1-2)
 
 **1. Register and configure the domain.**
-- Register `loopstorm.dev` (or your chosen domain).
-- Configure subdomains: `api.loopstorm.dev` (backend), `app.loopstorm.dev`
-  (dashboard), `docs.loopstorm.dev` (documentation). Vercel handles DNS
+- Register `loop-storm.com` (or your chosen domain).
+- Configure subdomains: `api.loop-storm.com` (backend), `app.loop-storm.com`
+  (dashboard), `docs.loop-storm.com` (documentation). Vercel handles DNS
   provisioning and SSL automatically for its domains.
-- Set up email addresses: `contact@loopstorm.dev`,
-  `security@loopstorm.dev`, `support@loopstorm.dev`.
+- Set up email addresses: `contact@loop-storm.com`,
+  `security@loop-storm.com`, `support@loop-storm.com`.
 
 **2. Create accounts with hosting providers.**
 - **Supabase**: Create a production project. Copy the `DATABASE_URL`,
@@ -720,7 +720,7 @@ Add these repository secrets:
   - "Pro" plan: $49/month (or your chosen price).
   - "Enterprise" plan: custom pricing (contact sales).
 - Generate API keys (publishable key + secret key).
-- Set up a webhook endpoint at `https://api.loopstorm.dev/api/stripe/webhook`.
+- Set up a webhook endpoint at `https://api.loop-storm.com/api/stripe/webhook`.
 - Add Stripe secrets to your backend's environment variables:
   - `STRIPE_SECRET_KEY` -- for server-side Stripe API calls.
   - `STRIPE_WEBHOOK_SECRET` -- for verifying webhook signatures.

@@ -12,7 +12,7 @@
 
 Please report security vulnerabilities by emailing:
 
-**security@loopstorm.dev**
+**security@loop-storm.com**
 
 Include:
 - Description of the vulnerability

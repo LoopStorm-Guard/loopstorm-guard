@@ -32,9 +32,9 @@ dependencies = []
 dev = ["pytest>=8.3", "pytest-asyncio>=0.24", "mypy>=1.13", "ruff>=0.8"]
 
 [project.urls]
-Homepage = "https://loopstorm.dev"
-Repository = "https://github.com/loopstorm/loopstorm-guard"
-Documentation = "https://docs.loopstorm.dev"
+Homepage = "https://loop-storm.com"
+Repository = "https://github.com/LoopStorm-Guard/loopstorm-guard"
+Documentation = "https://docs.loop-storm.com"
 
 [tool.setuptools.packages.find]
 where = ["."]

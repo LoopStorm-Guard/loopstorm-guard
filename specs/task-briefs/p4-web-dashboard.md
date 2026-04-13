@@ -148,7 +148,7 @@ CORS issues during development because the frontend and backend appear to
 share the same origin.
 
 **Rationale**: In production, the backend runs on a separate domain
-(e.g., `api.loopstorm.dev`) and CORS is configured properly. In development,
+(e.g., `api.loop-storm.com`) and CORS is configured properly. In development,
 the rewrite proxy is simpler than configuring CORS for `localhost:3000` ->
 `localhost:3001`.
 
@@ -766,7 +766,7 @@ In development, both default to empty string (relative paths), which
 routes through the Next.js rewrite proxy to `http://localhost:3001`.
 
 In production, set to the absolute backend URL
-(e.g., `https://api.loopstorm.dev`).
+(e.g., `https://api.loop-storm.com`).
 
 ---
 

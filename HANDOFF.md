@@ -64,22 +64,12 @@ bun remove @anthropic-ai/sdk --cwd apps/supervisor
 
 ---
 
-## 4. Domain Mismatch — Must Fix
+## 4. Domain Mismatch — DONE
 
-The codebase still references `loopstorm.dev`, `docs.loopstorm.dev`,
-`contact@loopstorm.dev`, and `security@loopstorm.dev` throughout the frontend.
-The actual domain is `loop-storm.com`. Find all occurrences and update them:
-
-| Old | New |
-|---|---|
-| `loopstorm.dev` | `loop-storm.com` |
-| `docs.loopstorm.dev` | `docs.loop-storm.com` (or remove until docs site exists) |
-| `contact@loopstorm.dev` | `contact@loop-storm.com` |
-| `security@loopstorm.dev` | `security@loop-storm.com` |
-| `app.loopstorm.dev` | `app.loop-storm.com` |
-| `api.loopstorm.dev` | `api.loop-storm.com` |
-
-Search with: `grep -r "loopstorm\.dev" packages/web/`
+All `loopstorm.dev` references have been replaced with `loop-storm.com` across
+code, config, and docs. Schema JSON `$id` fields (`schemas.loopstorm.dev`) were
+intentionally left unchanged — updating them requires SHA-256 hash recomputation
+in VERIFY.md and should be handled as a separate schema change.
 
 ---
 
