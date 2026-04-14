@@ -25,10 +25,36 @@ import { getAuthBaseURL } from "./env";
  * - `signUp` — sign up with email/password
  * - `signOut` — sign out and clear session cookie
  * - `useSession` — React hook for current session state
- * - `getSession` — imperative session fetch
  */
 export const authClient = createAuthClient({
   baseURL: getAuthBaseURL(),
 });
 
 export const { signIn, signUp, signOut, useSession } = authClient;
+
+/**
+ * Request a password reset email.
+ *
+ * Better Auth v1.5.6 exposes this as a dynamic client method, but the
+ * TypeScript types don't include it statically. We call $fetch directly
+ * to keep the build type-safe.
+ */
+export async function forgetPassword({ email, redirectTo }: { email: string; redirectTo: string }) {
+  return authClient.$fetch("/forget-password", {
+    method: "POST",
+    body: { email, redirectTo },
+  });
+}
+
+/**
+ * Reset the password using a token from the reset email link.
+ */
+export async function resetPassword({
+  newPassword,
+  token,
+}: { newPassword: string; token: string }) {
+  return authClient.$fetch("/reset-password", {
+    method: "POST",
+    body: { newPassword, token },
+  });
+}

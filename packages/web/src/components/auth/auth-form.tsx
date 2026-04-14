@@ -220,6 +220,22 @@ export function AuthForm({ mode }: AuthFormProps) {
           />
         </div>
 
+        {isSignIn && (
+          <div style={{ textAlign: "right" }}>
+            <a
+              href="/forgot-password"
+              style={{
+                fontSize: "0.75rem",
+                color: "var(--color-accent-amber)",
+                textDecoration: "none",
+              }}
+              data-testid="link-forgot-password"
+            >
+              Forgot password?
+            </a>
+          </div>
+        )}
+
         <button
           type="submit"
           disabled={loading}

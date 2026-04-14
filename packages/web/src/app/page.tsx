@@ -261,7 +261,7 @@ function AnnouncementBanner() {
       <div className="mx-auto flex max-w-6xl items-center justify-center gap-3 px-6 py-2.5">
         <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-accent-green)] shadow-[0_0_6px_var(--color-accent-green)]" />
         <span className="text-[13px] text-[oklch(0.6_0_0)]">
-          <span className="font-semibold text-white">v0.1.0 is live</span> &mdash; LoopStorm Guard
+          <span className="font-semibold text-white">v1.1.0 is live</span> &mdash; LoopStorm Guard
           is now open source.{" "}
           <a
             href="https://github.com/LoopStorm-Guard/loopstorm-guard"
@@ -428,7 +428,7 @@ function HeroSection() {
         <div className="mx-auto mt-20 max-w-3xl">
           <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
             <StatCard value="< 1ms" label="P99 Latency" />
-            <StatCard value="67+" label="Unit Tests" />
+            <StatCard value="450+" label="Unit Tests" />
             <StatCard value="0" label="Network Deps" />
             <StatCard value="5" label="Control Stages" />
           </div>

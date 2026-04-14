@@ -1,0 +1,173 @@
+# SPDX-License-Identifier: MIT
+# Deployment pipeline for LoopStorm Guard (ADR-015).
+#
+# Job graph:
+#
+#   migrate
+#     ├─> deploy-api   (needs: migrate)
+#     └─> deploy-web   (needs: migrate)
+#
+# Ordering guarantee: migrations must succeed before either deploy job runs.
+# A failed migration aborts the entire deploy — the API is NEVER deployed
+# with a stale schema (absolute rule per platform engineering standards).
+#
+# Secrets required (all already provisioned per HANDOFF.md §2):
+#   VERCEL_TOKEN             — Vercel personal access token
+#   VERCEL_ORG_ID            — Vercel organization ID (GMW Solutions LLC)
+#   VERCEL_PROJECT_ID_API    — Vercel project ID for loopstorm-api
+#   VERCEL_PROJECT_ID_WEB    — Vercel project ID for loopstorm-web
+#   PRODUCTION_DATABASE_URL  — Full Postgres DSN used by drizzle-kit migrate
+#                              (may differ from the runtime DATABASE_URL)
+
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Least-privilege default: deploy jobs need `contents: read` to check out
+# the repository. No job writes back to the repo or creates releases.
+permissions:
+  contents: read
+
+# Only one deploy can run at a time on main. Cancel any in-flight run when a
+# newer push arrives — we want the latest code, not a queued intermediate.
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  BUN_VERSION: "1.2.5"
+
+jobs:
+  # ─────────────────────────────────────────────────────────────────────────
+  # Job 1: Run database migrations
+  #
+  # Uses drizzle-kit to apply all pending migrations against the production
+  # database. Migration failure aborts the entire deploy pipeline — the API
+  # is NEVER started with a stale schema.
+  #
+  # PRODUCTION_DATABASE_URL must be the direct Supabase connection string
+  # (not the pooled PgBouncer URL) so that drizzle-kit can run DDL statements
+  # that are incompatible with PgBouncer transaction mode.
+  # ─────────────────────────────────────────────────────────────────────────
+  migrate:
+    name: Run DB Migrations
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - uses: oven-sh/setup-bun@4bc047ad259df6fc24a6c9b0f9a0cb08cf17fbe5 # v2.0.1
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Apply migrations
+        run: bun run --cwd packages/backend db:migrate
+        env:
+          DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+          # drizzle-kit migrate reads DATABASE_URL.
+          # BETTER_AUTH_SECRET and other runtime vars are not needed here.
+          NODE_ENV: production
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Job 2: Deploy backend API to Vercel (loopstorm-api project)
+  #
+  # Deploys packages/backend to Vercel Functions under api.loop-storm.com.
+  # The Hono app is exported via api/index.ts using hono/vercel.
+  # Cron jobs declared in vercel.json replace the in-process setInterval
+  # background workers (ADR-015 AC-15-4).
+  #
+  # Step breakdown:
+  #   1. vercel pull  — download the project's build settings from Vercel
+  #   2. vercel build — produce the .vercel/output directory
+  #   3. vercel deploy --prebuilt — upload the prebuilt output to Vercel
+  #
+  # This three-step pattern is the Vercel-recommended CI/CD approach.
+  # It avoids running `vercel --prod` directly (which rebuilds on Vercel's
+  # side and cannot use GitHub Actions' cache or runner environment).
+  # ─────────────────────────────────────────────────────────────────────────
+  deploy-api:
+    name: Deploy API (Vercel)
+    needs: migrate
+    runs-on: ubuntu-22.04
+    environment: production
+
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - uses: oven-sh/setup-bun@4bc047ad259df6fc24a6c9b0f9a0cb08cf17fbe5 # v2.0.1
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Pull Vercel project settings
+        working-directory: packages/backend
+        run: bunx vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_API }}
+
+      - name: Build for Vercel
+        working-directory: packages/backend
+        run: bunx vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_API }}
+
+      - name: Deploy prebuilt output to Vercel
+        working-directory: packages/backend
+        run: bunx vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_API }}
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Job 3: Deploy web frontend to Vercel (loopstorm-web project)
+  #
+  # Deploys packages/web to Vercel under app.loop-storm.com.
+  # Depends on `migrate` (not `deploy-api`) — web can deploy in parallel
+  # with the API once migrations have succeeded. The API deploy is not a
+  # strict gate for the web deploy unless a web build step requires the API.
+  # ─────────────────────────────────────────────────────────────────────────
+  deploy-web:
+    name: Deploy Web (Vercel)
+    needs: migrate
+    runs-on: ubuntu-22.04
+    environment: production
+
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - uses: oven-sh/setup-bun@4bc047ad259df6fc24a6c9b0f9a0cb08cf17fbe5 # v2.0.1
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Pull Vercel project settings
+        working-directory: packages/web
+        run: bunx vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_WEB }}
+
+      - name: Build for Vercel
+        working-directory: packages/web
+        run: bunx vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_WEB }}
+
+      - name: Deploy prebuilt output to Vercel
+        working-directory: packages/web
+        run: bunx vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_WEB }}

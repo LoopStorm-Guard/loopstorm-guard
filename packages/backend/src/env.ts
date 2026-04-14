@@ -47,6 +47,10 @@ const envSchema = z.object({
   GOOGLE_CLIENT_ID: z.string().optional(),
   GOOGLE_CLIENT_SECRET: z.string().optional(),
 
+  // Email delivery via Resend (optional — Mode 0 air-gapped deployments do not
+  // send email. When unset, auth email flows log a warning and return early.)
+  RESEND_API_KEY: z.string().optional(),
+
   // Server
   PORT: z.coerce.number().int().min(1).max(65535).default(3001),
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
@@ -128,6 +132,7 @@ function loadEnv(): Env {
       BETTER_AUTH_URL: process.env.BETTER_AUTH_URL ?? "http://localhost:3001",
       GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
       GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
+      RESEND_API_KEY: process.env.RESEND_API_KEY,
       PORT: Number(process.env.PORT ?? 3001),
       NODE_ENV: "test",
       ALLOWED_ORIGINS: [], // empty list is fine in test mode

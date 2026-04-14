@@ -31,6 +31,7 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { eq } from "drizzle-orm";
+import { Resend } from "resend";
 import { db } from "./db/client.js";
 import { sessions, tenants, users } from "./db/schema.js";
 import * as schema from "./db/schema.js";
@@ -114,6 +115,26 @@ async function provisionTenantForUser(user: {
   await db.update(sessions).set({ tenant_id: tenantId }).where(eq(sessions.user_id, user.id));
 }
 
+// ---------------------------------------------------------------------------
+// Resend email client (optional — only when RESEND_API_KEY is configured)
+// ---------------------------------------------------------------------------
+
+/**
+ * Resend client for transactional email delivery.
+ *
+ * Null when RESEND_API_KEY is not set. Auth email handlers (verification,
+ * password reset) check for null and log a warning instead of throwing.
+ * This preserves Mode 0 (air-gapped) compatibility — no email is required
+ * for the engine to function offline.
+ */
+const resend = env.RESEND_API_KEY ? new Resend(env.RESEND_API_KEY) : null;
+
+const FROM_ADDRESS = "LoopStorm Guard <noreply@loop-storm.com>";
+
+// ---------------------------------------------------------------------------
+// Social providers
+// ---------------------------------------------------------------------------
+
 // Build social providers config only when OAuth credentials are present.
 // This lets local development work without OAuth credentials.
 const socialProviders: Parameters<typeof betterAuth>[0]["socialProviders"] =
@@ -152,8 +173,40 @@ export const auth = betterAuth({
     // Enable email+password authentication
     enabled: true,
     // Require email verification before the account can be used.
-    // Better Auth will send a verification email on registration.
+    // Better Auth will invoke sendResetPassword when the user requests a
+    // password reset via the /api/auth/forget-password endpoint.
     requireEmailVerification: true,
+    sendResetPassword: async ({ user, url }) => {
+      if (!resend) {
+        console.warn("[auth] RESEND_API_KEY not set — password reset email disabled");
+        return;
+      }
+      await resend.emails.send({
+        from: FROM_ADDRESS,
+        to: user.email,
+        subject: "Reset your LoopStorm Guard password",
+        html: `<p>Click the link below to reset your password. This link expires in 1 hour.</p><p><a href="${url}">Reset Password</a></p><p>If you did not request a password reset, you can ignore this email.</p>`,
+      });
+    },
+  },
+
+  emailVerification: {
+    // Send a verification email on every new sign-up.
+    // Better Auth calls sendVerificationEmail with a signed URL that the user
+    // clicks to verify their address before they can log in.
+    sendOnSignUp: true,
+    sendVerificationEmail: async ({ user, url }) => {
+      if (!resend) {
+        console.warn("[auth] RESEND_API_KEY not set — email verification disabled");
+        return;
+      }
+      await resend.emails.send({
+        from: FROM_ADDRESS,
+        to: user.email,
+        subject: "Verify your LoopStorm Guard account",
+        html: `<p>Click the link below to verify your email address and activate your account.</p><p><a href="${url}">Verify Email</a></p><p>If you did not create a LoopStorm Guard account, you can ignore this email.</p>`,
+      });
+    },
   },
 
   socialProviders,

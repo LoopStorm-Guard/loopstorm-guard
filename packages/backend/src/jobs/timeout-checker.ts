@@ -1,16 +1,23 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * Periodic timeout checker for supervisor proposals and escalations.
+ * Timeout checker for supervisor proposals and escalations.
  *
- * Runs every 60 seconds and expires:
+ * Expires:
  * - Pending proposals older than 86 400 seconds (24 hours).
  * - Open escalations older than their configured `timeout_seconds`.
  *
  * Items in other statuses (approved, rejected, acknowledged, resolved)
  * are never affected.
  *
- * Startup: called from the backend's main src/index.ts after the HTTP server starts.
- * Shutdown: returns a stop() function that clears the interval.
+ * Two execution modes (ADR-015):
+ *
+ * 1. **Vercel Functions (production):** `runTimeoutCheck()` is called directly
+ *    from the `/api/internal/cron/timeout-checker` route handler (src/app.ts).
+ *    Vercel Cron invokes that route every minute per vercel.json.
+ *
+ * 2. **Bun long-lived process (local dev, Mode 1):** `startTimeoutChecker()`
+ *    wraps `runTimeoutCheck()` in a `setInterval` that fires every 60 seconds.
+ *    Called from src/index.ts after the HTTP server starts.
  *
  * Spec reference: specs/task-briefs/v1.1-ai-supervisor.md, Task SUP-A6.
  */
@@ -30,35 +37,25 @@ const CHECK_INTERVAL_MS = 60_000;
 const PROPOSAL_TIMEOUT_SECONDS = 86_400;
 
 // ---------------------------------------------------------------------------
-// Timeout checker
+// Public API
 // ---------------------------------------------------------------------------
 
-/**
- * Start the periodic timeout checker.
- *
- * @returns An object with a `stop()` function to shut down the checker cleanly.
- */
-export function startTimeoutChecker(): { stop: () => void } {
-  // Run immediately on startup, then on interval
-  void runCheck();
-
-  const intervalId = setInterval(() => {
-    void runCheck();
-  }, CHECK_INTERVAL_MS);
-
-  return {
-    stop: () => {
-      clearInterval(intervalId);
-    },
-  };
+export interface TimeoutCheckResult {
+  expiredProposals: number;
+  expiredEscalations: number;
 }
 
 /**
  * Execute a single timeout check pass.
  *
- * Errors are logged and swallowed — a failed check must not crash the server.
+ * Called directly from the Vercel Cron route handler (`src/app.ts`) and from
+ * `startTimeoutChecker()` below.
+ *
+ * Errors are caught and logged — a failed check must not crash the caller.
+ *
+ * @returns Counts of expired proposals and escalations (both 0 on error).
  */
-async function runCheck(): Promise<void> {
+export async function runTimeoutCheck(): Promise<TimeoutCheckResult> {
   try {
     const [proposalCount, escalationCount] = await Promise.all([
       expireProposals(),
@@ -70,12 +67,39 @@ async function runCheck(): Promise<void> {
         `[timeout-checker] Expired ${proposalCount} proposal(s), ${escalationCount} escalation(s)`
       );
     }
+
+    return { expiredProposals: proposalCount, expiredEscalations: escalationCount };
   } catch (err) {
     console.error(
       "[timeout-checker] Error during timeout check:",
       err instanceof Error ? err.message : String(err)
     );
+    return { expiredProposals: 0, expiredEscalations: 0 };
   }
+}
+
+/**
+ * Start the periodic timeout checker (Bun long-lived process mode only).
+ *
+ * Wraps `runTimeoutCheck()` in a setInterval. Used by `src/index.ts` for
+ * local development and Mode 1 self-hosted deployments. NOT used on Vercel —
+ * the cron route in src/app.ts handles that context.
+ *
+ * @returns An object with a `stop()` function to shut down the checker cleanly.
+ */
+export function startTimeoutChecker(): { stop: () => void } {
+  // Run immediately on startup, then on interval
+  void runTimeoutCheck();
+
+  const intervalId = setInterval(() => {
+    void runTimeoutCheck();
+  }, CHECK_INTERVAL_MS);
+
+  return {
+    stop: () => {
+      clearInterval(intervalId);
+    },
+  };
 }
 
 /**

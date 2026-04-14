@@ -2,7 +2,7 @@
 # LoopStorm Guard — Secrets Inventory
 
 **Maintained by:** Platform Engineering
-**Last reviewed:** 2026-03-13
+**Last reviewed:** 2026-04-13
 
 All secrets are stored in GitHub Actions repository secrets or environment secrets.
 No secret ever appears in git history. Secret scanning is enabled on the repository.
@@ -32,10 +32,13 @@ Verify: `git log --all --full-history -- '*.env'` must return empty.
 |---|---|---|---|
 | `DATABASE_URL` | Backend runtime | On compromise | Full Postgres connection string incl. password |
 | `SUPABASE_URL` | Backend runtime | When project changes | Supabase project URL (Storage + Realtime only — no Auth) |
-| `SUPABASE_SERVICE_ROLE_KEY` | Backend runtime | Quarterly | Full access key — never expose to client |
 | `BETTER_AUTH_SECRET` | Backend runtime | On compromise | 32+ byte random secret. Rotation invalidates ALL sessions — requires maintenance window |
+| `BETTER_AUTH_URL` | Backend runtime | When domain changes | Public base URL of the backend API (e.g. `https://api.loop-storm.com`). Used in email links and OAuth redirects |
 | `GOOGLE_CLIENT_ID` | Backend runtime | On compromise | OAuth 2.0 client ID for Google sign-in |
 | `GOOGLE_CLIENT_SECRET` | Backend runtime | On compromise | OAuth 2.0 client secret |
+| `RESEND_API_KEY` | Backend runtime | Quarterly | Resend transactional email API key. Required for email verification and password reset flows. Optional in Mode 0 (air-gapped) — auth email handlers degrade gracefully when unset |
+| `ALLOWED_ORIGINS` | Backend runtime | On domain change | Comma-separated list of allowed CORS origins (e.g. `https://app.loop-storm.com`). **Required in production** — server refuses to start if missing. Missing or misconfigured CORS silently rejects all browser requests |
+| `VERCEL_CRON_SECRET` | Backend runtime | Annually | Bearer secret injected by Vercel Cron into `Authorization` headers on cron invocations. Guards `/api/internal/cron/timeout-checker`. Must also be set in Vercel project env vars. Generate with `openssl rand -base64 32` |
 | `ANTHROPIC_API_KEY` | Backend runtime | Quarterly | Powers the AI Supervisor (ADR-017). Holds the DeepSeek API key in Mode 3 SaaS. Scope: supervisor worker only |
 | `SUPERVISOR_BUDGET_HARD_USD` | Backend runtime | On policy change | Value: `2.00`. Not a secret, but tracked here |
 | `PRODUCTION_DATABASE_URL` | CI deploy-time | On compromise | Used by `drizzle-kit migrate` during deployment. May differ from runtime URL |
@@ -50,7 +53,8 @@ These are public (NEXT_PUBLIC_*) and not secrets, but tracked here for inventory
 |---|---|
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL — Realtime only |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key — Realtime only. Safe to expose to browser |
-| `NEXT_PUBLIC_API_URL` | URL of the deployed backend API |
+| `NEXT_PUBLIC_API_URL` | URL of the deployed backend API (e.g. `https://api.loop-storm.com`) |
+| `NEXT_PUBLIC_BETTER_AUTH_URL` | Public base URL of the backend API for Better Auth client (e.g. `https://api.loop-storm.com`). Required for sign-in and OAuth redirect flows to resolve correctly from the browser |
 
 ---
 

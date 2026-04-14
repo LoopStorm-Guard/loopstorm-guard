@@ -1,19 +1,25 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 /**
- * Background dispatch worker for the AI Supervisor trigger queue.
+ * Trigger dispatch for the AI Supervisor.
  *
- * Reads TriggerMessages from the TriggerQueue singleton and sends HTTP POST
- * requests to the supervisor process. The supervisor is advisory — its
- * unavailability does not affect enforcement.
+ * Two dispatch modes (ADR-015):
  *
- * Dispatch loop:
- *   - Polls the queue every 500 ms.
- *   - Sends HTTP POST to the supervisor's /api/trigger endpoint.
- *   - If the supervisor is unavailable, the trigger is dropped with a warning log.
- *   - Never blocks or throws — errors are logged and the loop continues.
+ * 1. **Vercel Functions (production, ADR-015 AC-15-6):** `dispatchTriggerDirect()`
+ *    is called synchronously from `events.ingest` after the transaction commits.
+ *    No in-process queue. The HTTP POST fires with a 3-second timeout. Errors
+ *    are logged and swallowed — a failed dispatch does NOT fail the ingest
+ *    request. Same loss tolerance as ADR-014 Gate 3: "if the backend restarts,
+ *    pending triggers are lost, but the same conditions will re-trigger on the
+ *    next relevant event."
  *
- * Startup: called from the backend's main src/index.ts after the HTTP server starts.
- * Shutdown: returns a stop() function that clears the interval.
+ * 2. **Bun long-lived process (local dev, Mode 1):** `startTriggerDispatch()`
+ *    polls the TriggerQueue every 500 ms and drains it via
+ *    `dispatchTriggerDirect()`. Called from `src/index.ts` after the HTTP
+ *    server starts. Shutdown: call `stop()`.
+ *
+ * Enforcement/observation plane separation (ADR-012): this module is on the
+ * OBSERVATION PLANE. It reports to the supervisor. It never intercepts or
+ * modifies enforcement decisions.
  */
 
 import type { TriggerMessage } from "./trigger-queue.js";
@@ -23,23 +29,50 @@ import { triggerQueue } from "./trigger-queue.js";
 // Configuration
 // ---------------------------------------------------------------------------
 
-/** Polling interval for the dispatch loop (ms). */
+/** Polling interval for the dispatch loop (ms). Used in Bun mode only. */
 const POLL_INTERVAL_MS = 500;
 
 /** HTTP request timeout for the supervisor endpoint (ms). */
-const DISPATCH_TIMEOUT_MS = 5_000;
+const DISPATCH_TIMEOUT_MS = 3_000;
 
 // ---------------------------------------------------------------------------
-// Dispatch worker
+// Public: single-trigger direct dispatch (used by events.ingest, ADR-015)
 // ---------------------------------------------------------------------------
 
 /**
- * Start the trigger dispatch background worker.
+ * Dispatch a single trigger to the supervisor via HTTP POST.
  *
- * The worker polls the TriggerQueue and dispatches HTTP POST requests to the
- * supervisor process. If the supervisor is not configured (no URL/key), the
- * worker starts but does nothing (triggers are silently consumed from the
- * queue to prevent unbounded growth).
+ * Fire-and-forget: errors are logged at warn level and never thrown.
+ * Uses a 3-second AbortSignal timeout to prevent slow supervisors from
+ * blocking the ingest request path.
+ *
+ * Callers should use `void dispatchTriggerDirect(...)` — do not await.
+ */
+export async function dispatchTriggerDirect(message: TriggerMessage): Promise<void> {
+  const supervisorUrl = process.env.LOOPSTORM_SUPERVISOR_URL ?? null;
+  const supervisorKey = process.env.LOOPSTORM_SUPERVISOR_INTERNAL_KEY ?? null;
+
+  if (!supervisorUrl) {
+    // Supervisor not configured — expected in local dev / Mode 0.
+    // Trigger is silently dropped (no-op).
+    return;
+  }
+
+  await dispatchTrigger(supervisorUrl, supervisorKey, message);
+}
+
+// ---------------------------------------------------------------------------
+// Public: background dispatch worker (used by src/index.ts in Bun mode)
+// ---------------------------------------------------------------------------
+
+/**
+ * Start the trigger dispatch background worker (Bun long-lived process mode only).
+ *
+ * Polls the TriggerQueue and dispatches HTTP POST requests to the supervisor.
+ * If the supervisor is not configured, the worker starts but silently consumes
+ * the queue (prevents unbounded growth).
+ *
+ * NOT used on Vercel — `dispatchTriggerDirect()` handles that context.
  *
  * @returns A `stop()` function to shut down the worker cleanly.
  */
@@ -65,9 +98,13 @@ export function startTriggerDispatch(): { stop: () => void } {
   };
 }
 
+// ---------------------------------------------------------------------------
+// Private helpers
+// ---------------------------------------------------------------------------
+
 /**
  * Drain all currently-queued triggers in a single pass.
- * Called on each poll interval.
+ * Called on each poll interval in Bun process mode.
  */
 async function drainQueue(
   supervisorUrl: string | null,
@@ -86,7 +123,8 @@ async function drainQueue(
 /**
  * Send a single trigger to the supervisor process via HTTP POST.
  *
- * Fire-and-forget: errors are logged, never thrown.
+ * Fire-and-forget: errors are logged at warn level, never thrown.
+ * Uses DISPATCH_TIMEOUT_MS (3 seconds) to prevent blocking the caller.
  */
 async function dispatchTrigger(
   supervisorUrl: string,

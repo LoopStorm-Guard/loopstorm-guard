@@ -34,8 +34,7 @@ import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { events, runs } from "../../db/schema.js";
-import { triggerQueue } from "../../lib/trigger-queue.js";
-import type { TriggerMessage } from "../../lib/trigger-queue.js";
+import { dispatchTriggerDirect } from "../../lib/trigger-dispatch.js";
 import { evaluatePostRunTriggers } from "../../lib/triggers.js";
 import { dualAuthProcedure, router } from "../trpc.js";
 
@@ -521,15 +520,21 @@ export const eventsRouter = router({
         };
       })(); // End of IIFE — uses ctx.db (transaction from middleware, ADR-020)
 
-      // --- Fire-and-forget: trigger evaluation after tx commit ---
-      // Trigger evaluation is synchronous and fast (< 1 ms). The actual
-      // dispatch to the supervisor is handled by the background TriggerDispatch
-      // worker reading from the TriggerQueue.
+      // --- Fire-and-forget: trigger evaluation and synchronous dispatch ---
       //
-      // We only evaluate post-run triggers here. Mid-run triggers would
-      // require per-event running counters that the ingest batch doesn't
-      // track yet (future enhancement — the trigger queue infrastructure
-      // is in place for when that is wired up).
+      // ADR-015 AC-15-6: under Vercel Functions, the in-process TriggerQueue
+      // is replaced with synchronous dispatch. If the HTTP POST to the supervisor
+      // fails or times out, the trigger is dropped with a warning log — this is
+      // the same loss tolerance specified in ADR-014 Gate 3 ("if the backend
+      // restarts, pending triggers are lost, but the same conditions will re-trigger
+      // on the next relevant event").
+      //
+      // dispatch calls are fire-and-forget (void) — they do NOT block the
+      // ingest response. The 3-second timeout inside dispatchTriggerDirect
+      // prevents slow supervisors from delaying ingest.
+      //
+      // We only evaluate post-run triggers here. Mid-run triggers are a future
+      // enhancement — the trigger evaluation infrastructure is in place.
       try {
         const terminalStatuses = new Set([
           "completed",
@@ -561,20 +566,16 @@ export const eventsRouter = router({
           );
 
           for (const t of triggers) {
-            const msg: TriggerMessage = {
+            // Dispatch synchronously on the ingest path (ADR-015 AC-15-6).
+            // dispatchTriggerDirect is fire-and-forget — it swallows errors
+            // and uses a 3-second abort timeout internally.
+            void dispatchTriggerDirect({
               trigger: t.trigger,
               trigger_run_id: runId,
               tenant_id: tenantId,
               priority: t.priority,
               enqueued_at: new Date().toISOString(),
-            };
-            const enqueued = triggerQueue.enqueue(msg);
-            if (!enqueued) {
-              console.warn(
-                `[events.ingest] Trigger queue full or deduplicated — dropped trigger=${t.trigger} ` +
-                  `run=${runId}`
-              );
-            }
+            });
           }
         }
       } catch (triggerErr) {

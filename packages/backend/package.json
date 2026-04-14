@@ -16,14 +16,15 @@
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
+    "@hono/trpc-server": "^0.3.3",
     "@loopstorm/schemas": "*",
+    "@trpc/server": "^11.0.0",
     "better-auth": "^1.2.5",
     "drizzle-orm": "^0.38.3",
     "hono": "^4.6.16",
     "picomatch": "^4.0.2",
     "postgres": "^3.4.5",
-    "@hono/trpc-server": "^0.3.3",
-    "@trpc/server": "^11.0.0",
+    "resend": "^6.11.0",
     "zod": "^3.24.1"
   },
   "devDependencies": {
