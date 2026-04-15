@@ -68,7 +68,7 @@ jobs:
       - name: Apply migrations
         run: bun run --cwd packages/backend db:migrate
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
           # drizzle-kit migrate reads DATABASE_URL.
           # BETTER_AUTH_SECRET and other runtime vars are not needed here.
           NODE_ENV: production
