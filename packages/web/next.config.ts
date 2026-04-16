@@ -3,6 +3,22 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /**
+   * Redirect dashboard root to /runs (was previously done in
+   * (dashboard)/page.tsx but that caused a missing
+   * page_client-reference-manifest.js error on Vercel).
+   */
+  async redirects() {
+    return [
+      {
+        source: "/",
+        has: [{ type: "cookie", key: "better-auth.session_token" }],
+        destination: "/runs",
+        permanent: false,
+      },
+    ];
+  },
+
+  /**
    * Development proxy rewrites: forward /api/auth/** and /api/trpc/**
    * to the backend running on localhost:3001.
    *

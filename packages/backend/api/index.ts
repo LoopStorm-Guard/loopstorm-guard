@@ -18,7 +18,7 @@ import { app } from "../src/app.js";
 // Required by Vercel's Node.js runtime to mark this as a serverless function.
 // maxDuration is also set in vercel.json — the lower of the two wins.
 export const config = {
-  runtime: "nodejs20.x",
+  runtime: "nodejs",
 };
 
 export default handle(app);
