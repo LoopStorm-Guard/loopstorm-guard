@@ -14,7 +14,6 @@
   ],
   "functions": {
     "api/**/*.ts": {
-      "runtime": "nodejs20.x",
       "memory": 512,
       "maxDuration": 60
     }

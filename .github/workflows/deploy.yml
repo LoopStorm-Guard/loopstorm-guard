@@ -81,14 +81,10 @@ jobs:
   # Cron jobs declared in vercel.json replace the in-process setInterval
   # background workers (ADR-015 AC-15-4).
   #
-  # Step breakdown:
-  #   1. vercel pull  — download the project's build settings from Vercel
-  #   2. vercel build — produce the .vercel/output directory
-  #   3. vercel deploy --prebuilt — upload the prebuilt output to Vercel
-  #
-  # This three-step pattern is the Vercel-recommended CI/CD approach.
-  # It avoids running `vercel --prod` directly (which rebuilds on Vercel's
-  # side and cannot use GitHub Actions' cache or runner environment).
+  # Uses `vercel deploy --prod` to build on Vercel's infrastructure where
+  # system environment variables and the correct Node.js runtime are
+  # available. Building locally with `vercel build` caused runtime and
+  # manifest errors due to missing Vercel system env vars.
   # ─────────────────────────────────────────────────────────────────────────
   deploy-api:
     name: Deploy API (Vercel)
@@ -106,20 +102,8 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Pull Vercel project settings
-        run: bunx vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
-        env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_API }}
-
-      - name: Build for Vercel
-        run: bunx vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
-        env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_API }}
-
-      - name: Deploy prebuilt output to Vercel
-        run: bunx vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
+      - name: Deploy to Vercel
+        run: bunx vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }}
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_API }}
@@ -148,20 +132,8 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Pull Vercel project settings
-        run: bunx vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
-        env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_WEB }}
-
-      - name: Build for Vercel
-        run: bunx vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
-        env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_WEB }}
-
-      - name: Deploy prebuilt output to Vercel
-        run: bunx vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
+      - name: Deploy to Vercel
+        run: bunx vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }}
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_WEB }}
