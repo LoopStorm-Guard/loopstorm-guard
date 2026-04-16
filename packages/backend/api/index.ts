@@ -18,6 +18,7 @@
  */
 
 import type { IncomingMessage, ServerResponse } from "node:http";
+import { Readable } from "node:stream";
 import { app } from "../src/app.js";
 
 export const config = {
@@ -48,23 +49,41 @@ function nodeRequestToWebRequest(req: IncomingMessage): Request {
       })
     : null;
 
-  return new Request(url, {
-    method,
-    headers,
-    body: bodyInit,
-    // Node.js 18+ fetch requires duplex:"half" for streaming request bodies
-    // @ts-expect-error — not in the TS lib types yet
-    duplex: hasBody ? "half" : undefined,
-  });
+  const init: RequestInit = { method, headers, body: bodyInit };
+  // Node.js 18+ fetch requires duplex:"half" for streaming request bodies.
+  // Not in the TS lib types yet, so we assign it after construction.
+  if (hasBody) (init as Record<string, unknown>).duplex = "half";
+  return new Request(url, init);
 }
+
+// Headers with the non-standard but widely-supported getSetCookie() method
+// (WHATWG spec, available in Node.js 19.7+ / undici).
+type HeadersWithGetSetCookie = Headers & { getSetCookie?(): string[] };
 
 export default async function handler(req: IncomingMessage, res: ServerResponse): Promise<void> {
   const webRequest = nodeRequestToWebRequest(req);
   const webResponse = await app.fetch(webRequest);
 
   res.statusCode = webResponse.status;
-  webResponse.headers.forEach((value, key) => res.setHeader(key, value));
 
-  const buffer = await webResponse.arrayBuffer();
-  res.end(Buffer.from(buffer));
+  // set-cookie must be handled separately — headers.forEach collapses
+  // multiple values into a single comma-joined string, which produces an
+  // invalid header and breaks Better Auth session/CSRF cookies.
+  const setCookies = (webResponse.headers as HeadersWithGetSetCookie).getSetCookie?.() ?? [];
+  if (setCookies.length > 0) {
+    res.setHeader("set-cookie", setCookies);
+  }
+  webResponse.headers.forEach((value, key) => {
+    if (key.toLowerCase() === "set-cookie") return;
+    res.setHeader(key, value);
+  });
+
+  // Stream the body rather than buffering the whole payload in memory.
+  if (webResponse.body) {
+    Readable.fromWeb(
+      webResponse.body as import("node:stream/web").ReadableStream,
+    ).pipe(res);
+  } else {
+    res.end();
+  }
 }
