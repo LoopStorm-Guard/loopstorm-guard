@@ -47,9 +47,12 @@ function GitHubIcon() {
 }
 
 export function LandingCTA() {
-  const { data: session, isPending } = useSession();
+  const { data: session, isPending, error } = useSession();
 
-  if (isPending) {
+  // Show skeleton only while genuinely loading — not if the auth check errored.
+  // A backend error should fall through to the unauthenticated state so the
+  // page remains functional even when the API is temporarily unavailable.
+  if (isPending && !error) {
     return (
       <div className="flex flex-wrap justify-center gap-4">
         <div className="h-14 w-48 animate-pulse rounded-xl bg-[rgba(255,107,0,0.1)]" />
