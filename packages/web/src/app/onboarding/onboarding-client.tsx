@@ -1,5 +1,5 @@
-"use client";
 // SPDX-License-Identifier: AGPL-3.0-only
+"use client";
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -150,11 +150,7 @@ function CodeBlock({ code, lang }: { code: string; lang: Lang }) {
   );
 }
 
-function LangTab({
-  lang,
-  active,
-  onClick,
-}: { lang: Lang; active: boolean; onClick: () => void }) {
+function LangTab({ lang, active, onClick }: { lang: Lang; active: boolean; onClick: () => void }) {
   return (
     <button
       type="button"
@@ -215,6 +211,16 @@ function StepCard({
         {/* Number / checkmark */}
         <div
           onClick={manual && onToggle ? onToggle : undefined}
+          onKeyDown={
+            manual && onToggle
+              ? (e) => {
+                  if (e.key === "Enter" || e.key === " ") onToggle();
+                }
+              : undefined
+          }
+          role={manual && onToggle ? "checkbox" : undefined}
+          aria-checked={manual && onToggle ? done : undefined}
+          tabIndex={manual && onToggle ? 0 : undefined}
           style={{
             width: "2rem",
             height: "2rem",
@@ -230,7 +236,17 @@ function StepCard({
           }}
         >
           {done ? (
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="oklch(0.70 0.15 145)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="oklch(0.70 0.15 145)"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
               <polyline points="20 6 9 17 4 12" />
             </svg>
           ) : (
@@ -457,9 +473,7 @@ export function OnboardingClient({ userName, hasApiKeys, hasRuns }: Props) {
             }}
           >
             Welcome,{" "}
-            <span style={{ color: "var(--color-accent-amber)" }}>
-              {userName.split(" ")[0]}
-            </span>
+            <span style={{ color: "var(--color-accent-amber)" }}>{userName.split(" ")[0]}</span>
           </h1>
           <p
             style={{
@@ -482,18 +496,14 @@ export function OnboardingClient({ userName, hasApiKeys, hasRuns }: Props) {
               marginBottom: "0.5rem",
             }}
           >
-            <span
-              style={{ fontSize: "0.8125rem", color: "oklch(0.58 0.00 0)" }}
-            >
+            <span style={{ fontSize: "0.8125rem", color: "oklch(0.58 0.00 0)" }}>
               {completedCount} of {steps.length} steps complete
             </span>
             <span
               style={{
                 fontSize: "0.8125rem",
                 fontWeight: "600",
-                color: allDone
-                  ? "oklch(0.65 0.12 145)"
-                  : "var(--color-accent-amber)",
+                color: allDone ? "oklch(0.65 0.12 145)" : "var(--color-accent-amber)",
               }}
             >
               {pct}%
@@ -511,9 +521,7 @@ export function OnboardingClient({ userName, hasApiKeys, hasRuns }: Props) {
               style={{
                 height: "100%",
                 width: `${pct}%`,
-                backgroundColor: allDone
-                  ? "oklch(0.55 0.15 145)"
-                  : "var(--color-accent-amber)",
+                backgroundColor: allDone ? "oklch(0.55 0.15 145)" : "var(--color-accent-amber)",
                 borderRadius: "999px",
                 transition: "width 0.4s ease",
               }}
@@ -531,7 +539,11 @@ export function OnboardingClient({ userName, hasApiKeys, hasRuns }: Props) {
           }}
         >
           <LangTab lang="python" active={lang === "python"} onClick={() => setLang("python")} />
-          <LangTab lang="typescript" active={lang === "typescript"} onClick={() => setLang("typescript")} />
+          <LangTab
+            lang="typescript"
+            active={lang === "typescript"}
+            onClick={() => setLang("typescript")}
+          />
         </div>
 
         {/* ── Steps ── */}

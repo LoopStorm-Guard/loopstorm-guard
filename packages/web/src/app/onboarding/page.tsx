@@ -6,8 +6,8 @@
  * it to the interactive client component.
  */
 
-import { createServerTRPCClient } from "@/lib/trpc-server";
 import { getAuthBaseURL } from "@/lib/env";
+import { createServerTRPCClient } from "@/lib/trpc-server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { OnboardingClient } from "./onboarding-client";
