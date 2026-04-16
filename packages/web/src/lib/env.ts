@@ -37,13 +37,22 @@ export function getTRPCUrl(): string {
 
 /**
  * The Better Auth base URL for the auth client.
+ *
+ * Server vs. browser distinction is intentional:
+ * - Browser: always "" (relative URL) so auth requests go through the
+ *   Next.js rewrite proxy (app.loop-storm.com/api/auth/* → api.loop-storm.com).
+ *   This makes Better Auth set session cookies on app.loop-storm.com, which
+ *   Next.js server components can read via cookies(). Without this, the
+ *   cookie lands on api.loop-storm.com and the dashboard layout always
+ *   redirects to /sign-in even when the user is logged in.
+ * - Server: use the absolute URL for direct backend calls (e.g. dashboard
+ *   layout forwarding the browser cookie to get-session).
  */
 export function getAuthBaseURL(): string {
-  if (BETTER_AUTH_URL) {
-    return BETTER_AUTH_URL;
-  }
   if (typeof window === "undefined") {
-    return "http://localhost:3001";
+    // Server-side: direct call to the backend.
+    return BETTER_AUTH_URL || "http://localhost:3001";
   }
+  // Browser: use relative URL — auth is proxied through Next.js rewrites.
   return "";
 }
