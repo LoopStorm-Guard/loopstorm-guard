@@ -30,6 +30,13 @@ LOOPSTORM_API_KEY=lsg_your_key_here
 LOOPSTORM_API_URL=https://api.loop-storm.com`,
 };
 
+// Labels shown in the code block header per step and language.
+const CODE_LABELS: Record<string, Record<Lang, string>> = {
+  install: { python: "bash", typescript: "bash" },
+  configure: { python: "python", typescript: ".env" },
+  integrate: { python: "python", typescript: "typescript" },
+};
+
 const INTEGRATE: Record<Lang, string> = {
   python: `from loopstorm_guard import Guard
 
@@ -76,10 +83,15 @@ function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
 
   function handleCopy() {
-    navigator.clipboard.writeText(text).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
+    navigator.clipboard.writeText(text).then(
+      () => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      },
+      () => {
+        // Clipboard API unavailable (non-secure context or permissions denied)
+      }
+    );
   }
 
   return (
@@ -105,7 +117,7 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
-function CodeBlock({ code, lang }: { code: string; lang: Lang }) {
+function CodeBlock({ code, label }: { code: string; label: string }) {
   return (
     <div style={{ position: "relative" }}>
       <div
@@ -126,7 +138,7 @@ function CodeBlock({ code, lang }: { code: string; lang: Lang }) {
             fontFamily: "var(--font-mono)",
           }}
         >
-          {lang === "python" ? "python" : "bash / .env"}
+          {label}
         </span>
         <CopyButton text={code} />
       </div>
@@ -559,7 +571,7 @@ export function OnboardingClient({ userName, hasApiKeys, hasRuns }: Props) {
               onToggle={step.manual ? () => toggleManual(step.id) : undefined}
             >
               {"code" in step && step.code ? (
-                <CodeBlock code={step.code[lang]} lang={lang} />
+                <CodeBlock code={step.code[lang]} label={CODE_LABELS[step.id]?.[lang] ?? lang} />
               ) : null}
               {"cta" in step && step.cta ? (
                 <div style={{ marginTop: "0.25rem" }}>{step.cta}</div>
