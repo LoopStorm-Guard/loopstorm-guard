@@ -1,8 +1,9 @@
 {
   "version": 2,
   "framework": null,
-  "buildCommand": null,
-  "outputDirectory": null,
+  "installCommand": "bun install --frozen-lockfile",
+  "buildCommand": "",
+  "outputDirectory": "public",
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/index.ts" }
   ],
