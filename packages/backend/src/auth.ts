@@ -181,8 +181,13 @@ export const auth = betterAuth({
     },
   }),
 
-  // Base URL for auth routes (used in email links, OAuth redirects)
-  baseURL: env.BETTER_AUTH_URL,
+  // Public-facing base URL for OAuth callbacks and email links.
+  // BETTER_AUTH_PUBLIC_URL should be set to the frontend URL in production
+  // (e.g. "https://app.loop-storm.com") so Google's OAuth callback goes through
+  // the Next.js proxy rather than directly to api.loop-storm.com. This ensures
+  // the state cookie (set on app.loop-storm.com via the proxy) is present when
+  // Better Auth validates the state, preventing state_mismatch errors.
+  baseURL: env.BETTER_AUTH_PUBLIC_URL ?? env.BETTER_AUTH_URL,
 
   // Secret for signing session tokens and JWTs
   secret: env.BETTER_AUTH_SECRET,

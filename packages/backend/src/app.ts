@@ -148,6 +148,11 @@ app.use(
   "/api/trpc/**",
   trpcServer({
     router: appRouter,
+    // Must match the Hono mount path so @trpc/server/adapters/fetch strips
+    // the correct prefix when extracting the procedure name.
+    // Default endpoint is "/trpc" — without this, "/api/trpc/foo" gets parsed
+    // as path "trpc/foo" instead of "foo", causing "No procedure found" errors.
+    endpoint: "/api/trpc",
     createContext,
     onError: ({ path, error }) => {
       // Log internal errors server-side. Never expose stack traces to clients.

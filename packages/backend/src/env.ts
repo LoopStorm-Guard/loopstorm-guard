@@ -42,6 +42,13 @@ const envSchema = z.object({
   // Better Auth
   BETTER_AUTH_SECRET: z.string().min(32),
   BETTER_AUTH_URL: z.string().url(), // e.g., "https://api.loop-storm.com"
+  // Public-facing URL where auth is accessible to browsers (via Next.js proxy).
+  // Set this to the frontend URL (e.g. "https://app.loop-storm.com") so that
+  // OAuth callbacks are routed through the Next.js rewrite proxy rather than
+  // directly to api.loop-storm.com. Without this, the OAuth state cookie set on
+  // the frontend domain is not sent with the callback, causing state_mismatch.
+  // Falls back to BETTER_AUTH_URL when unset (local dev where proxy is not needed).
+  BETTER_AUTH_PUBLIC_URL: z.string().url().optional(),
 
   // OAuth (optional — Google OAuth only activates when both vars are present)
   GOOGLE_CLIENT_ID: z.string().optional(),
