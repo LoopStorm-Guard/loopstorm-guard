@@ -80,9 +80,13 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
 
   // Stream the body rather than buffering the whole payload in memory.
   if (webResponse.body) {
-    Readable.fromWeb(
-      webResponse.body as import("node:stream/web").ReadableStream,
-    ).pipe(res);
+    const readable = Readable.fromWeb(webResponse.body as import("node:stream/web").ReadableStream);
+    readable.on("error", (err) => {
+      console.error("[handler] response stream error:", err);
+      if (!res.headersSent) res.statusCode = 502;
+      res.end();
+    });
+    readable.pipe(res);
   } else {
     res.end();
   }

@@ -78,14 +78,12 @@ export function AuthForm({ mode }: AuthFormProps) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState<string | null>(null);
 
   const isSignIn = mode === "sign-in";
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    setSuccess(null);
     setLoading(true);
 
     try {
@@ -106,8 +104,7 @@ export function AuthForm({ mode }: AuthFormProps) {
         if (result.error) {
           setError(result.error.message ?? "Sign-up failed. Please try again.");
         } else {
-          setSuccess("Account created. Check your email to verify your address, then sign in.");
-          setTimeout(() => router.push("/sign-in?verified=1"), 2000);
+          router.push("/onboarding");
         }
       }
     } catch {
@@ -146,24 +143,6 @@ export function AuthForm({ mode }: AuthFormProps) {
         <div style={{ ...errorStyle, marginBottom: "1rem" }} role="alert" data-testid="auth-error">
           {error}
         </div>
-      )}
-
-      {success && (
-        <output
-          style={{
-            display: "block",
-            padding: "0.5rem 0.75rem",
-            backgroundColor: "rgba(0, 200, 83, 0.1)",
-            border: "1px solid rgba(0, 200, 83, 0.3)",
-            borderRadius: "0.375rem",
-            color: "var(--color-accent-green)",
-            fontSize: "0.8125rem",
-            marginBottom: "1rem",
-          }}
-          data-testid="auth-success"
-        >
-          {success}
-        </output>
       )}
 
       <form

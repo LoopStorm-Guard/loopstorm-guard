@@ -51,7 +51,7 @@ export function getTRPCUrl(): string {
 export function getAuthBaseURL(): string {
   if (typeof window === "undefined") {
     // Server-side: direct call to the backend.
-    return BETTER_AUTH_URL || "http://localhost:3001";
+    return BETTER_AUTH_URL || API_URL || "http://localhost:3001";
   }
   // Browser: use relative URL — auth is proxied through Next.js rewrites.
   return "";
