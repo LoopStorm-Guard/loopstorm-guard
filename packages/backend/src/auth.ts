@@ -190,10 +190,10 @@ export const auth = betterAuth({
   emailAndPassword: {
     // Enable email+password authentication
     enabled: true,
-    // Require email verification before the account can be used.
-    // Better Auth will invoke sendResetPassword when the user requests a
-    // password reset via the /api/auth/forget-password endpoint.
-    requireEmailVerification: true,
+    // Only require email verification when Resend is configured.
+    // If RESEND_API_KEY is absent the verification email is never sent, which
+    // permanently locks newly-registered users out of their accounts.
+    requireEmailVerification: !!env.RESEND_API_KEY,
     sendResetPassword: async ({ user, url }) => {
       if (!resend) {
         console.warn("[auth] RESEND_API_KEY not set — password reset email disabled");

@@ -17,7 +17,7 @@
     "./ipc/decision-response": "./ipc/decision-response.schema.json",
     "./events": "./events/event.schema.json"
   },
-  "files": ["**/*.json", "types/**/*.ts", "index.js", "index.d.ts"],
+  "files": ["**/*.json", "types/**/*.ts", "index.ts", "index.js", "index.d.ts"],
   "scripts": {
     "build": "tsc --noEmit",
     "lint": "biome check index.ts types/",
