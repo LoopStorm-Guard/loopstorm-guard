@@ -155,9 +155,16 @@ export const auth = betterAuth({
   // to api.loop-storm.com are rejected with a CORS/403 error even when the
   // Hono CORS middleware is correctly configured.
   //
-  // We reuse ALLOWED_ORIGINS so both the Hono CORS middleware and Better Auth's
-  // internal CSRF check share a single source of truth.
-  trustedOrigins: env.ALLOWED_ORIGINS ?? [],
+  // Mirrors the fallback logic in app.ts so both the Hono CORS middleware and
+  // Better Auth's internal CSRF check share the same effective origin list:
+  // - Production: ALLOWED_ORIGINS (required — server won't boot without it)
+  // - Development (ALLOWED_ORIGINS unset): falls back to http://localhost:3000
+  trustedOrigins:
+    env.ALLOWED_ORIGINS.length > 0
+      ? env.ALLOWED_ORIGINS
+      : env.NODE_ENV === "production"
+        ? []
+        : ["http://localhost:3000"],
 
   // Use the postgres-js Drizzle instance as the database adapter.
   // provider: "pg" maps to the postgres.js / pg-core dialect.
