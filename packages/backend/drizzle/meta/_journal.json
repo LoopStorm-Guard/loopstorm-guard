@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1711148600000,
+      "tag": "0001_create_tables",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1711148700000,
+      "tag": "0002_enable_rls",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1712350800000,
+      "tag": "0003_add_behavioral_telemetry",
+      "breakpoints": true
+    }
+  ]
+}
