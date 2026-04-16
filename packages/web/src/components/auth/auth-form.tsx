@@ -106,8 +106,7 @@ export function AuthForm({ mode }: AuthFormProps) {
         if (result.error) {
           setError(result.error.message ?? "Sign-up failed. Please try again.");
         } else {
-          setSuccess("Account created. Check your email to verify your address, then sign in.");
-          setTimeout(() => router.push("/sign-in?verified=1"), 2000);
+          router.push("/onboarding");
         }
       }
     } catch {
