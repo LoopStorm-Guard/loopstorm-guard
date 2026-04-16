@@ -148,6 +148,17 @@ const socialProviders: Parameters<typeof betterAuth>[0]["socialProviders"] =
     : {};
 
 export const auth = betterAuth({
+  // Trusted origins for cross-origin requests (Better Auth CSRF check).
+  //
+  // Better Auth v1.x validates the Origin header on every state-mutating
+  // request. Without this, all cross-origin auth calls from app.loop-storm.com
+  // to api.loop-storm.com are rejected with a CORS/403 error even when the
+  // Hono CORS middleware is correctly configured.
+  //
+  // We reuse ALLOWED_ORIGINS so both the Hono CORS middleware and Better Auth's
+  // internal CSRF check share a single source of truth.
+  trustedOrigins: env.ALLOWED_ORIGINS ?? [],
+
   // Use the postgres-js Drizzle instance as the database adapter.
   // provider: "pg" maps to the postgres.js / pg-core dialect.
   database: drizzleAdapter(db, {
