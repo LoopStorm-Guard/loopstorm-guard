@@ -187,6 +187,43 @@ export const auth = betterAuth({
   // Secret for signing session tokens and JWTs
   secret: env.BETTER_AUTH_SECRET,
 
+  // ---------------------------------------------------------------------------
+  // Field name mappings: Better Auth uses camelCase internally; our Drizzle
+  // schema uses snake_case JavaScript property names. Without these mappings
+  // the adapter throws "field X does not exist in the Y Drizzle schema".
+  // ---------------------------------------------------------------------------
+
+  user: {
+    fields: {
+      emailVerified: "email_verified",
+      createdAt: "created_at",
+      updatedAt: "updated_at",
+    },
+  },
+
+  account: {
+    fields: {
+      accountId: "account_id",
+      providerId: "provider_id",
+      userId: "user_id",
+      accessToken: "access_token",
+      refreshToken: "refresh_token",
+      idToken: "id_token",
+      accessTokenExpiresAt: "access_token_expires_at",
+      refreshTokenExpiresAt: "refresh_token_expires_at",
+      createdAt: "created_at",
+      updatedAt: "updated_at",
+    },
+  },
+
+  verification: {
+    fields: {
+      expiresAt: "expires_at",
+      createdAt: "created_at",
+      updatedAt: "updated_at",
+    },
+  },
+
   emailAndPassword: {
     // Enable email+password authentication
     enabled: true,
@@ -230,6 +267,14 @@ export const auth = betterAuth({
   socialProviders,
 
   session: {
+    fields: {
+      expiresAt: "expires_at",
+      createdAt: "created_at",
+      updatedAt: "updated_at",
+      ipAddress: "ip_address",
+      userAgent: "user_agent",
+      userId: "user_id",
+    },
     // Cache sessions in a cookie for 5 minutes to reduce DB lookups.
     // The cookie stores the session token; the DB is the source of truth.
     cookieCache: {
