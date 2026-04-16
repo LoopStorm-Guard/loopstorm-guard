@@ -11,6 +11,10 @@
 import { useSession } from "@/lib/auth-client";
 import Link from "next/link";
 
+// No skeleton: render unauthenticated state immediately and upgrade to
+// authenticated once the session resolves. This avoids a blank hero during
+// Vercel cold starts (isPending stays true for 2-3s on first wake).
+
 const primaryBtn =
   "group inline-flex items-center gap-2.5 rounded-xl bg-gradient-to-r from-[var(--color-accent-amber)] to-[#ff9933] px-8 py-4 text-[15px] font-bold text-[#0a0a0a] no-underline shadow-[0_0_24px_rgba(255,107,0,0.35)] transition-all duration-300 hover:shadow-[0_0_40px_rgba(255,107,0,0.55)] hover:scale-[1.03] active:scale-[0.98]";
 
@@ -47,19 +51,7 @@ function GitHubIcon() {
 }
 
 export function LandingCTA() {
-  const { data: session, isPending, error } = useSession();
-
-  // Show skeleton only while genuinely loading — not if the auth check errored.
-  // A backend error should fall through to the unauthenticated state so the
-  // page remains functional even when the API is temporarily unavailable.
-  if (isPending && !error) {
-    return (
-      <div className="flex flex-wrap justify-center gap-4">
-        <div className="h-14 w-48 animate-pulse rounded-xl bg-[rgba(255,107,0,0.1)]" />
-        <div className="h-14 w-40 animate-pulse rounded-xl bg-[var(--color-border)]" />
-      </div>
-    );
-  }
+  const { data: session } = useSession();
 
   if (session?.user) {
     return (
