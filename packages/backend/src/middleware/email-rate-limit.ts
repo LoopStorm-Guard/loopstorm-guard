@@ -23,9 +23,9 @@
  */
 
 import type { Context, Next } from "hono";
-import { emailRequestContext } from "../lib/request-context.js";
-import { hashEmailKey, incrementBucket } from "../lib/rate-limit-store.js";
 import { env } from "../env.js";
+import { hashEmailKey, incrementBucket } from "../lib/rate-limit-store.js";
+import { emailRequestContext } from "../lib/request-context.js";
 
 const FORGET_PASSWORD_PATH = "/api/auth/forget-password";
 const SEND_VERIFICATION_PATH = "/api/auth/send-verification-email";
@@ -64,15 +64,17 @@ function respond429(c: Context, retryAfter: number): Response {
  * The request body is JSON; we parse it defensively and treat a missing email
  * as a pass-through (Better Auth will reject the malformed payload downstream).
  */
-export async function emailRateLimit(c: Context, next: Next): Promise<Response | void> {
+export async function emailRateLimit(c: Context, next: Next): Promise<Response | undefined> {
   const path = c.req.path;
   const isForget = path === FORGET_PASSWORD_PATH;
   const isResend = path === SEND_VERIFICATION_PATH;
   if (!isForget && !isResend) {
-    return next();
+    await next();
+    return;
   }
   if (c.req.method !== "POST") {
-    return next();
+    await next();
+    return;
   }
 
   // Clone the body so Better Auth's handler can still read it.
@@ -83,10 +85,12 @@ export async function emailRateLimit(c: Context, next: Next): Promise<Response |
     if (typeof maybe === "string") email = maybe.trim().toLowerCase();
   } catch {
     // Malformed body — let Better Auth return its own 400.
-    return next();
+    await next();
+    return;
   }
   if (!email) {
-    return next();
+    await next();
+    return;
   }
 
   const ip = extractIp(c);
@@ -127,5 +131,6 @@ export async function emailRateLimit(c: Context, next: Next): Promise<Response |
 
   // Attach request context for the Better Auth send callbacks to read.
   const nonce = crypto.randomUUID();
-  return emailRequestContext.run({ ip, user_agent: userAgent, nonce }, () => next());
+  await emailRequestContext.run({ ip, user_agent: userAgent, nonce }, () => next());
+  return;
 }
