@@ -33,9 +33,10 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { eq } from "drizzle-orm";
 import { Resend } from "resend";
 import { db } from "./db/client.js";
-import { sessions, tenants, users } from "./db/schema.js";
+import { emailAuditLog, sessions, tenants, users } from "./db/schema.js";
 import * as schema from "./db/schema.js";
 import { env } from "./env.js";
+import { emailRequestContext } from "./lib/request-context.js";
 
 // ---------------------------------------------------------------------------
 // Post-registration tenant creation
@@ -132,6 +133,115 @@ const resend = env.RESEND_API_KEY ? new Resend(env.RESEND_API_KEY) : null;
 const FROM_ADDRESS = "LoopStorm Guard <noreply@loop-storm.com>";
 
 // ---------------------------------------------------------------------------
+// Email audit log (ADR-021 abuse detection)
+//
+// Every Resend send is bracketed by a row in `email_audit_log`:
+//   1. INSERT `{ send_status: 'pending', ip, user_agent, request_nonce }`
+//   2. `resend.emails.send(...)`
+//   3. UPDATE to `'sent'` with the Resend message id, or `'failed'` on throw.
+//
+// The `ip`, `user_agent`, `request_nonce`, and `user_id` fields come from the
+// AsyncLocalStorage context attached by the email-rate-limit middleware. When
+// the callback is invoked outside that middleware (e.g., Better Auth's own
+// email-on-signup path) the context is undefined and those fields are null.
+// ---------------------------------------------------------------------------
+
+type EmailAuditType = "password_reset" | "verification" | "resend_verification";
+
+// Resend's `emails.send()` resolves to `{ data, error }`, not a raw id. The
+// helper accepts that exact shape so callers can pass the Resend call straight
+// through without unwrapping.
+interface ResendSendResult {
+  data: { id?: string } | null;
+  error: unknown;
+}
+
+async function logEmailSend(params: {
+  email: string;
+  userId: string | null;
+  emailType: EmailAuditType;
+  send: () => Promise<ResendSendResult>;
+}): Promise<void> {
+  const ctx = emailRequestContext.getStore();
+  const nonce = ctx?.nonce ?? crypto.randomUUID();
+
+  // Resolve tenant_id from the user row so the audit row is visible under the
+  // tenant-isolation RLS policy. Null is fine for sends before a tenant is
+  // provisioned (e.g., during the sign-up verification email). DB failure here
+  // is non-fatal — we just skip populating the field.
+  let tenantId: string | null = null;
+  if (params.userId) {
+    try {
+      const [row] = await db
+        .select({ tenant_id: users.tenant_id })
+        .from(users)
+        .where(eq(users.id, params.userId));
+      tenantId = row?.tenant_id ?? null;
+    } catch (err) {
+      console.warn("[auth] tenant lookup for audit row failed:", err);
+    }
+  }
+
+  // Step 1: pending row so the send is observable even if the process dies.
+  try {
+    await db.insert(emailAuditLog).values({
+      user_id: params.userId,
+      tenant_id: tenantId,
+      email: params.email,
+      email_type: params.emailType,
+      ip: ctx?.ip ?? null,
+      user_agent: ctx?.user_agent ?? null,
+      send_status: "pending",
+      request_nonce: nonce,
+    });
+  } catch (err) {
+    // Audit-log write failures must not block the send (observability is
+    // non-critical; rate-limit enforcement already ran).
+    console.warn("[auth] email audit log insert failed:", err);
+  }
+
+  // Step 2 + 3: send, then update status.
+  let result: ResendSendResult;
+  try {
+    result = await params.send();
+  } catch (err) {
+    try {
+      await db
+        .update(emailAuditLog)
+        .set({ send_status: "failed" })
+        .where(eq(emailAuditLog.request_nonce, nonce));
+    } catch (auditErr) {
+      console.warn("[auth] email audit log update (failed) failed:", auditErr);
+    }
+    throw err;
+  }
+
+  // Resend reports provider-side failures via `result.error` rather than
+  // throwing. Treat those the same as a thrown error for audit purposes.
+  if (result.error) {
+    try {
+      await db
+        .update(emailAuditLog)
+        .set({ send_status: "failed" })
+        .where(eq(emailAuditLog.request_nonce, nonce));
+    } catch (auditErr) {
+      console.warn("[auth] email audit log update (failed) failed:", auditErr);
+    }
+    console.error("[auth] resend returned error:", result.error);
+    return;
+  }
+
+  try {
+    await db
+      .update(emailAuditLog)
+      .set({ send_status: "sent", resend_message_id: result.data?.id ?? null })
+      .where(eq(emailAuditLog.request_nonce, nonce));
+  } catch (err) {
+    console.warn("[auth] email audit log update (sent) failed:", err);
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Social providers
 // ---------------------------------------------------------------------------
 
@@ -224,6 +334,24 @@ export const auth = betterAuth({
     },
   },
 
+  // ADR-022 Layer 1 — Better Auth built-in rate limiter (per-IP). This caps
+  // the IP dimension for all auth endpoints; the per-email dimension is added
+  // by the Hono `emailRateLimit` middleware in app.ts. Fail-closed:
+  // rate-limited requests return 429 before reaching the Resend client.
+  rateLimit: {
+    enabled: true,
+    window: 60,
+    max: 10,
+    storage: "database",
+    customRules: {
+      "/sign-in/email": { window: 60, max: 10 },
+      "/sign-up/email": { window: 3600, max: 20 },
+      "/forget-password": { window: 3600, max: env.RATE_LIMIT_EMAIL_PER_HOUR },
+      "/send-verification-email": { window: 3600, max: env.RATE_LIMIT_EMAIL_PER_HOUR },
+      "/verify-email": { window: 3600, max: env.RATE_LIMIT_EMAIL_PER_HOUR },
+    },
+  },
+
   emailAndPassword: {
     // Enable email+password authentication
     enabled: true,
@@ -236,11 +364,17 @@ export const auth = betterAuth({
         console.warn("[auth] RESEND_API_KEY not set — password reset email disabled");
         return;
       }
-      await resend.emails.send({
-        from: FROM_ADDRESS,
-        to: user.email,
-        subject: "Reset your LoopStorm Guard password",
-        html: `<p>Click the link below to reset your password. This link expires in 1 hour.</p><p><a href="${url}">Reset Password</a></p><p>If you did not request a password reset, you can ignore this email.</p>`,
+      await logEmailSend({
+        email: user.email,
+        userId: user.id,
+        emailType: "password_reset",
+        send: () =>
+          resend.emails.send({
+            from: FROM_ADDRESS,
+            to: user.email,
+            subject: "Reset your LoopStorm Guard password",
+            html: `<p>Click the link below to reset your password. This link expires in 1 hour.</p><p><a href="${url}">Reset Password</a></p><p>If you did not request a password reset, you can ignore this email.</p>`,
+          }),
       });
     },
   },
@@ -255,11 +389,23 @@ export const auth = betterAuth({
         console.warn("[auth] RESEND_API_KEY not set — email verification disabled");
         return;
       }
-      await resend.emails.send({
-        from: FROM_ADDRESS,
-        to: user.email,
-        subject: "Verify your LoopStorm Guard account",
-        html: `<p>Click the link below to verify your email address and activate your account.</p><p><a href="${url}">Verify Email</a></p><p>If you did not create a LoopStorm Guard account, you can ignore this email.</p>`,
+      // `resend_verification` when the user explicitly clicks "resend"
+      // (the middleware set the nonce + ip); `verification` on the initial
+      // sign-up send (no middleware context).
+      const emailType: EmailAuditType = emailRequestContext.getStore()
+        ? "resend_verification"
+        : "verification";
+      await logEmailSend({
+        email: user.email,
+        userId: user.id,
+        emailType,
+        send: () =>
+          resend.emails.send({
+            from: FROM_ADDRESS,
+            to: user.email,
+            subject: "Verify your LoopStorm Guard account",
+            html: `<p>Click the link below to verify your email address and activate your account.</p><p><a href="${url}">Verify Email</a></p><p>If you did not create a LoopStorm Guard account, you can ignore this email.</p>`,
+          }),
       });
     },
   },

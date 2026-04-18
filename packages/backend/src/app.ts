@@ -34,6 +34,7 @@ import { auth } from "./auth.js";
 import { sql as pgSql } from "./db/client.js";
 import { env } from "./env.js";
 import { runTimeoutCheck } from "./jobs/timeout-checker.js";
+import { emailRateLimit } from "./middleware/email-rate-limit.js";
 import { createContext } from "./trpc/context.js";
 import { appRouter } from "./trpc/router.js";
 
@@ -65,11 +66,19 @@ app.use(
     },
     allowHeaders: ["Content-Type", "Authorization"],
     allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    exposeHeaders: ["Content-Length"],
+    exposeHeaders: ["Content-Length", "X-Commit-SHA"],
     maxAge: 600,
     credentials: true, // required for cookie-based Better Auth sessions
   })
 );
+
+// Surface the deployed commit SHA on every response so the frontend (and curl)
+// can detect stale-deploy bugs (e.g., "No procedure found on path …" when the
+// deployed Vercel Function is older than the frontend expects).
+app.use("*", async (c, next) => {
+  await next();
+  c.header("X-Commit-SHA", env.GIT_COMMIT ?? "unknown");
+});
 
 // ---------------------------------------------------------------------------
 // Health checks — unauthenticated, required by observability config
@@ -87,7 +96,18 @@ app.get("/api/health", async (c) => {
 
   const status = dbStatus === "ok" ? 200 : 503;
 
-  return c.json({ status: dbStatus === "ok" ? "ok" : "degraded", db: dbStatus }, status);
+  return c.json(
+    {
+      status: dbStatus === "ok" ? "ok" : "degraded",
+      db: dbStatus,
+      // Populated at build time by the Vercel deploy step so callers can tell
+      // whether the deployed backend matches the expected commit. This makes
+      // stale-deploy bugs ("No procedure found on path …") debuggable in one
+      // curl instead of guessing.
+      commit: env.GIT_COMMIT ?? "unknown",
+    },
+    status
+  );
 });
 
 app.get("/api/health/supervisor", async (c) => {
@@ -135,6 +155,13 @@ app.get("/api/internal/cron/timeout-checker", async (c) => {
 // Handles: POST /api/auth/sign-in/email, POST /api/auth/sign-up/email,
 //          GET  /api/auth/callback/:provider, POST /api/auth/sign-out, etc.
 // ---------------------------------------------------------------------------
+
+// Per-email + per-IP rate limiting for the email-triggering endpoints
+// (forget-password, send-verification-email). Must run BEFORE the Better Auth
+// handler so rate-limited requests never reach the Resend client.
+// ADR-022 Layer 1 (per-IP) is configured inside auth.ts; this middleware
+// adds the per-email dimension Better Auth does not expose.
+app.use("/api/auth/*", emailRateLimit);
 
 app.on(["GET", "POST"], "/api/auth/**", (c) => {
   return auth.handler(c.req.raw);

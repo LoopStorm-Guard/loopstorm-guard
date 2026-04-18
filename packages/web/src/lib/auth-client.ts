@@ -58,3 +58,19 @@ export async function resetPassword({
     body: { newPassword, token },
   });
 }
+
+/**
+ * Ask the server to (re)send a verification email for the given address.
+ * Rate limiting and abuse controls are enforced server-side (ADR-022 Layer 1
+ * + the Hono per-email middleware). The UI always shows a generic success
+ * message — never surface distinguishing errors to the DOM.
+ */
+export async function sendVerificationEmail({
+  email,
+  callbackURL,
+}: { email: string; callbackURL?: string }) {
+  return authClient.$fetch("/send-verification-email", {
+    method: "POST",
+    body: { email, callbackURL: callbackURL ?? "/onboarding" },
+  });
+}

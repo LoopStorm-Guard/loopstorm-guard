@@ -59,6 +59,19 @@ const envSchema = z.object({
   // We parse this via allowedOriginsSchema, not inline, because the production
   // requirement depends on NODE_ENV.
   ALLOWED_ORIGINS: allowedOriginsSchema,
+
+  // Email rate limiting (ADR-022 §Layer 1, ADR-021 §Abuse controls).
+  // Defaults mirror ADR-022's prescribed email-endpoint caps. Operators can
+  // tune these without a code change; the middleware reads from here.
+  RATE_LIMIT_EMAIL_PER_HOUR: z.coerce.number().int().min(1).max(1000).default(5),
+  RATE_LIMIT_RESEND_PER_DAY: z.coerce.number().int().min(1).max(1000).default(5),
+  RATE_LIMIT_RESEND_COOLDOWN_SECONDS: z.coerce.number().int().min(1).max(3600).default(60),
+
+  // Deploy-surface observability. Populated at build time by the Vercel
+  // deploy step (`VERCEL_GIT_COMMIT_SHA` forwarded into `GIT_COMMIT`) so
+  // every /api/health response and the X-Commit-SHA header surface the
+  // currently-deployed commit. "unknown" when running outside CI.
+  GIT_COMMIT: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -136,6 +149,10 @@ function loadEnv(): Env {
       PORT: Number(process.env.PORT ?? 3001),
       NODE_ENV: "test",
       ALLOWED_ORIGINS: [], // empty list is fine in test mode
+      RATE_LIMIT_EMAIL_PER_HOUR: 5,
+      RATE_LIMIT_RESEND_PER_DAY: 5,
+      RATE_LIMIT_RESEND_COOLDOWN_SECONDS: 60,
+      GIT_COMMIT: process.env.GIT_COMMIT,
     };
   }
 

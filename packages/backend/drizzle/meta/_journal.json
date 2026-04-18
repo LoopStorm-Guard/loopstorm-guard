@@ -22,6 +22,13 @@
       "when": 1712350800000,
       "tag": "0003_add_behavioral_telemetry",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1744934400000,
+      "tag": "0004_rate_limit_and_email_audit",
+      "breakpoints": true
     }
   ]
 }
