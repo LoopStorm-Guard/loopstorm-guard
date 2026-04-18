@@ -49,11 +49,14 @@ export function ForgotPasswordForm() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
+  // Deliberately no `error` state. The UI must present an identical outcome
+  // whether the email belongs to a registered account, is unregistered, is
+  // rate-limited, or hits a network error. Surfacing any distinguishing signal
+  // here enables account enumeration. Any internal error is logged to the
+  // console for developer visibility only.
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setError(null);
     setLoading(true);
 
     try {
@@ -62,13 +65,12 @@ export function ForgotPasswordForm() {
         redirectTo: "/reset-password",
       });
       if (result.error) {
-        setError(result.error.message ?? "Something went wrong. Please try again.");
-      } else {
-        setSubmitted(true);
+        console.warn("[forgot-password] server returned error", result.error);
       }
-    } catch {
-      setError("An unexpected error occurred. Please try again.");
+    } catch (err) {
+      console.warn("[forgot-password] network error", err);
     } finally {
+      setSubmitted(true);
       setLoading(false);
     }
   }
@@ -96,24 +98,6 @@ export function ForgotPasswordForm() {
       >
         Enter your email and we'll send you a reset link.
       </p>
-
-      {error && (
-        <div
-          style={{
-            padding: "0.5rem 0.75rem",
-            backgroundColor: "rgba(255, 59, 59, 0.1)",
-            border: "1px solid rgba(255, 59, 59, 0.3)",
-            borderRadius: "0.375rem",
-            color: "var(--color-accent-red)",
-            fontSize: "0.8125rem",
-            marginBottom: "1rem",
-          }}
-          role="alert"
-          data-testid="forgot-password-error"
-        >
-          {error}
-        </div>
-      )}
 
       {submitted ? (
         <output

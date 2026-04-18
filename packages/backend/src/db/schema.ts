@@ -22,7 +22,9 @@ import {
   index,
   integer,
   jsonb,
+  pgEnum,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   uniqueIndex,
@@ -364,6 +366,67 @@ export const policyPacks = pgTable("policy_packs", {
 });
 
 // ---------------------------------------------------------------------------
+// rate_limit_buckets  (ADR-022)
+// Service-scoped fixed-window bucket table. Deny-all RLS policy; only the
+// service role bypass is permitted to read/write. Composite primary key on
+// (key, window_start) makes the upsert `INSERT … ON CONFLICT DO UPDATE`
+// atomic under concurrent writers.
+// ---------------------------------------------------------------------------
+
+export const rateLimitBuckets = pgTable(
+  "rate_limit_buckets",
+  {
+    key: text("key").notNull(),
+    window_start: timestamp("window_start", { withTimezone: true }).notNull(),
+    count: integer("count").notNull().default(1),
+  },
+  (table) => [
+    primaryKey({ columns: [table.key, table.window_start] }),
+    index("rate_limit_buckets_window_start_idx").on(table.window_start),
+  ]
+);
+
+// ---------------------------------------------------------------------------
+// email_audit_log  (ADR-021 abuse detection)
+// One row per Resend send attempt. Middleware writes the 'pending' row with
+// ip/user_agent/nonce; the Better Auth callback updates it with the Resend
+// message id or a 'failed' status.
+// ---------------------------------------------------------------------------
+
+export const emailTypeEnum = pgEnum("email_type", [
+  "password_reset",
+  "verification",
+  "resend_verification",
+]);
+
+export const emailAuditLog = pgTable(
+  "email_audit_log",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    user_id: text("user_id").references(() => users.id, { onDelete: "set null" }),
+    tenant_id: uuid("tenant_id").references(() => tenants.id, {
+      onDelete: "set null",
+    }),
+    email: text("email").notNull(),
+    email_type: emailTypeEnum("email_type").notNull(),
+    sent_at: timestamp("sent_at", { withTimezone: true }).notNull().defaultNow(),
+    ip: text("ip"),
+    user_agent: text("user_agent"),
+    resend_message_id: text("resend_message_id"),
+    send_status: text("send_status").notNull().default("pending"),
+    // Correlation key written by the middleware so the Better Auth callback
+    // can update the same row (Better Auth does not pass request context into
+    // sendVerificationEmail / sendResetPassword).
+    request_nonce: text("request_nonce"),
+  },
+  (table) => [
+    index("email_audit_log_tenant_sent_idx").on(table.tenant_id, table.sent_at),
+    index("email_audit_log_email_sent_idx").on(table.email, table.sent_at),
+    index("email_audit_log_nonce_idx").on(table.request_nonce),
+  ]
+);
+
+// ---------------------------------------------------------------------------
 // Type exports — inferred from schema for use in application code
 // ---------------------------------------------------------------------------
 
@@ -399,3 +462,9 @@ export type NewSupervisorEscalation = typeof supervisorEscalations.$inferInsert;
 
 export type PolicyPack = typeof policyPacks.$inferSelect;
 export type NewPolicyPack = typeof policyPacks.$inferInsert;
+
+export type RateLimitBucket = typeof rateLimitBuckets.$inferSelect;
+export type NewRateLimitBucket = typeof rateLimitBuckets.$inferInsert;
+
+export type EmailAuditLogEntry = typeof emailAuditLog.$inferSelect;
+export type NewEmailAuditLogEntry = typeof emailAuditLog.$inferInsert;
