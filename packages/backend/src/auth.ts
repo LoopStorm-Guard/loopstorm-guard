@@ -165,10 +165,28 @@ async function logEmailSend(params: {
   const ctx = emailRequestContext.getStore();
   const nonce = ctx?.nonce ?? crypto.randomUUID();
 
+  // Resolve tenant_id from the user row so the audit row is visible under the
+  // tenant-isolation RLS policy. Null is fine for sends before a tenant is
+  // provisioned (e.g., during the sign-up verification email). DB failure here
+  // is non-fatal — we just skip populating the field.
+  let tenantId: string | null = null;
+  if (params.userId) {
+    try {
+      const [row] = await db
+        .select({ tenant_id: users.tenant_id })
+        .from(users)
+        .where(eq(users.id, params.userId));
+      tenantId = row?.tenant_id ?? null;
+    } catch (err) {
+      console.warn("[auth] tenant lookup for audit row failed:", err);
+    }
+  }
+
   // Step 1: pending row so the send is observable even if the process dies.
   try {
     await db.insert(emailAuditLog).values({
       user_id: params.userId,
+      tenant_id: tenantId,
       email: params.email,
       email_type: params.emailType,
       ip: ctx?.ip ?? null,

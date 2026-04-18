@@ -20,6 +20,24 @@ import { useEffect, useState } from "react";
 const COOLDOWN_MS = 60_000;
 const LS_KEY = "lsg_resend_verification_until";
 
+// localStorage is unavailable in some environments (iframes with 3rd-party
+// storage blocked, quota-exceeded, privacy modes). Any failure here is a UX
+// hint only — real enforcement is server-side — so swallow and continue.
+function readCooldownUntil(): number {
+  try {
+    return Number(localStorage.getItem(LS_KEY) ?? "0");
+  } catch {
+    return 0;
+  }
+}
+function writeCooldownUntil(until: number): void {
+  try {
+    localStorage.setItem(LS_KEY, String(until));
+  } catch {
+    // best-effort only
+  }
+}
+
 const inputStyle: React.CSSProperties = {
   width: "100%",
   padding: "0.5rem 0.75rem",
@@ -61,13 +79,13 @@ export function ResendVerificationLink() {
 
   useEffect(() => {
     // Rehydrate cooldown from localStorage so a refresh doesn't reset it.
-    const until = Number(localStorage.getItem(LS_KEY) ?? "0");
+    const until = readCooldownUntil();
     const remainingMs = until - Date.now();
     if (remainingMs > 0) setSecondsLeft(Math.ceil(remainingMs / 1000));
 
     const t = setInterval(() => {
       const now = Date.now();
-      const u = Number(localStorage.getItem(LS_KEY) ?? "0");
+      const u = readCooldownUntil();
       const rem = u - now;
       setSecondsLeft(rem > 0 ? Math.ceil(rem / 1000) : 0);
     }, 1000);
@@ -83,7 +101,7 @@ export function ResendVerificationLink() {
       // Never surface. Log only for dev debugging.
       console.warn("[resend-verification] network error", err);
     } finally {
-      localStorage.setItem(LS_KEY, String(Date.now() + COOLDOWN_MS));
+      writeCooldownUntil(Date.now() + COOLDOWN_MS);
       setSecondsLeft(Math.ceil(COOLDOWN_MS / 1000));
       setSubmitted(true);
       setLoading(false);

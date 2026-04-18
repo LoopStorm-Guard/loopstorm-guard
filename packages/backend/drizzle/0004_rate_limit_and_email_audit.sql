@@ -66,8 +66,14 @@ CREATE INDEX IF NOT EXISTS "email_audit_log_tenant_sent_idx"
 CREATE INDEX IF NOT EXISTS "email_audit_log_email_sent_idx"
   ON "email_audit_log" ("email", "sent_at" DESC);
 
-CREATE INDEX IF NOT EXISTS "email_audit_log_nonce_idx"
-  ON "email_audit_log" ("request_nonce");
+-- UNIQUE partial index: application code looks up audit rows by
+-- `request_nonce` to update the `pending` row once the Resend call resolves.
+-- A non-unique index would let a single UPDATE touch multiple rows if a nonce
+-- ever collides (unlikely under crypto.randomUUID, but the audit trail's
+-- integrity depends on strict 1:1 correlation).
+CREATE UNIQUE INDEX IF NOT EXISTS "email_audit_log_nonce_idx"
+  ON "email_audit_log" ("request_nonce")
+  WHERE "request_nonce" IS NOT NULL;
 
 ALTER TABLE "email_audit_log" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "email_audit_log" FORCE ROW LEVEL SECURITY;

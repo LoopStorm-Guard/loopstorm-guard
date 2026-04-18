@@ -16,6 +16,7 @@
  * directly (no Drizzle column name mapping).
  */
 
+import { sql } from "drizzle-orm";
 import {
   boolean,
   doublePrecision,
@@ -422,7 +423,12 @@ export const emailAuditLog = pgTable(
   (table) => [
     index("email_audit_log_tenant_sent_idx").on(table.tenant_id, table.sent_at),
     index("email_audit_log_email_sent_idx").on(table.email, table.sent_at),
-    index("email_audit_log_nonce_idx").on(table.request_nonce),
+    // Application code updates audit rows by request_nonce. UNIQUE (partial)
+    // index prevents a single UPDATE from touching multiple rows if a nonce
+    // collision ever occurs.
+    uniqueIndex("email_audit_log_nonce_idx")
+      .on(table.request_nonce)
+      .where(sql`${table.request_nonce} IS NOT NULL`),
   ]
 );
 

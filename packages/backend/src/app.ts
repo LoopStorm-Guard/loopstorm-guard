@@ -74,7 +74,7 @@ app.use(
 
 // Surface the deployed commit SHA on every response so the frontend (and curl)
 // can detect stale-deploy bugs (e.g., "No procedure found on path …" when the
-// Worker is older than the frontend expects).
+// deployed Vercel Function is older than the frontend expects).
 app.use("*", async (c, next) => {
   await next();
   c.header("X-Commit-SHA", env.GIT_COMMIT ?? "unknown");
