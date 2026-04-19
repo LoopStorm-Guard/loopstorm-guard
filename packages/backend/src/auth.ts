@@ -334,15 +334,27 @@ export const auth = betterAuth({
     },
   },
 
-  // ADR-022 Layer 1 — Better Auth built-in rate limiter (per-IP). This caps
-  // the IP dimension for all auth endpoints; the per-email dimension is added
-  // by the Hono `emailRateLimit` middleware in app.ts. Fail-closed:
-  // rate-limited requests return 429 before reaching the Resend client.
+  // ADR-022 Layer 1 — Better Auth built-in rate limiter (per-IP).
+  //
+  // Uses Better Auth's default in-memory storage (per Function instance).
+  // On Vercel serverless this means the limit is effectively
+  // `max × instance_count` rather than a true global cap — acceptable as a
+  // first line of defense against brute-force sign-in, because our Hono
+  // `emailRateLimit` middleware (app.ts) enforces the DB-backed per-IP AND
+  // per-email limits on the email-triggering endpoints where quota drain
+  // and inbox spam are the real concerns.
+  //
+  // NOT using `storage: "database"` here: that path requires Better Auth's
+  // own `rateLimit` model to be mapped in the drizzleAdapter schema above,
+  // and its migration to be applied. Enabling it without that wiring makes
+  // every auth request fail because Better Auth's rate limiter tries to
+  // read/write a table the adapter doesn't know about.
+  // Follow-up: wire the `rateLimit` model + migration if we want true
+  // cross-instance IP limiting (ADR-022 AC-22-2).
   rateLimit: {
     enabled: true,
     window: 60,
     max: 10,
-    storage: "database",
     customRules: {
       "/sign-in/email": { window: 60, max: 10 },
       "/sign-up/email": { window: 3600, max: 20 },
