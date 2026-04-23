@@ -175,6 +175,13 @@ app.use(
   "/api/trpc/**",
   trpcServer({
     router: appRouter,
+    // MUST match the mount path. @hono/trpc-server defaults this to "/trpc",
+    // and @trpc/server's fetchRequestHandler strips exactly `endpoint.length`
+    // chars from the URL path to compute the procedure name. Without this,
+    // the handler slices `/api/trpc/apiKeys.create` down to `trpc/apiKeys.create`
+    // and looks up a non-existent `trpc.apiKeys.create` procedure → 404
+    // "No procedure found on path trpc/apiKeys.create".
+    endpoint: "/api/trpc",
     createContext,
     onError: ({ path, error }) => {
       // Log internal errors server-side. Never expose stack traces to clients.
