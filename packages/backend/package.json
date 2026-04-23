@@ -16,7 +16,7 @@
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
-    "@hono/trpc-server": "^0.3.3",
+    "@hono/trpc-server": "^0.4.2",
     "@loopstorm/schemas": "*",
     "@trpc/server": "^11.0.0",
     "better-auth": "^1.2.5",
