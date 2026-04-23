@@ -638,7 +638,7 @@ jobs:
         # Always upload the HTML report so failures are diagnosable regardless
         # of whether an artifact already exists from a previous attempt.
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: playwright-report
           path: packages/web/playwright-report/
@@ -649,7 +649,7 @@ jobs:
         # Screenshots and traces are only written on failure (configured in
         # playwright.config.ts: screenshot: "only-on-failure", trace: "on-first-retry").
         if: failure()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: playwright-failure-artifacts
           path: packages/web/test-results/
@@ -660,7 +660,7 @@ jobs:
         # Backend and Next.js logs are invaluable for diagnosing E2E failures
         # that are caused by server errors rather than frontend issues.
         if: failure()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: e2e-server-logs
           path: /tmp/loopstorm-e2e-logs/
